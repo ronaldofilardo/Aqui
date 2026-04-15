@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 /**
  * Testes para a página de Pagamentos (Gestor)
- * 
+ *
  * Alterações cobertas:
  * 1. Consolidação de tabelas de consultores e estabelecimentos
  * 2. Filtros com checkboxes para tipo (consultores/estabelecimentos)
@@ -44,7 +44,7 @@ describe("Página Pagamentos - Consolidação e Filtros", () => {
     const filtrados = pagamentos.filter(
       (p) =>
         (filtroTipo.consultores && p.tipo === "consultor") ||
-        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento")
+        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento"),
     );
 
     expect(filtrados).toHaveLength(2);
@@ -62,7 +62,7 @@ describe("Página Pagamentos - Consolidação e Filtros", () => {
     const filtrados = pagamentos.filter(
       (p) =>
         (filtroTipo.consultores && p.tipo === "consultor") ||
-        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento")
+        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento"),
     );
 
     expect(filtrados).toHaveLength(2);
@@ -79,7 +79,7 @@ describe("Página Pagamentos - Consolidação e Filtros", () => {
     const filtrados = pagamentos.filter(
       (p) =>
         (filtroTipo.consultores && p.tipo === "consultor") ||
-        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento")
+        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento"),
     );
 
     expect(filtrados).toHaveLength(2);
@@ -95,7 +95,7 @@ describe("Página Pagamentos - Consolidação e Filtros", () => {
     const filtrados = pagamentos.filter(
       (p) =>
         (filtroTipo.consultores && p.tipo === "consultor") ||
-        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento")
+        (filtroTipo.estabelecimentos && p.tipo === "estabelecimento"),
     );
 
     expect(filtrados).toHaveLength(0);
@@ -127,8 +127,9 @@ describe("Página Pagamentos - Consolidação e Filtros", () => {
 
     const filtrados = pagamentos.filter(
       (p) =>
-        (filtroTipo.consultores && p.tipo === "consultor") &&
-        (!filtroStatus || p.status === filtroStatus)
+        filtroTipo.consultores &&
+        p.tipo === "consultor" &&
+        (!filtroStatus || p.status === filtroStatus),
     );
 
     expect(filtrados).toHaveLength(1);
@@ -170,7 +171,7 @@ describe("Pagamentos - Estrutura de Dados", () => {
       new Set([
         ...pagamentosConsultores.map((p) => p.status),
         ...pagamentosEstabelecimentos.map((p) => p.status),
-      ])
+      ]),
     ).sort();
 
     expect(statusesUnicos).toEqual(["PAGO", "PENDENTE", "PROCESSANDO"]);
