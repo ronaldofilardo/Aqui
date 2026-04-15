@@ -34,6 +34,12 @@ export async function GET(req: NextRequest) {
           pixTipo: true,
         },
       },
+      consultor: {
+        select: {
+          id: true,
+          usuario: { select: { nome: true } },
+        },
+      },
     },
     orderBy: { criadoEm: "desc" },
   });
@@ -50,6 +56,7 @@ export async function GET(req: NextRequest) {
     dataPagamento: Date | null;
     totalComissoes: number;
     pagas: number;
+    consultores: Array<{ id: string; nome: string }>;
   };
 
   // Agrupar comissões por estabelecimento
@@ -68,6 +75,7 @@ export async function GET(req: NextRequest) {
         dataPagamento: null,
         totalComissoes: 0,
         pagas: 0,
+        consultores: [],
       };
     }
     acc[estabId].valorTotal += Number(com.valorEstabelecimento);
@@ -78,6 +86,13 @@ export async function GET(req: NextRequest) {
       if (com.dataPagamento) {
         acc[estabId].dataPagamento = com.dataPagamento;
       }
+    }
+    // Adicionar consultor único
+    if (!acc[estabId].consultores.find((c) => c.id === com.consultor.id)) {
+      acc[estabId].consultores.push({
+        id: com.consultor.id,
+        nome: com.consultor.usuario.nome,
+      });
     }
     return acc;
   }, {});

@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from "react";
 
+interface Comissao {
+  id: string;
+  estabelecimento: string;
+  dataAgendamento: string | null;
+  dataRealizacao: string | null;
+  statusConsulta: string;
+  valorEstabelecimento?: number;
+  valorConsultor?: number;
+  statusPagamento: string;
+  consultor?: string;
+}
+
 interface Recibo {
   tipo: string;
   data: string;
@@ -10,6 +22,8 @@ interface Recibo {
   valor: string;
   txId: string;
   status: string;
+  comissoes?: Comissao[];
+  pagamentoId?: string;
 }
 
 interface PagamentoConsultor {
@@ -32,6 +46,7 @@ interface PagamentoEstabelecimento {
   quantidadeConsultas: number;
   status: string;
   dataPagamento: string | null;
+  consultores: Array<{ id: string; nome: string }>;
 }
 
 interface PixModalData {
@@ -48,6 +63,9 @@ interface ReciboData {
   recibo: Recibo | null;
   email: string;
   nome: string;
+  comissoes: Comissao[];
+  mesReferencia: number;
+  anoReferencia: number;
 }
 
 function PixPaymentModal({
@@ -134,10 +152,18 @@ function ReciboModal({
   if (!data.isOpen || !data.recibo) return null;
 
   const recibo = data.recibo;
+  const mesNome = new Date(
+    data.anoReferencia,
+    data.mesReferencia - 1,
+  ).toLocaleString("pt-BR", { month: "long", year: "numeric" });
+
+  const handleImprimir = () => {
+    window.print();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
           ✅ Recibo de Pagamento
         </h2>
@@ -179,16 +205,80 @@ function ReciboModal({
           </div>
         </div>
 
-        <div className="bg-blue-50 p-3 rounded-lg mb-6 text-xs text-blue-700">
+        {/* Detalhes das Comissões */}
+        {data.comissoes && data.comissoes.length > 0 && (
+          <div className="mt-6 py-4 border-t">
+            <h3 className="font-semibold text-gray-900 text-sm mb-4">
+              📋 Comissões Incluídas ({mesNome})
+            </h3>
+            <div className="space-y-3">
+              {data.comissoes.map((com) => (
+                <div
+                  key={com.id}
+                  className="bg-gray-50 p-3 rounded border border-gray-200 text-xs"
+                >
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium text-gray-900">
+                      {com.estabelecimento}
+                      {com.consultor && ` (${com.consultor})`}
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      R${" "}
+                      {(
+                        com.valorConsultor ||
+                        com.valorEstabelecimento ||
+                        0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="text-gray-600 space-y-1">
+                    {com.dataRealizacao && (
+                      <div>
+                        Realizada em:{" "}
+                        {new Date(com.dataRealizacao).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </div>
+                    )}
+                    {com.dataAgendamento && !com.dataRealizacao && (
+                      <div>
+                        Agendada para:{" "}
+                        {new Date(com.dataAgendamento).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </div>
+                    )}
+                    <div>Status: {com.statusConsulta}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+              <div className="text-xs text-blue-900 font-medium">
+                Total de {data.comissoes.length} consulta(s) no período
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-blue-50 p-3 rounded-lg my-6 text-xs text-blue-700">
           📧 Um recibo foi enviado para <strong>{data.email}</strong>
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-        >
-          Fechar
-        </button>
+        <div className="flex gap-3 print:hidden">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition"
+          >
+            Fechar
+          </button>
+          <button
+            onClick={handleImprimir}
+            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+          >
+            🖨️ Imprimir
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -219,8 +309,18 @@ export default function PagamentosPage() {
     recibo: null,
     email: "",
     nome: "",
+    comissoes: [],
+    mesReferencia: 0,
+    anoReferencia: 0,
   });
   const [loadingPix, setLoadingPix] = useState(false);
+
+  // Filtros
+  const [filtroTipo, setFiltroTipo] = useState({
+    consultores: true,
+    estabelecimentos: true,
+  });
+  const [filtroStatus, setFiltroStatus] = useState<string | "">("");
 
   useEffect(() => {
     setLoading(true);
@@ -287,6 +387,9 @@ export default function PagamentosPage() {
           recibo: data.recibo,
           email: pixModal.email,
           nome: pixModal.nome,
+          comissoes: data.comissoes || [],
+          mesReferencia: mes,
+          anoReferencia: ano,
         });
 
         setMsg(data.mensagem);
@@ -309,6 +412,52 @@ export default function PagamentosPage() {
       console.error(err);
     } finally {
       setLoadingPix(false);
+    }
+  };
+
+  const abrirModalRecibo = async (
+    tipo: "consultor" | "estabelecimento",
+    pagamento: PagamentoConsultor | PagamentoEstabelecimento,
+  ) => {
+    try {
+      const endpointRecibo =
+        tipo === "estabelecimento"
+          ? `/api/v1/gestor/pagamentos/estabelecimento/${pagamento.id}/recibo`
+          : `/api/v1/gestor/pagamentos/${pagamento.id}/recibo`;
+
+      const queryParams = new URLSearchParams();
+      queryParams.append("mes", mes.toString());
+      queryParams.append("ano", ano.toString());
+
+      const res = await fetch(`${endpointRecibo}?${queryParams.toString()}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        const nome =
+          tipo === "consultor"
+            ? (pagamento as PagamentoConsultor).consultor.usuario.nome
+            : (pagamento as PagamentoEstabelecimento).nomeFantasia;
+
+        const email =
+          tipo === "consultor"
+            ? (pagamento as PagamentoConsultor).consultor.usuario.email
+            : ((pagamento as PagamentoEstabelecimento).email ?? "");
+
+        setReciboModal({
+          isOpen: true,
+          recibo: data.recibo,
+          email,
+          nome,
+          comissoes: data.comissoes || [],
+          mesReferencia: mes,
+          anoReferencia: ano,
+        });
+      } else {
+        setMsg(data.error || "Erro ao carregar recibo");
+      }
+    } catch (err) {
+      setMsg("Erro ao carregar recibo");
+      console.error(err);
     }
   };
 
@@ -344,6 +493,26 @@ export default function PagamentosPage() {
     PAGO: "bg-green-100 text-green-700",
     FALHOU: "bg-red-100 text-red-700",
   };
+
+  // Filtrar pagamentos combinados
+  const pagamentosCombinados = [
+    ...(filtroTipo.consultores
+      ? pagamentosConsultores.map((p) => ({ ...p, tipo: "consultor" as const }))
+      : []),
+    ...(filtroTipo.estabelecimentos
+      ? pagamentosEstabelecimentos.map((p) => ({
+          ...p,
+          tipo: "estabelecimento" as const,
+        }))
+      : []),
+  ].filter((p) => !filtroStatus || p.status === filtroStatus);
+
+  const statusesUnicos = Array.from(
+    new Set([
+      ...pagamentosConsultores.map((p) => p.status),
+      ...pagamentosEstabelecimentos.map((p) => p.status),
+    ]),
+  ).sort();
 
   return (
     <div>
@@ -386,181 +555,227 @@ export default function PagamentosPage() {
         />
       </div>
 
+      {/* Filtros de Tipo */}
+      <div className="flex gap-6 mb-6 p-4 bg-gray-50 rounded-lg">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filtroTipo.consultores}
+            onChange={(e) =>
+              setFiltroTipo({ ...filtroTipo, consultores: e.target.checked })
+            }
+            className="rounded border-gray-300"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            👤 Consultores
+          </span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filtroTipo.estabelecimentos}
+            onChange={(e) =>
+              setFiltroTipo({
+                ...filtroTipo,
+                estabelecimentos: e.target.checked,
+              })
+            }
+            className="rounded border-gray-300"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            🏢 Estabelecimentos
+          </span>
+        </label>
+
+        {/* Filtro de Status */}
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="px-3 py-1 border rounded-lg text-sm ml-auto"
+        >
+          <option value="">📊 Todos os Status</option>
+          {statusesUnicos.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
         <p className="text-gray-500">Carregando...</p>
+      ) : pagamentosCombinados.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          {filtroTipo.consultores && filtroTipo.estabelecimentos
+            ? "Nenhum pagamento no período"
+            : "Nenhum pagamento encontrado com os filtros selecionados"}
+        </div>
       ) : (
-        <div className="space-y-6">
-          {/* Pagamentos de Consultores */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              Pagamentos a Consultores
-            </h2>
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Consultor
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Consultas
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Valor Total
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Status
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      PIX TxID
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Pago em
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pagamentosConsultores.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 font-medium">
-                        {p.consultor.usuario.nome}
-                      </td>
-                      <td className="px-6 py-3">{p.quantidadeConsultas}</td>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left px-6 py-3 text-gray-500">Tipo</th>
+                <th className="text-left px-6 py-3 text-gray-500">
+                  Beneficiário
+                </th>
+                <th className="text-left px-6 py-3 text-gray-500">Consultor</th>
+                <th className="text-left px-6 py-3 text-gray-500">Consultas</th>
+                <th className="text-left px-6 py-3 text-gray-500">
+                  Valor Total
+                </th>
+                <th className="text-left px-6 py-3 text-gray-500">Status</th>
+                <th className="text-left px-6 py-3 text-gray-500">
+                  Data Pagamento
+                </th>
+                <th className="text-left px-6 py-3 text-gray-500">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {pagamentosCombinados.map((p) => {
+                if (p.tipo === "consultor") {
+                  const pc = p as PagamentoConsultor & { tipo: "consultor" };
+                  return (
+                    <tr key={`consultor-${pc.id}`} className="hover:bg-gray-50">
                       <td className="px-6 py-3">
-                        R$ {Number(p.valorTotal).toFixed(2)}
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                          👤 Consultor
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 font-medium">
+                        {pc.consultor.usuario.nome}
+                      </td>
+                      <td className="px-6 py-3 text-gray-500">-</td>
+                      <td className="px-6 py-3">{pc.quantidadeConsultas}</td>
+                      <td className="px-6 py-3 font-medium">
+                        R$ {Number(pc.valorTotal).toFixed(2)}
                       </td>
                       <td className="px-6 py-3">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[p.status] || ""}`}
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[pc.status] || ""}`}
                         >
-                          {p.status}
+                          {pc.status}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-xs text-gray-400">
-                        {p.pixTxid || "-"}
-                      </td>
-                      <td className="px-6 py-3 text-xs text-gray-400">
-                        {p.pagoEm
-                          ? new Date(p.pagoEm).toLocaleDateString("pt-BR")
+                      <td className="px-6 py-3 text-xs text-gray-500">
+                        {pc.pagoEm
+                          ? new Date(pc.pagoEm).toLocaleDateString("pt-BR")
                           : "-"}
                       </td>
                       <td className="px-6 py-3">
-                        {p.status !== "PAGO" ? (
-                          <button
-                            onClick={() => abrirModalPix("consultor", p)}
-                            className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition font-medium"
-                          >
-                            💳 PIX
-                          </button>
+                        <div className="flex gap-2 items-center">
+                          {pc.status !== "PAGO" ? (
+                            <button
+                              onClick={() => abrirModalPix("consultor", pc)}
+                              className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition font-medium"
+                            >
+                              💳 PIX
+                            </button>
+                          ) : (
+                            <>
+                              <span className="text-xs text-green-600 font-medium">
+                                ✓ Pago
+                              </span>
+                              <button
+                                onClick={() =>
+                                  abrirModalRecibo("consultor", pc)
+                                }
+                                className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200 transition font-medium"
+                              >
+                                🧾 Recibo
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                } else {
+                  const pe = p as PagamentoEstabelecimento & {
+                    tipo: "estabelecimento";
+                  };
+                  return (
+                    <tr key={`estab-${pe.id}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-3">
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded">
+                          🏢 Estabelecimento
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 font-medium">
+                        {pe.nomeFantasia}
+                      </td>
+                      <td className="px-6 py-3 text-gray-700 text-xs">
+                        {pe.consultores.length > 0 ? (
+                          <div className="space-y-1">
+                            {pe.consultores.map((c) => (
+                              <div
+                                key={c.id}
+                                className="bg-blue-50 px-2 py-1 rounded"
+                              >
+                                {c.nome}
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <span className="text-xs text-green-600 font-medium">
-                            ✓ Pago
-                          </span>
+                          <span className="text-gray-400">-</span>
                         )}
                       </td>
-                    </tr>
-                  ))}
-                  {pagamentosConsultores.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-6 py-8 text-center text-gray-400"
-                      >
-                        Nenhum pagamento no período
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Pagamentos de Estabelecimentos */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">
-              Pagamentos a Estabelecimentos
-            </h2>
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Estabelecimento
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Consultas
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Valor Total
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Status
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">
-                      Pago em
-                    </th>
-                    <th className="text-left px-6 py-3 text-gray-500">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pagamentosEstabelecimentos.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3">{pe.quantidadeConsultas}</td>
                       <td className="px-6 py-3 font-medium">
-                        {p.nomeFantasia}
-                      </td>
-                      <td className="px-6 py-3">{p.quantidadeConsultas}</td>
-                      <td className="px-6 py-3">
-                        R$ {p.valorTotal.toFixed(2)}
+                        R$ {pe.valorTotal.toFixed(2)}
                       </td>
                       <td className="px-6 py-3">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[p.status] || ""}`}
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[pe.status] || ""}`}
                         >
-                          {p.status}
+                          {pe.status}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-xs text-gray-400">
-                        {p.dataPagamento
-                          ? new Date(p.dataPagamento).toLocaleDateString(
+                      <td className="px-6 py-3 text-xs text-gray-500">
+                        {pe.dataPagamento
+                          ? new Date(pe.dataPagamento).toLocaleDateString(
                               "pt-BR",
                             )
                           : "-"}
                       </td>
                       <td className="px-6 py-3">
-                        {p.status !== "PAGO" && p.pixChave ? (
-                          <button
-                            onClick={() => abrirModalPix("estabelecimento", p)}
-                            className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition font-medium"
-                          >
-                            💳 PIX
-                          </button>
-                        ) : p.status === "PAGO" ? (
-                          <span className="text-xs text-green-600 font-medium">
-                            ✓ Pago
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">
-                            Sem chave PIX
-                          </span>
-                        )}
+                        <div className="flex gap-2 items-center">
+                          {pe.status !== "PAGO" && pe.pixChave ? (
+                            <button
+                              onClick={() =>
+                                abrirModalPix("estabelecimento", pe)
+                              }
+                              className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition font-medium"
+                            >
+                              💳 PIX
+                            </button>
+                          ) : pe.status === "PAGO" ? (
+                            <>
+                              <span className="text-xs text-green-600 font-medium">
+                                ✓ Pago
+                              </span>
+                              <button
+                                onClick={() =>
+                                  abrirModalRecibo("estabelecimento", pe)
+                                }
+                                className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200 transition font-medium"
+                              >
+                                🧾 Recibo
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Sem chave PIX
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
-                  {pagamentosEstabelecimentos.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-8 text-center text-gray-400"
-                      >
-                        Nenhum pagamento no período
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                  );
+                }
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
