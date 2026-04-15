@@ -1,0 +1,12 @@
+node_modules/
+.next/
+dist/
+.env
+.env.local
+.env.production
+*.tsbuildinfo
+uploads/
+coverage/
+.turbo/
+.vercel/
+prisma/*.db

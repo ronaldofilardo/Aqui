@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoUsuario {
+  ADMIN
+  GESTOR
+  CONSULTOR
+}
+
+enum StatusUsuario {
+  ATIVO
+  INATIVO
+}
+
+enum TipoPix {
+  CPF
+  CNPJ
+  EMAIL
+  TELEFONE
+}
+
+enum TipoDocumento {
+  CNPJ
+  CPF_RESPONSAVEL
+}
+
+enum StatusCupom {
+  ATIVO
+  INATIVO
+}
+
+enum StatusCupomImportado {
+  DISPONIVEL
+  USADO
+  CANCELADO
+  EXPIRADO
+}
+
+enum StatusConsulta {
+  AGENDADA
+  REALIZADA
+  CANCELADA
+  NAO_COMPARECEU
+}
+
+enum StatusPagamentoComissao {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PROCESSANDO
+  PAGO
+  FALHOU
+}
+
+model Usuario {
+  id           String        @id @default(uuid()) @db.Uuid
+  nome         String        @db.VarChar(255)
+  email        String        @unique @db.VarChar(255)
+  senhaHash    String        @map("senha_hash") @db.VarChar(255)
+  tipo         TipoUsuario
+  telefone     String?       @db.VarChar(20)
+  status       StatusUsuario @default(ATIVO)
+  criadoEm     DateTime      @default(now()) @map("criado_em")
+  atualizadoEm DateTime      @default(now()) @updatedAt @map("atualizado_em")
+
+  consultor   Consultor?
+  cupomConfig CupomConfig[]
+  auditLogs   AuditLog[]
+
+  @@map("usuarios")
+}
+
+model Consultor {
+  id             String   @id @default(uuid()) @db.Uuid
+  usuarioId      String   @unique @map("usuario_id") @db.Uuid
+  cpf            String?  @unique @db.VarChar(14)
+  pixChave       String?  @map("pix_chave") @db.VarChar(100)
+  pixTipo        TipoPix? @map("pix_tipo")
+  bancoNome      String?  @map("banco_nome") @db.VarChar(100)
+  agencia        String?  @db.VarChar(10)
+  conta          String?  @db.VarChar(20)
+  totalConsultas Int      @default(0) @map("total_consultas")
+  totalComissoes Decimal  @default(0) @map("total_comissoes") @db.Decimal(10, 2)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+
+  usuario          Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  estabelecimentos Estabelecimento[]
+  comissoes        Comissao[]
+  pagamentos       Pagamento[]
+
+  @@map("consultores")
+}
+
+model Estabelecimento {
+  id              String        @id @default(uuid()) @db.Uuid
+  consultorId     String        @map("consultor_id") @db.Uuid
+  nomeFantasia    String        @map("nome_fantasia") @db.VarChar(255)
+  razaoSocial     String?       @map("razao_social") @db.VarChar(255)
+  cnpj            String?       @db.VarChar(20)
+  endereco        String?       @db.Text
+  cidade          String?       @db.VarChar(100)
+  estado          String?       @db.VarChar(2)
+  telefone        String?       @db.VarChar(20)
+  email           String?       @db.VarChar(255)
+  responsavelNome String?       @map("responsavel_nome") @db.VarChar(255)
+  responsavelCpf  String?       @map("responsavel_cpf") @db.VarChar(14)
+  pixChave        String?       @map("pix_chave") @db.VarChar(100)
+  pixTipo         TipoPix?      @map("pix_tipo")
+  bancoNome       String?       @map("banco_nome") @db.VarChar(100)
+  agencia         String?       @db.VarChar(10)
+  conta           String?       @db.VarChar(20)
+  status          StatusUsuario @default(ATIVO)
+  criadoEm        DateTime      @default(now()) @map("criado_em")
+
+  consultor   Consultor    @relation(fields: [consultorId], references: [id], onDelete: Cascade)
+  documentos  Documento[]
+  cupomConfig CupomConfig?
+  comissoes   Comissao[]
+
+  @@map("estabelecimentos")
+}
+
+model Documento {
+  id                String        @id @default(uuid()) @db.Uuid
+  estabelecimentoId String        @map("estabelecimento_id") @db.Uuid
+  tipo              TipoDocumento
+  urlArquivo        String        @map("url_arquivo") @db.Text
+  nomeOriginal      String?       @map("nome_original") @db.VarChar(255)
+  tamanhoBytes      Int?          @map("tamanho_bytes")
+  mimetype          String?       @db.VarChar(100)
+  criadoEm          DateTime      @default(now()) @map("criado_em")
+
+  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  @@map("documentos")
+}
+
+model CupomConfig {
+  id                String      @id @default(uuid()) @db.Uuid
+  estabelecimentoId String      @unique @map("estabelecimento_id") @db.Uuid
+  codigoCupom       String      @unique @map("codigo_cupom") @db.VarChar(50)
+  descricao         String?     @db.VarChar(255)
+  status            StatusCupom @default(ATIVO)
+  criadoEm          DateTime    @default(now()) @map("criado_em")
+  criadoPor         String      @map("criado_por") @db.Uuid
+
+  estabelecimento  Estabelecimento  @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  criadoPorUsuario Usuario          @relation(fields: [criadoPor], references: [id])
+  cuponsImportados CupomImportado[]
+
+  @@map("cupons_config")
+}
+
+model CupomImportado {
+  id                 String               @id @default(uuid()) @db.Uuid
+  cupomConfigId      String               @map("cupom_config_id") @db.Uuid
+  pacienteNome       String               @map("paciente_nome") @db.VarChar(255)
+  pacienteCpf        String?              @map("paciente_cpf") @db.VarChar(14)
+  campanha           String               @default("Acesso Saude Aqui") @db.VarChar(100)
+  servico            String               @default("Cupom") @db.VarChar(50)
+  precoOriginal      Decimal              @map("preco_original") @db.Decimal(10, 2)
+  descontoPercentual Decimal              @default(10.00) @map("desconto_percentual") @db.Decimal(5, 2)
+  precoFinal         Decimal              @map("preco_final") @db.Decimal(10, 2)
+  status             StatusCupomImportado @default(DISPONIVEL)
+  consultaId         String?              @map("consulta_id") @db.Uuid
+  usadoEm            DateTime?            @map("usado_em")
+  mesReferencia      Int                  @map("mes_referencia")
+  anoReferencia      Int                  @map("ano_referencia")
+  criadoEm           DateTime             @default(now()) @map("criado_em")
+
+  cupomConfig CupomConfig @relation(fields: [cupomConfigId], references: [id], onDelete: Cascade)
+  consulta    Consulta?
+
+  @@index([status])
+  @@map("cupons_importados")
+}
+
+model Consulta {
+  id               String         @id @default(uuid()) @db.Uuid
+  cupomImportadoId String         @unique @map("cupom_importado_id") @db.Uuid
+  dataAgendamento  DateTime?      @map("data_agendamento")
+  dataRealizacao   DateTime?      @map("data_realizacao")
+  status           StatusConsulta
+  valorPago        Decimal?       @map("valor_pago") @db.Decimal(10, 2)
+  criadoEm         DateTime       @default(now()) @map("criado_em")
+
+  cupomImportado CupomImportado @relation(fields: [cupomImportadoId], references: [id])
+  comissao       Comissao?
+
+  @@map("consultas")
+}
+
+model Comissao {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  consultaId           String                  @unique @map("consulta_id") @db.Uuid
+  estabelecimentoId    String                  @map("estabelecimento_id") @db.Uuid
+  consultorId          String                  @map("consultor_id") @db.Uuid
+  valorEstabelecimento Decimal                 @default(10.00) @map("valor_estabelecimento") @db.Decimal(10, 2)
+  valorConsultor       Decimal                 @default(20.00) @map("valor_consultor") @db.Decimal(10, 2)
+  mesReferencia        Int                     @map("mes_referencia")
+  anoReferencia        Int                     @map("ano_referencia")
+  statusPagamento      StatusPagamentoComissao @default(PENDENTE) @map("status_pagamento")
+  dataPagamento        DateTime?               @map("data_pagamento")
+  criadoEm             DateTime                @default(now()) @map("criado_em")
+
+  consulta        Consulta        @relation(fields: [consultaId], references: [id])
+  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id])
+  consultor       Consultor       @relation(fields: [consultorId], references: [id])
+
+  @@index([mesReferencia, anoReferencia])
+  @@index([consultorId])
+  @@map("comissoes")
+}
+
+model Pagamento {
+  id                  String          @id @default(uuid()) @db.Uuid
+  consultorId         String          @map("consultor_id") @db.Uuid
+  mesReferencia       Int             @map("mes_referencia")
+  anoReferencia       Int             @map("ano_referencia")
+  valorTotal          Decimal         @map("valor_total") @db.Decimal(10, 2)
+  quantidadeConsultas Int             @map("quantidade_consultas")
+  status              StatusPagamento @default(PENDENTE)
+  pixTxid             String?         @map("pix_txid") @db.VarChar(100)
+  dataPagamento       DateTime?       @map("data_pagamento")
+  criadoEm            DateTime        @default(now()) @map("criado_em")
+  pagoEm              DateTime?       @map("pago_em")
+
+  consultor Consultor @relation(fields: [consultorId], references: [id])
+
+  @@index([status])
+  @@map("pagamentos")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  usuarioId  String?  @map("usuario_id") @db.Uuid
+  acao       String   @db.VarChar(100)
+  entidade   String   @db.VarChar(100)
+  entidadeId String?  @map("entidade_id") @db.Uuid
+  detalhes   Json?
+  criadoEm   DateTime @default(now()) @map("criado_em")
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("audit_logs")
+}
