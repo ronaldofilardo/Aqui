@@ -6,6 +6,14 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
+    "@asa/database#build": {
+      "dependsOn": [],
+      "outputs": []
+    },
+    "@asa/shared#build": {
+      "dependsOn": [],
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

@@ -13,7 +13,7 @@ describe("Login", () => {
     cy.get("input[type='email']").type("wrong@test.com");
     cy.get("input[type='password']").type("wrongpass");
     cy.get("button[type='submit']").click();
-    cy.contains("Credenciais inválidas").should("be.visible");
+    cy.contains("Email ou senha inválidos").should("be.visible");
   });
 });
 

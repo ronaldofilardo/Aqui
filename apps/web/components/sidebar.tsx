@@ -7,23 +7,28 @@ import { signOut, useSession } from "next-auth/react";
 interface NavItem {
   label: string;
   href: string;
+  icon: string;
 }
 
 const gestorNav: NavItem[] = [
-  { label: "Dashboard", href: "/gestor/dashboard" },
-  { label: "Consultores", href: "/gestor/consultores" },
-  { label: "Importar Cupons", href: "/gestor/importar-cupons" },
-  { label: "Comissões", href: "/gestor/comissoes" },
-  { label: "Pagamentos", href: "/gestor/pagamentos" },
-  { label: "Auditoria", href: "/gestor/auditoria" },
+  { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
+  { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
+  { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
+  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
+  { label: "Pagamentos", href: "/gestor/pagamentos", icon: "💳" },
+  { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
 
 const consultorNav: NavItem[] = [
-  { label: "Estabelecimentos", href: "/consultor/estabelecimentos" },
-  { label: "Comissões", href: "/consultor/comissoes" },
-  { label: "Produtividade", href: "/consultor/produtividade" },
-  { label: "Extrato", href: "/consultor/extrato" },
-  { label: "Dados Pessoais", href: "/consultor/dados-pessoais" },
+  {
+    label: "Estabelecimentos",
+    href: "/consultor/estabelecimentos",
+    icon: "🏥",
+  },
+  { label: "Comissões", href: "/consultor/comissoes", icon: "💰" },
+  { label: "Produtividade", href: "/consultor/produtividade", icon: "📈" },
+  { label: "Extrato", href: "/consultor/extrato", icon: "📄" },
+  { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
 ];
 
 export function Sidebar() {
@@ -31,45 +36,76 @@ export function Sidebar() {
   const { data: session } = useSession();
   const tipo = session?.user?.tipo;
   const navItems = tipo === "GESTOR" ? gestorNav : consultorNav;
+  const initials = session?.user?.name
+    ? session.user.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .slice(0, 2)
+        .join("")
+    : "?";
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-primary-700">ASA</h1>
-        <p className="text-xs text-gray-500 mt-1">Acesso Saúde Aqui</p>
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-primary-600 flex flex-col shadow-xl overflow-y-auto z-40">
+      {/* Logo */}
+      <div className="px-6 py-5 border-b border-primary-500">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-primary-600 font-black text-sm leading-none">
+              AS
+            </span>
+          </div>
+          <div>
+            <h1 className="text-white font-bold text-base leading-tight">
+              Acesso Saúde
+            </h1>
+            <p className="text-primary-200 text-xs">Aqui</p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 active
-                  ? "bg-primary-50 text-primary-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-white text-primary-700 shadow-sm"
+                  : "text-white/85 hover:bg-primary-500 hover:text-white"
               }`}
             >
+              <span className="text-base leading-none">{item.icon}</span>
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600 mb-2">
-          {session?.user?.name}
-          <span className="block text-xs text-gray-400">
-            {session?.user?.email}
-          </span>
+      {/* User */}
+      <div className="px-3 py-4 border-t border-primary-500">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-700/50 mb-2">
+          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-600 font-bold text-xs">
+              {initials}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-white text-xs font-semibold truncate">
+              {session?.user?.name}
+            </p>
+            <p className="text-primary-200 text-xs truncate">
+              {session?.user?.email}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="text-sm text-red-600 hover:text-red-800 font-medium"
+          className="w-full text-left px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-primary-500 text-xs font-medium transition-all flex items-center gap-2"
         >
-          Sair
+          <span>🚪</span> Sair
         </button>
       </div>
     </aside>
