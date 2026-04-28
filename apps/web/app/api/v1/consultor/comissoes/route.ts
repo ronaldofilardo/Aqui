@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   });
 
   const total = comissoes.reduce(
-    (sum: number, c) => sum + Number(c.valorConsultor),
+    (sum: number, c: any) => sum + Number(c.valorConsultor),
     0,
   );
 
