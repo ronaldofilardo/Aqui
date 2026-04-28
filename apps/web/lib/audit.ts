@@ -7,13 +7,16 @@ export async function criarAuditLog(params: {
   entidadeId?: string;
   detalhes?: Record<string, unknown>;
 }) {
-  await prisma.auditLog.create({
-    data: {
-      usuarioId: params.usuarioId || null,
-      acao: params.acao,
-      entidade: params.entidade,
-      entidadeId: params.entidadeId || null,
-      detalhes: params.detalhes ?? undefined,
-    },
-  });
+  const data: Parameters<typeof prisma.auditLog.create>[0]['data'] = {
+    usuarioId: params.usuarioId || null,
+    acao: params.acao,
+    entidade: params.entidade,
+    entidadeId: params.entidadeId || null,
+  };
+  
+  if (params.detalhes !== undefined) {
+    data.detalhes = params.detalhes as any;
+  }
+  
+  await prisma.auditLog.create({ data });
 }
