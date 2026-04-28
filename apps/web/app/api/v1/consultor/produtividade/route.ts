@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     take: 5,
   });
 
-  const estabIds = topEstabs.map((e) => e.estabelecimentoId);
+  const estabIds = topEstabs.map((e: any) => e.estabelecimentoId);
   const estabs = await prisma.estabelecimento.findMany({
     where: { id: { in: estabIds } },
     select: { id: true, nomeFantasia: true },
