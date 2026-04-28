@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   return ok({
     mes,
     ano,
-    comissoes: comissoes.map((c) => ({
+    comissoes: comissoes.map((c: any) => ({
       id: c.id,
       pacienteNome: c.consulta?.cupomImportado?.pacienteNome ?? "—",
       servico: c.consulta?.cupomImportado?.servico ?? "—",
