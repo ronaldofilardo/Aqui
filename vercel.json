@@ -1,14 +1,6 @@
 {
   "buildCommand": "pnpm build",
   "framework": "nextjs",
-  "install": {
-    "args": ["install", "--frozen-lockfile"]
-  },
   "outputDirectory": "apps/web/.next",
-  "projectSettings": {
-    "installCommand": "pnpm install --frozen-lockfile",
-    "buildCommand": "pnpm build",
-    "outputDirectory": "apps/web/.next",
-    "rootDirectory": "."
-  }
+  "rootDirectory": "."
 }
