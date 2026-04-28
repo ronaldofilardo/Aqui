@@ -3,6 +3,7 @@
 ## 📋 Resumo do que foi preparado
 
 ### ✅ Validação de Build
+
 ```
 Status: PASSADO
 ├─ @asa/shared    → tsc ✅
@@ -16,6 +17,7 @@ Status: PASSADO
 ### 📁 Arquivos criados para deploy
 
 #### 1️⃣ `vercel.json`
+
 ```json
 {
   "buildCommand": "pnpm build",
@@ -24,9 +26,11 @@ Status: PASSADO
   "projectSettings": { ... }
 }
 ```
+
 ✅ Configuração de monorepo pronta
 
 #### 2️⃣ `.vercelignore`
+
 ```
 .env.local
 .env.test
@@ -35,15 +39,18 @@ Status: PASSADO
 node_modules
 ...
 ```
+
 ✅ Ignora arquivos desnecessários
 
 #### 3️⃣ `VERCEL_DEPLOYMENT.md`
+
 ```
 - Guia completo de variáveis de ambiente
 - Troubleshooting
 - Comandos de deploy
 - Migrations guide
 ```
+
 ✅ Documentação pronta
 
 ### 🔐 Variáveis de Ambiente Necessárias
@@ -86,15 +93,15 @@ ASAAS_SANDBOX       → false (produção)
 
 ### 📊 Build Info
 
-| Métrica | Valor |
-|---------|-------|
-| Framework | Next.js 14 |
-| Build Time | ~50s |
-| First Load JS | 96.1 kB |
-| Shared Chunks | 87.3 kB |
-| Middleware Size | 144 kB |
-| Páginas Estáticas | 40 |
-| Rotas API | 33+ |
+| Métrica           | Valor      |
+| ----------------- | ---------- |
+| Framework         | Next.js 14 |
+| Build Time        | ~50s       |
+| First Load JS     | 96.1 kB    |
+| Shared Chunks     | 87.3 kB    |
+| Middleware Size   | 144 kB     |
+| Páginas Estáticas | 40         |
+| Rotas API         | 33+        |
 
 ### ⚠️ Pontos Importantes
 
@@ -132,6 +139,6 @@ vercel --prod
 **Repositório**: Monorepo pnpm + Turbo  
 **Aplicação**: Next.js 14 + App Router  
 **Banco**: PostgreSQL (Neon neondb)  
-**Auth**: NextAuth v5  
+**Auth**: NextAuth v5
 
 **✅ Pronto para deploy em Vercel!**

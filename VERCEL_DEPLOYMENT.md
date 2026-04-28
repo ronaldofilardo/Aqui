@@ -1,12 +1,15 @@
 # 🚀 Guia de Deploy na Vercel
 
 ## Pré-requisitos
+
 - Projeto conectado ao repositório GitHub
 - Conta Vercel ativa
 - Acesso ao projeto no Vercel
 
 ## Build validado ✅
+
 O build passou com sucesso:
+
 - **Turbo**: 3 pacotes compilados
 - **Next.js**: Produção otimizada
 - **TypeScript**: Sem erros
@@ -17,12 +20,15 @@ O build passou com sucesso:
 Adicione as seguintes variáveis de ambiente no Vercel Dashboard → Project Settings → Environment Variables:
 
 ### Base de Dados (obrigatório)
+
 ```
 DATABASE_URL=postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
+
 ⚠️ **Importante**: Use a URL de produção do Neon (neondb)
 
 ### NextAuth (obrigatório)
+
 ```
 NEXTAUTH_SECRET=[gerar novo valor]
 NEXTAUTH_URL=https://seu-dominio.vercel.app (ou seu domínio customizado)
@@ -30,11 +36,13 @@ AUTH_SECRET=[mesmo valor de NEXTAUTH_SECRET]
 ```
 
 📝 Para gerar NEXTAUTH_SECRET seguro:
+
 ```bash
 openssl rand -base64 32
 ```
 
 ### Asaas Integration
+
 ```
 ASAAS_API_KEY=[sua_chave_api_asaas]
 ASAAS_SANDBOX=false  (produção) ou true (teste)
@@ -64,6 +72,7 @@ Root (Monorepo)
 ```
 
 Vercel detectará automaticamente:
+
 - Build Command: `pnpm build`
 - Output Directory: `apps/web/.next`
 - Framework: Next.js 14
@@ -77,6 +86,7 @@ pnpm db:migrate
 ```
 
 Ou via Vercel CLI após deploy:
+
 ```bash
 vercel env pull .env.production.local
 DATABASE_URL="your_production_url" pnpm prisma migrate deploy
@@ -85,20 +95,24 @@ DATABASE_URL="your_production_url" pnpm prisma migrate deploy
 ## Troubleshooting
 
 ### Erro 405 em PATCH routes
+
 - Causa: `NODE_ENV=production` em `.env.local`
 - Solução: Remove `.env.local` antes de fazer push, ou garanta que Vercel não carrega variáveis locais
 
 ### Conexão DATABASE_URL falhando
+
 - Verifica IP whitelist do Neon
 - Confirma sslmode=require na URL
 - Testa conexão: `psql [DATABASE_URL]`
 
 ### NextAuth session vazia
+
 - Verifica NEXTAUTH_SECRET é igual em todos os deploys
 - Confirma NEXTAUTH_URL em Environment Variables
 - Limpa cookies do navegador (Dev Tools → Application → Cookies)
 
 ### Build timeout
+
 - Verifica se Turbo cache está desabilitado
 - Incrementa Build timeout: Project Settings → Function Timeout
 - Valida `pnpm install` localmente antes de push

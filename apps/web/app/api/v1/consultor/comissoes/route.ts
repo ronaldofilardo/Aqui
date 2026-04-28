@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
     orderBy: { criadoEm: "desc" },
   });
 
-  const total = comissoes.reduce((sum, c) => sum + Number(c.valorConsultor), 0);
+  const total = comissoes.reduce(
+    (sum: number, c) => sum + Number(c.valorConsultor),
+    0,
+  );
 
   return ok({
     mes,

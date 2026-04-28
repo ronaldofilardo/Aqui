@@ -1,37 +1,45 @@
 # Environment files
+
 .env.local
 .env.test
-.env.*.local
+.env.\*.local
 
 # Development files
+
 .turbo
 .next
 dist
 node_modules
 
 # Git files
+
 .git
 .gitignore
 
 # IDE files
+
 .vscode
 .idea
-*.swp
-*.swo
+_.swp
+_.swo
 
 # Documentation
+
 README.md
 docs
 
 # Testing
+
 cypress
 vitest.config.ts
 .test
 
 # Build artifacts
+
 .turbo
-apps/*/.next
-packages/*/dist
+apps/_/.next
+packages/_/dist
 
 # Lock files (pnpm will install from pnpm-lock.yaml)
+
 pnpm-lock.yaml
