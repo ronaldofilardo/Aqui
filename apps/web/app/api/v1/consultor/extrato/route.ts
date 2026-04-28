@@ -12,8 +12,8 @@ export async function GET(req: NextRequest) {
   });
 
   const totalRecebido = pagamentos
-    .filter((p) => p.status === "PAGO")
-    .reduce((sum, p) => sum + Number(p.valorTotal), 0);
+    .filter((p: any) => p.status === "PAGO")
+    .reduce((sum: number, p: any) => sum + Number(p.valorTotal), 0);
 
   return ok({
     pagamentos,
