@@ -47,9 +47,9 @@ describe("invite-token", () => {
     });
 
     it("deve rejeitar um token com payload inválido", () => {
-      const invalidPayload = Buffer.from(JSON.stringify({ invalid: "data" })).toString(
-        "base64url",
-      );
+      const invalidPayload = Buffer.from(
+        JSON.stringify({ invalid: "data" }),
+      ).toString("base64url");
       const result = validateInviteToken(`${invalidPayload}.somesig`);
       expect(result).toBeNull();
     });
