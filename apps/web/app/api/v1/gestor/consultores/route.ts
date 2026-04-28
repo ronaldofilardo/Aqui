@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   const senhaHash = await hash(senha, 12);
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     const usuario = await tx.usuario.create({
       data: {
         nome,

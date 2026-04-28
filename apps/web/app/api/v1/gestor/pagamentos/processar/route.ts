@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update payment and commissions
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.pagamento.update({
         where: { id: pagamento.id },
         data: {

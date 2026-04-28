@@ -47,7 +47,7 @@ export async function PATCH(
 
   const { status, nome, telefone, ...consultorData } = parsed.data;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     if (status || nome || telefone) {
       await tx.usuario.update({
         where: { id: consultor.usuarioId },

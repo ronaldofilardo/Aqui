@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   const allErros = [...resultado.erros, ...dbErros];
 
   // Atomic import via transaction
-  const importados = await prisma.$transaction(async (tx) => {
+  const importados = await prisma.$transaction(async (tx: any) => {
     const created = [];
     for (const item of validados) {
       const precoFinal = item.preco * (1 - item.desconto / 100);

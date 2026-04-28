@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Create consultation and mark coupon as used in a transaction
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     const consulta = await tx.consulta.create({
       data: {
         cupomImportadoId: cupomImportado.id,
