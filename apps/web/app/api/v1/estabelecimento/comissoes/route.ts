@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const { session, error } = await requireEstabelecimento();
   if (error) return error;
 
-  const estabelecimentoId = (session!.user as any).estabelecimentoId as string;
+  const estabelecimentoId = session!.user.estabelecimentoId!;
 
   const url = new URL(req.url);
   const mes = Number(url.searchParams.get("mes")) || new Date().getMonth() + 1;
@@ -25,14 +25,14 @@ export async function GET(req: NextRequest) {
   });
 
   const total = comissoes.reduce(
-    (sum: any, c: any) => sum + Number(c.valorEstabelecimento),
+    (sum, c) => sum + Number(c.valorEstabelecimento),
     0,
   );
 
   return ok({
     mes,
     ano,
-    comissoes: comissoes.map((c: any) => ({
+    comissoes: comissoes.map((c) => ({
       id: c.id,
       pacienteNome: c.consulta?.cupomImportado?.pacienteNome ?? "—",
       servico: c.consulta?.cupomImportado?.servico ?? "—",

@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@asa/database";
 import { requireConsultor, ok, badRequest } from "@/lib/api-helpers";
-import { atualizarConsultorSchema } from "@asa/shared";
+import { atualizarConsultorSelfSchema } from "@asa/shared";
 
 export async function GET() {
   const { session, error } = await requireConsultor();
@@ -33,7 +33,7 @@ export async function PUT(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const parsed = atualizarConsultorSchema.safeParse(body);
+  const parsed = atualizarConsultorSelfSchema.safeParse(body);
 
   if (!parsed.success) {
     const errors: Record<string, string> = {};
@@ -73,7 +73,11 @@ export async function PUT(req: NextRequest) {
     });
 
     return ok({ message: "Dados atualizados com sucesso" });
-  } catch (err: any) {
-    return badRequest(err.message || "Erro ao atualizar dados");
+  } catch (err) {
+    console.error("[dados-pessoais] erro ao atualizar:", err);
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar dados" },
+      { status: 500 },
+    );
   }
 }

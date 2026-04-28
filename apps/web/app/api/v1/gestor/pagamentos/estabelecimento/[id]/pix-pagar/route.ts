@@ -93,13 +93,13 @@ export async function POST(
     status: "PAGAMENTO PROCESSADO",
   };
 
-  console.log("=".repeat(60));
-  console.log("📧 EMAIL SIMULADO - RECIBO DE PAGAMENTO (ESTABELECIMENTO)");
-  console.log("=".repeat(60));
-  console.log(`Para: ${emailDestino || "N/A"}`);
-  console.log(`Destinatário: ${estabelecimento.nomeFantasia}`);
-  console.log(`\n${JSON.stringify(recibo, null, 2)}`);
-  console.log("=".repeat(60));
+  // TODO: integrar com Sendgrid, AWS SES ou similar para envio real de email
+  console.info("[pix-pagar] recibo estabelecimento", {
+    para: emailDestino || "N/A",
+    beneficiario: estabelecimento.nomeFantasia,
+    txId,
+    referencia: recibo.referencia,
+  });
 
   await criarAuditLog({
     usuarioId: session!.user.id,

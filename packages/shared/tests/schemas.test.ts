@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   loginSchema,
   criarConsultorSchema,
+  atualizarConsultorSchema,
+  atualizarConsultorSelfSchema,
   criarEstabelecimentoSchema,
   criarCupomConfigSchema,
   agendarConsultaSchema,
@@ -168,11 +170,27 @@ describe("criarCupomConfigSchema", () => {
 });
 
 describe("agendarConsultaSchema", () => {
-  it("deve validar agendamento", () => {
+  it("deve exigir cupomImportadoId como UUID válido", () => {
+    const result = agendarConsultaSchema.safeParse({
+      codigoCupom: "A200-001",
+      cupomImportadoId: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("deve rejeitar sem cupomImportadoId", () => {
     const result = agendarConsultaSchema.safeParse({
       codigoCupom: "A200-001",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+  });
+
+  it("deve rejeitar cupomImportadoId inválido (não UUID)", () => {
+    const result = agendarConsultaSchema.safeParse({
+      codigoCupom: "A200-001",
+      cupomImportadoId: "nao-e-um-uuid",
+    });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -456,5 +474,50 @@ describe("criarEstabelecimentoSchema com dados bancários", () => {
       pixChave: undefined,
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("pixChave min(1) — rejeitar string vazia", () => {
+  it("deve rejeitar pixChave vazia em criarConsultorSchema", () => {
+    const result = criarConsultorSchema.safeParse({
+      nome: "João Silva",
+      email: "joao@email.com",
+      senha: "abc123",
+      pixChave: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("deve rejeitar pixChave vazia em criarEstabelecimentoSchema", () => {
+    const result = criarEstabelecimentoSchema.safeParse({
+      nomeFantasia: "Loja",
+      pixChave: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("deve rejeitar pixChave vazia em atualizarConsultorSchema", () => {
+    const result = atualizarConsultorSchema.safeParse({ pixChave: "" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("atualizarConsultorSelfSchema — não permite status", () => {
+  it("deve aceitar atualização de nome sem status", () => {
+    const result = atualizarConsultorSelfSchema.safeParse({
+      nome: "Novo Nome",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("deve ignorar/rejeitar campo status na atualização própria", () => {
+    // O omit torna status um campo desconhecido — Zod por padrão faz strip
+    const result = atualizarConsultorSelfSchema.safeParse({
+      nome: "Novo Nome",
+      status: "INATIVO",
+    });
+    expect(result.success).toBe(true);
+    // O campo status não deve estar no output (stripped por Zod)
+    expect((result.data as Record<string, unknown>).status).toBeUndefined();
   });
 });

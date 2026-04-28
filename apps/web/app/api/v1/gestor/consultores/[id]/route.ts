@@ -6,7 +6,7 @@ import { criarAuditLog } from "@/lib/audit";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { error } = await requireGestor();
   if (error) return error;
@@ -15,7 +15,15 @@ export async function GET(
   const consultor = await prisma.consultor.findUnique({
     where: { id },
     include: {
-      usuario: { select: { id: true, nome: true, email: true, telefone: true, status: true } },
+      usuario: {
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          telefone: true,
+          status: true,
+        },
+      },
       estabelecimentos: { include: { cupomConfig: true } },
       _count: { select: { comissoes: true, pagamentos: true } },
     },
@@ -27,7 +35,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { session, error } = await requireGestor();
   if (error) return error;

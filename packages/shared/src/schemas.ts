@@ -57,7 +57,7 @@ export const criarConsultorSchema = z
           val.replace(/\D/g, "").length >= 10,
         { message: "Telefone inválido" },
       ),
-    pixChave: z.string().optional(),
+    pixChave: z.string().min(1).optional(),
     pixTipo: z.enum(["CPF", "CNPJ", "EMAIL", "TELEFONE"]).optional(),
     bancoNome: z.string().optional(),
     agencia: z.string().optional(),
@@ -80,42 +80,52 @@ export const criarConsultorSchema = z
     },
   );
 
-export const atualizarConsultorSchema = z
-  .object({
-    nome: z.string().min(3).optional(),
-    telefone: z
-      .string()
-      .optional()
-      .refine(
-        (val) =>
-          !val ||
-          /^[\d\s\-\(\)]+$/.test(val) ||
-          val.replace(/\D/g, "").length >= 10,
-        { message: "Telefone inválido" },
-      ),
-    pixChave: z.string().optional(),
-    pixTipo: z.enum(["CPF", "CNPJ", "EMAIL", "TELEFONE"]).optional(),
-    bancoNome: z.string().optional(),
-    agencia: z.string().optional(),
-    conta: z.string().optional(),
-    status: z.enum(["ATIVO", "INATIVO"]).optional(),
-  })
-  .refine(
-    (data) => {
-      if (!data.pixChave || !data.pixTipo) return true;
-      if (data.pixTipo === "CPF") return validarCPF(data.pixChave);
-      if (data.pixTipo === "CNPJ") return validarCNPJ(data.pixChave);
-      if (data.pixTipo === "EMAIL")
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.pixChave);
-      if (data.pixTipo === "TELEFONE")
-        return data.pixChave.replace(/\D/g, "").length >= 10;
-      return true;
-    },
-    {
-      message: "Chave PIX inválida para o tipo selecionado",
-      path: ["pixChave"],
-    },
-  );
+const atualizarConsultorBaseSchema = z.object({
+  nome: z.string().min(3).optional(),
+  telefone: z
+    .string()
+    .optional()
+    .refine(
+      (val) =>
+        !val ||
+        /^[\d\s\-\(\)]+$/.test(val) ||
+        val.replace(/\D/g, "").length >= 10,
+      { message: "Telefone inválido" },
+    ),
+  pixChave: z.string().min(1).optional(),
+  pixTipo: z.enum(["CPF", "CNPJ", "EMAIL", "TELEFONE"]).optional(),
+  bancoNome: z.string().optional(),
+  agencia: z.string().optional(),
+  conta: z.string().optional(),
+  status: z.enum(["ATIVO", "INATIVO"]).optional(),
+});
+
+const pixValidation = (data: { pixChave?: string; pixTipo?: string }) => {
+  if (!data.pixChave || !data.pixTipo) return true;
+  if (data.pixTipo === "CPF") return validarCPF(data.pixChave);
+  if (data.pixTipo === "CNPJ") return validarCNPJ(data.pixChave);
+  if (data.pixTipo === "EMAIL")
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.pixChave);
+  if (data.pixTipo === "TELEFONE")
+    return data.pixChave.replace(/\D/g, "").length >= 10;
+  return true;
+};
+
+export const atualizarConsultorSchema = atualizarConsultorBaseSchema.refine(
+  pixValidation,
+  {
+    message: "Chave PIX inválida para o tipo selecionado",
+    path: ["pixChave"],
+  },
+);
+
+// Schema para self-update: exclui o campo status (consultor não pode se auto-desativar/ativar)
+export const atualizarConsultorSelfSchema = atualizarConsultorBaseSchema
+  .omit({ status: true })
+  .refine(pixValidation, {
+    message: "Chave PIX inválida para o tipo selecionado",
+    path: ["pixChave"],
+  });
 
 export const criarEstabelecimentoSchema = z
   .object({
@@ -136,7 +146,7 @@ export const criarEstabelecimentoSchema = z
     email: z.string().email().optional().or(z.literal("")),
     responsavelNome: z.string().optional(),
     responsavelCpf: z.string().optional(),
-    pixChave: z.string().optional(),
+    pixChave: z.string().min(1).optional(),
     pixTipo: z.enum(["CPF", "CNPJ", "EMAIL", "TELEFONE"]).optional(),
     bancoNome: z.string().optional(),
     agencia: z.string().optional(),
@@ -178,7 +188,7 @@ export const atualizarEstabelecimentoSchema = z
     email: z.string().email().optional().or(z.literal("")),
     responsavelNome: z.string().optional(),
     responsavelCpf: z.string().optional(),
-    pixChave: z.string().optional(),
+    pixChave: z.string().min(1).optional(),
     pixTipo: z.enum(["CPF", "CNPJ", "EMAIL", "TELEFONE"]).optional(),
     bancoNome: z.string().optional(),
     agencia: z.string().optional(),
@@ -215,6 +225,7 @@ export const importarCuponsSchema = z.object({
 
 export const agendarConsultaSchema = z.object({
   codigoCupom: z.string().min(1, "Código do cupom é obrigatório"),
+  cupomImportadoId: z.string().uuid("ID do cupom importado inválido"),
   dataAgendamento: z.string().datetime().optional(),
 });
 
@@ -231,6 +242,9 @@ export const processarPagamentosSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CriarConsultorInput = z.infer<typeof criarConsultorSchema>;
 export type AtualizarConsultorInput = z.infer<typeof atualizarConsultorSchema>;
+export type AtualizarConsultorSelfInput = z.infer<
+  typeof atualizarConsultorSelfSchema
+>;
 export type CriarEstabelecimentoInput = z.infer<
   typeof criarEstabelecimentoSchema
 >;

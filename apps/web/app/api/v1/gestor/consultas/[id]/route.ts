@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { requireGestor, ok, badRequest, notFound } from "@/lib/api-helpers";
-import { atualizarConsultaSchema, COMISSAO_ESTABELECIMENTO, COMISSAO_CONSULTOR } from "@asa/shared";
+import {
+  atualizarConsultaSchema,
+  COMISSAO_ESTABELECIMENTO,
+  COMISSAO_CONSULTOR,
+} from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { session, error } = await requireGestor();
   if (error) return error;

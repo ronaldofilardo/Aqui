@@ -9,19 +9,24 @@ const createCupomSchema = z.object({
     .string()
     .min(1, "Código do cupom é obrigatório")
     .max(50, "Código do cupom deve ter no máximo 50 caracteres")
-    .regex(/^[A-Za-z0-9_-]+$/, "Código deve conter apenas letras, números, _ ou -"),
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      "Código deve conter apenas letras, números, _ ou -",
+    ),
   descricao: z.string().max(255).optional(),
 });
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { error } = await requireGestor();
   if (error) return error;
 
+  const { id } = await params;
+
   const consultor = await prisma.consultor.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       usuario: { select: { id: true, nome: true, email: true } },
       estabelecimentos: {
@@ -51,7 +56,7 @@ export async function GET(
       nome: consultor.usuario.nome,
       email: consultor.usuario.email,
     },
-    estabelecimentos: (consultor.estabelecimentos as any[]).map((e: any) => ({
+    estabelecimentos: consultor.estabelecimentos.map((e) => ({
       id: e.id,
       nomeFantasia: e.nomeFantasia,
       cidade: e.cidade,
@@ -63,7 +68,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { session, error } = await requireGestor();
   if (error) return error;
@@ -75,10 +80,11 @@ export async function POST(
   }
 
   const { estabelecimentoId, codigoCupom, descricao } = parsed.data;
+  const { id } = await params;
 
   // Verify the estabelecimento belongs to this consultor
   const estabelecimento = await prisma.estabelecimento.findFirst({
-    where: { id: estabelecimentoId, consultorId: params.id },
+    where: { id: estabelecimentoId, consultorId: id },
   });
   if (!estabelecimento) {
     return notFound("Estabelecimento não encontrado para este consultor");
@@ -89,7 +95,9 @@ export async function POST(
     where: { estabelecimentoId },
   });
   if (existing) {
-    return badRequest("Este estabelecimento já possui um código de cupom cadastrado");
+    return badRequest(
+      "Este estabelecimento já possui um código de cupom cadastrado",
+    );
   }
 
   // Check unique cupom code
@@ -114,7 +122,7 @@ export async function POST(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { error } = await requireGestor();
   if (error) return error;
@@ -123,11 +131,13 @@ export async function DELETE(
   const cupomConfigId = searchParams.get("cupomConfigId");
   if (!cupomConfigId) return badRequest("cupomConfigId é obrigatório");
 
+  const { id } = await params;
+
   // Verify ownership chain: cupomConfig → estabelecimento → consultor
   const cupomConfig = await prisma.cupomConfig.findFirst({
     where: {
       id: cupomConfigId,
-      estabelecimento: { consultorId: params.id },
+      estabelecimento: { consultorId: id },
     },
     include: { _count: { select: { cuponsImportados: true } } },
   });
@@ -136,7 +146,7 @@ export async function DELETE(
 
   if (cupomConfig._count.cuponsImportados > 0) {
     return badRequest(
-      "Não é possível remover: existem cupons importados com este código"
+      "Não é possível remover: existem cupons importados com este código",
     );
   }
 

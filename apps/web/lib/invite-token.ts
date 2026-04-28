@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 
 const EXPIRES_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
@@ -10,7 +10,11 @@ function secret(): string {
 
 export function generateInviteToken(estabelecimentoId: string): string {
   const payload = Buffer.from(
-    JSON.stringify({ id: estabelecimentoId, exp: Date.now() + EXPIRES_MS }),
+    JSON.stringify({
+      id: estabelecimentoId,
+      exp: Date.now() + EXPIRES_MS,
+      nonce: randomBytes(8).toString("hex"),
+    }),
   ).toString("base64url");
 
   const sig = createHmac("sha256", secret())

@@ -6,41 +6,12 @@ export async function GET(_req: NextRequest) {
   const { session, error } = await requireEstabelecimento();
   if (error) return error;
 
-  const estabelecimentoId = (session!.user as any).estabelecimentoId as string;
+  const estabelecimentoId = session!.user.estabelecimentoId!;
 
   const now = new Date();
   const mesAtual = now.getMonth() + 1;
   const anoAtual = now.getFullYear();
 
-  // Contadores do mês atual
-  const [consultasMes, comissoesMes] = await Promise.all([
-    prisma.comissao.count({
-      where: {
-        estabelecimentoId,
-        mesReferencia: mesAtual,
-        anoReferencia: anoAtual,
-      },
-    }),
-    prisma.comissao.aggregate({
-      where: {
-        estabelecimentoId,
-        mesReferencia: mesAtual,
-        anoReferencia: anoAtual,
-      },
-      _sum: { valorEstabelecimento: true },
-    }),
-  ]);
-
-  // Totais históricos
-  const [consultasTotal, comissoesTotal] = await Promise.all([
-    prisma.comissao.count({ where: { estabelecimentoId } }),
-    prisma.comissao.aggregate({
-      where: { estabelecimentoId },
-      _sum: { valorEstabelecimento: true },
-    }),
-  ]);
-
-  // Evolução últimos 6 meses
   const mesesLabels = [
     "Jan",
     "Fev",
@@ -55,37 +26,60 @@ export async function GET(_req: NextRequest) {
     "Nov",
     "Dez",
   ];
-  const evolucao = [];
+
+  // Últimos 6 meses
+  const ultimos6: { mes: number; ano: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const mes = d.getMonth() + 1;
-    const ano = d.getFullYear();
-    const [count, soma] = await Promise.all([
-      prisma.comissao.count({
-        where: { estabelecimentoId, mesReferencia: mes, anoReferencia: ano },
-      }),
-      prisma.comissao.aggregate({
-        where: { estabelecimentoId, mesReferencia: mes, anoReferencia: ano },
-        _sum: { valorEstabelecimento: true },
-      }),
-    ]);
-    evolucao.push({
-      mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
-      consultas: count,
-      comissao: Number(soma._sum.valorEstabelecimento || 0),
-    });
+    ultimos6.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
   }
+
+  // Uma única query agrupada + totais em paralelo (fix N+1)
+  const [groupedByMonth, totaisAggregate] = await Promise.all([
+    prisma.comissao.groupBy({
+      by: ["mesReferencia", "anoReferencia"],
+      where: { estabelecimentoId },
+      _count: { id: true },
+      _sum: { valorEstabelecimento: true },
+    }),
+    prisma.comissao.aggregate({
+      where: { estabelecimentoId },
+      _count: { id: true },
+      _sum: { valorEstabelecimento: true },
+    }),
+  ]);
+
+  const byMonthMap = new Map(
+    groupedByMonth.map((g) => [
+      `${g.mesReferencia}-${g.anoReferencia}`,
+      { count: g._count.id, soma: Number(g._sum.valorEstabelecimento ?? 0) },
+    ]),
+  );
+
+  const evolucao = ultimos6.map(({ mes, ano }) => {
+    const d = byMonthMap.get(`${mes}-${ano}`) ?? { count: 0, soma: 0 };
+    return {
+      mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
+      consultas: d.count,
+      comissao: d.soma,
+    };
+  });
+
+  const mesSelecionado = byMonthMap.get(`${mesAtual}-${anoAtual}`) ?? {
+    count: 0,
+    soma: 0,
+  };
 
   return ok({
     mes: mesAtual,
     ano: anoAtual,
     mesSelecionado: {
-      consultas: consultasMes,
-      comissao: Number(comissoesMes._sum.valorEstabelecimento || 0),
+      consultas: mesSelecionado.count,
+      comissao: mesSelecionado.soma,
     },
     totais: {
-      consultas: consultasTotal,
-      comissao: Number(comissoesTotal._sum.valorEstabelecimento || 0),
+      consultas: totaisAggregate._count.id,
+      comissao: Number(totaisAggregate._sum.valorEstabelecimento ?? 0),
     },
     evolucao,
   });

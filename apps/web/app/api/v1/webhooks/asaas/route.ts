@@ -1,9 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@asa/database";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
-  // Validate the webhook source (in production, verify Asaas signature)
+  // Validate webhook origin using the shared token configured in Asaas dashboard
+  const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN;
+  if (!webhookToken) {
+    console.error("ASAAS_WEBHOOK_TOKEN não configurado");
+    return NextResponse.json(
+      { error: "Configuração inválida" },
+      { status: 500 },
+    );
+  }
+
+  const incomingToken = req.headers.get("access_token") ?? "";
+  let tokenValid = false;
+  try {
+    tokenValid =
+      incomingToken.length === webhookToken.length &&
+      timingSafeEqual(Buffer.from(incomingToken), Buffer.from(webhookToken));
+  } catch {
+    tokenValid = false;
+  }
+
+  if (!tokenValid) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
   const body = await req.json();
 
   const { event, transfer } = body;

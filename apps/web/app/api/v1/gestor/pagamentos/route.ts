@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   });
 
   // Pagamentos de estabelecimentos (agrupado por estabelecimento)
-  const comissoes = await prisma.comissao.findMany({
+  const comissoes = (await prisma.comissao.findMany({
     where: { mesReferencia: mes, anoReferencia: ano },
     include: {
       estabelecimento: {
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: { criadoEm: "desc" },
-  }) as any[];
+  })) as any[];
 
   type EstabGroup = {
     id: string;
@@ -60,42 +60,47 @@ export async function GET(req: NextRequest) {
   };
 
   // Agrupar comissões por estabelecimento
-  const grouped = comissoes.reduce((acc: Record<string, EstabGroup>, com: any) => {
-    const estabId = com.estabelecimento.id;
-    if (!acc[estabId]) {
-      acc[estabId] = {
-        id: estabId,
-        nomeFantasia: com.estabelecimento.nomeFantasia,
-        email: com.estabelecimento.email,
-        pixChave: com.estabelecimento.pixChave,
-        pixTipo: com.estabelecimento.pixTipo,
-        valorTotal: 0,
-        quantidadeConsultas: 0,
-        status: "PENDENTE",
-        dataPagamento: null,
-        totalComissoes: 0,
-        pagas: 0,
-        consultores: [],
-      };
-    }
-    acc[estabId].valorTotal += Number(com.valorEstabelecimento);
-    acc[estabId].quantidadeConsultas += 1;
-    acc[estabId].totalComissoes += 1;
-    if (com.statusPagamento === "PAGO") {
-      acc[estabId].pagas += 1;
-      if (com.dataPagamento) {
-        acc[estabId].dataPagamento = com.dataPagamento;
+  const grouped = comissoes.reduce(
+    (acc: Record<string, EstabGroup>, com: any) => {
+      const estabId = com.estabelecimento.id;
+      if (!acc[estabId]) {
+        acc[estabId] = {
+          id: estabId,
+          nomeFantasia: com.estabelecimento.nomeFantasia,
+          email: com.estabelecimento.email,
+          pixChave: com.estabelecimento.pixChave,
+          pixTipo: com.estabelecimento.pixTipo,
+          valorTotal: 0,
+          quantidadeConsultas: 0,
+          status: "PENDENTE",
+          dataPagamento: null,
+          totalComissoes: 0,
+          pagas: 0,
+          consultores: [],
+        };
       }
-    }
-    // Adicionar consultor único
-    if (!acc[estabId].consultores.find((c: any) => c.id === com.consultor.id)) {
-      acc[estabId].consultores.push({
-        id: com.consultor.id,
-        nome: com.consultor.usuario.nome,
-      });
-    }
-    return acc;
-  }, {});
+      acc[estabId].valorTotal += Number(com.valorEstabelecimento);
+      acc[estabId].quantidadeConsultas += 1;
+      acc[estabId].totalComissoes += 1;
+      if (com.statusPagamento === "PAGO") {
+        acc[estabId].pagas += 1;
+        if (com.dataPagamento) {
+          acc[estabId].dataPagamento = com.dataPagamento;
+        }
+      }
+      // Adicionar consultor único
+      if (
+        !acc[estabId].consultores.find((c: any) => c.id === com.consultor.id)
+      ) {
+        acc[estabId].consultores.push({
+          id: com.consultor.id,
+          nome: com.consultor.usuario.nome,
+        });
+      }
+      return acc;
+    },
+    {},
+  );
 
   // Status PAGO somente se TODAS as comissões estão pagas
   const pagamentosEstabelecimentos = Object.values(grouped).map((g: any) => {

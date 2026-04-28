@@ -126,11 +126,11 @@ export async function GET() {
       mesAtual: mes,
       anoAtual: ano,
     },
-    topConsultores: (topConsultores as any[]).map((c: any) => ({
+    topConsultores: topConsultores.map((c) => ({
       nome: c.usuario.nome,
       totalConsultas: c.totalConsultas,
       totalComissoes: Number(c.totalComissoes),
     })),
-    evolucao: evolucao.reverse(),
+    evolucao: evolucao,
   });
 }

@@ -2,16 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@asa/database";
 import { badRequest } from "@/lib/api-helpers";
+import { validateInviteToken } from "@/lib/invite-token";
+import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 5 registrations per minute per IP
+  const ip = getClientIp(req);
+  if (!checkRateLimit(`registrar:${ip}`, { max: 5, windowMs: 60_000 })) {
+    return tooManyRequests(60_000);
+  }
+
   try {
     const body = await req.json();
-    const { email, senha, estabelecimentoId, nome } = body;
+    const { email, senha, nome, inviteToken } = body;
 
-    if (!email || !senha || !estabelecimentoId || !nome) {
-      return badRequest(
-        "Campos obrigatórios: email, senha, estabelecimentoId, nome",
+    // Validate invite token first — prevents enumeration of estabelecimentoIds
+    if (!inviteToken || typeof inviteToken !== "string") {
+      return NextResponse.json(
+        { error: "Link de convite inválido ou ausente" },
+        { status: 401 },
       );
+    }
+
+    const tokenData = validateInviteToken(inviteToken);
+    if (!tokenData) {
+      return NextResponse.json(
+        { error: "Link de convite inválido ou expirado" },
+        { status: 401 },
+      );
+    }
+
+    const { estabelecimentoId } = tokenData;
+
+    if (!email || !senha || !nome) {
+      return badRequest("Campos obrigatórios: email, senha, nome");
     }
 
     if (

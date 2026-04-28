@@ -2,15 +2,22 @@ import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { ok, badRequest, notFound } from "@/lib/api-helpers";
 import { agendarConsultaSchema } from "@asa/shared";
+import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 10 agendamentos por minuto por IP
+  const ip = getClientIp(req);
+  if (!checkRateLimit(`agendar:${ip}`, { max: 10, windowMs: 60_000 })) {
+    return tooManyRequests(60_000);
+  }
+
   const body = await req.json();
   const parsed = agendarConsultaSchema.safeParse(body);
   if (!parsed.success) {
     return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
   }
 
-  const { codigoCupom, dataAgendamento } = parsed.data;
+  const { codigoCupom, cupomImportadoId, dataAgendamento } = parsed.data;
 
   const cupomConfig = await prisma.cupomConfig.findUnique({
     where: { codigoCupom },
@@ -20,25 +27,27 @@ export async function POST(req: NextRequest) {
     return notFound("Cupom não encontrado ou inativo");
   }
 
-  // Find available imported coupon
+  // Localizar o cupom importado pelo ID específico — previne enumeração
   const cupomImportado = await prisma.cupomImportado.findFirst({
     where: {
+      id: cupomImportadoId,
       cupomConfigId: cupomConfig.id,
       status: "DISPONIVEL",
     },
-    orderBy: { criadoEm: "asc" },
   });
 
   if (!cupomImportado) {
-    return badRequest("Nenhum cupom disponível para este código");
+    return badRequest("Cupóm não disponível ou inválido");
   }
 
-  // Create consultation and mark coupon as used in a transaction
-  const result = await prisma.$transaction(async (tx: any) => {
+  // Criar consulta e marcar cupóm como usado em uma transação
+  const result = await prisma.$transaction(async (tx) => {
     const consulta = await tx.consulta.create({
       data: {
         cupomImportadoId: cupomImportado.id,
-        dataAgendamento: dataAgendamento ? new Date(dataAgendamento) : new Date(),
+        dataAgendamento: dataAgendamento
+          ? new Date(dataAgendamento)
+          : new Date(),
         status: "AGENDADA",
         valorPago: cupomImportado.precoFinal,
       },

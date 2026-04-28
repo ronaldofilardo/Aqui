@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const { mesReferencia, anoReferencia } = parsed.data;
 
   // Group pending commissions by consultor
-  const comissoesPendentes = await prisma.comissao.findMany({
+  const comissoesPendentes = (await prisma.comissao.findMany({
     where: {
       mesReferencia,
       anoReferencia,
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         include: { usuario: { select: { nome: true } } },
       },
     },
-  }) as any[];
+  })) as any[];
 
   if (comissoesPendentes.length === 0) {
     return badRequest("Nenhuma comissão pendente para este período");

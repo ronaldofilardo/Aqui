@@ -120,7 +120,7 @@ describe("Sidebar — Seleção de nav por tipo de usuário", () => {
   });
 
   it("deve retornar consultorNav para tipo CONSULTOR", () => {
-    const tipo = "CONSULTOR";
+    const tipo: string = "CONSULTOR";
     const nav = tipo === "GESTOR" ? gestorNav : consultorNav;
     expect(nav).toBe(consultorNav);
   });

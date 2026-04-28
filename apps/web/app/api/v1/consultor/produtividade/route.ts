@@ -2,68 +2,89 @@ import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { requireConsultor, ok } from "@/lib/api-helpers";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const { session, error } = await requireConsultor();
   if (error) return error;
 
   const consultorId = session!.user.consultorId!;
-
-  // Monthly stats for last 12 months
   const now = new Date();
-  const stats = [];
-  for (let i = 0; i < 12; i++) {
+
+  const mesesLabels = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+  ];
+  const ultimos12: { mes: number; ano: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const mes = d.getMonth() + 1;
-    const ano = d.getFullYear();
-    const count = await prisma.comissao.count({
-      where: { consultorId, mesReferencia: mes, anoReferencia: ano },
-    });
-    stats.push({ mes, ano, totalConsultas: count });
+    ultimos12.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
   }
 
-  // Top estabelecimentos
-  const topEstabs = await prisma.comissao.groupBy({
-    by: ["estabelecimentoId"],
-    where: { consultorId },
-    _count: { id: true },
-    orderBy: { _count: { id: "desc" } },
-    take: 5,
-  });
+  // Uma única query agrupada em vez de 12 queries sequenciais (fix N+1)
+  const [groupedByMonth, topEstabsRaw, consultor, totalEstabelecimentos] =
+    await Promise.all([
+      prisma.comissao.groupBy({
+        by: ["mesReferencia", "anoReferencia"],
+        where: { consultorId },
+        _count: { id: true },
+      }),
+      prisma.comissao.groupBy({
+        by: ["estabelecimentoId"],
+        where: { consultorId },
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 5,
+      }),
+      prisma.consultor.findUnique({
+        where: { id: consultorId },
+        select: { totalConsultas: true, totalComissoes: true },
+      }),
+      prisma.estabelecimento.count({
+        where: { consultorId, status: "ATIVO" },
+      }),
+    ]);
 
-  const estabIds: string[] = topEstabs.map((e: any) => e.estabelecimentoId);
+  // Construir array de 12 meses (meses sem dados = 0)
+  const byMonthMap = new Map(
+    groupedByMonth.map((g) => [
+      `${g.mesReferencia}-${g.anoReferencia}`,
+      g._count.id,
+    ]),
+  );
+  const mensal = ultimos12.map(({ mes, ano }) => ({
+    mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
+    consultas: byMonthMap.get(`${mes}-${ano}`) ?? 0,
+    comissao: 0,
+  }));
+
+  // Top estabelecimentos
+  const estabIds = topEstabsRaw.map((e) => e.estabelecimentoId);
   const estabs = await prisma.estabelecimento.findMany({
     where: { id: { in: estabIds } },
     select: { id: true, nomeFantasia: true },
   });
 
-  const ranking = topEstabs.map((t: any) => ({
-    estabelecimento: estabs.find((e: any) => e.id === t.estabelecimentoId)?.nomeFantasia || "",
-    totalConsultas: t._count.id,
+  const topEstabelecimentos = topEstabsRaw.map((t) => ({
+    nome: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",
+    consultas: t._count.id,
   }));
 
-  const consultor = await prisma.consultor.findUnique({
-    where: { id: consultorId },
-    select: { totalConsultas: true, totalComissoes: true },
-  });
-
-  const mesesLabels = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-
   return ok({
-    mensal: stats.reverse().map((s: any) => ({
-      mes: `${mesesLabels[s.mes - 1]}/${String(s.ano).slice(2)}`,
-      consultas: s.totalConsultas,
-      comissao: 0,
-    })),
-    topEstabelecimentos: ranking.map((r: any) => ({
-      nome: r.estabelecimento,
-      consultas: r.totalConsultas,
-    })),
+    mensal,
+    topEstabelecimentos,
     totais: {
-      consultasTotal: consultor?.totalConsultas || 0,
-      comissaoTotal: Number(consultor?.totalComissoes || 0),
-      estabelecimentos: await prisma.estabelecimento.count({
-        where: { consultorId, status: "ATIVO" },
-      }),
+      consultasTotal: consultor?.totalConsultas ?? 0,
+      comissaoTotal: Number(consultor?.totalComissoes ?? 0),
+      estabelecimentos: totalEstabelecimentos,
     },
   });
 }

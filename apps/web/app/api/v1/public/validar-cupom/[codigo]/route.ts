@@ -1,11 +1,18 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { ok, notFound } from "@/lib/api-helpers";
+import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ codigo: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ codigo: string }> },
 ) {
+  // Rate limiting: 20 validações por minuto por IP
+  const ip = getClientIp(req);
+  if (!checkRateLimit(`validar-cupom:${ip}`, { max: 20, windowMs: 60_000 })) {
+    return tooManyRequests(60_000);
+  }
+
   const { codigo } = await params;
 
   const cupomConfig = await prisma.cupomConfig.findUnique({

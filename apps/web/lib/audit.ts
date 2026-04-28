@@ -7,7 +7,7 @@ export async function criarAuditLog(params: {
   entidadeId?: string;
   detalhes?: Record<string, unknown>;
 }) {
-  const data: Parameters<typeof prisma.auditLog.create>[0]['data'] = {
+  const data: Prisma.AuditLogUncheckedCreateInput = {
     usuarioId: params.usuarioId || null,
     acao: params.acao,
     entidade: params.entidade,

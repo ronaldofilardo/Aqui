@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
-import { parseCupomFile, importarCuponsSchema } from "@asa/shared";
+import {
+  parseCupomFile,
+  importarCuponsSchema,
+  COMISSAO_CONSULTOR,
+} from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
@@ -47,7 +51,17 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Validate against database
+  // Validate against database (batch lookup to avoid N+1)
+  const codigosCupom = resultado.dados.map((d) => d.nomeCupom);
+  const cupomConfigsMap = new Map(
+    (
+      await prisma.cupomConfig.findMany({
+        where: { codigoCupom: { in: codigosCupom } },
+        include: { estabelecimento: true },
+      })
+    ).map((c) => [c.codigoCupom, c]),
+  );
+
   const dbErros: Array<{ linha: number; campo: string; mensagem: string }> = [];
   const validados: Array<{
     cupomConfigId: string;
@@ -65,11 +79,7 @@ export async function POST(req: NextRequest) {
     const item = resultado.dados[i];
     const linhaNum = i + 2;
 
-    // Check if cupom code exists in cupons_config
-    const cupomConfig = await prisma.cupomConfig.findUnique({
-      where: { codigoCupom: item.nomeCupom },
-      include: { estabelecimento: true },
-    });
+    const cupomConfig = cupomConfigsMap.get(item.nomeCupom);
 
     if (!cupomConfig) {
       dbErros.push({
@@ -114,9 +124,11 @@ export async function POST(req: NextRequest) {
 
   const allErros = [...resultado.erros, ...dbErros];
 
-  // Atomic import via transaction
-  const importados = await prisma.$transaction(async (tx: any) => {
+  // Atomic import + Pagamento + Consultor totals inside single transaction
+  const importados = await prisma.$transaction(async (tx) => {
     const created = [];
+    const countByConsultor = new Map<string, number>();
+
     for (const item of validados) {
       const precoFinal = item.preco * (1 - item.desconto / 100);
       const cupom = await tx.cupomImportado.create({
@@ -157,50 +169,53 @@ export async function POST(req: NextRequest) {
         codigo: item.codigo,
         paciente: item.pacienteNome,
       });
+      countByConsultor.set(
+        item.consultorId,
+        (countByConsultor.get(item.consultorId) ?? 0) + 1,
+      );
     }
-    return created;
-  });
 
-  // Upsert Pagamento and update Consultor totals per consultor
-  const countByConsultor = new Map<string, number>();
-  for (const item of validados) {
-    countByConsultor.set(
-      item.consultorId,
-      (countByConsultor.get(item.consultorId) ?? 0) + 1,
-    );
-  }
-  for (const [consultorId, count] of countByConsultor.entries()) {
-    const valorTotal = count * 20;
-    const pagamentoExistente = await prisma.pagamento.findFirst({
-      where: { consultorId, mesReferencia, anoReferencia, status: "PENDENTE" },
-    });
-    if (pagamentoExistente) {
-      await prisma.pagamento.update({
-        where: { id: pagamentoExistente.id },
-        data: {
-          valorTotal: { increment: valorTotal },
-          quantidadeConsultas: { increment: count },
-        },
-      });
-    } else {
-      await prisma.pagamento.create({
-        data: {
+    // Pagamento + Consultor totals inside the same transaction (atomicity)
+    for (const [consultorId, count] of countByConsultor.entries()) {
+      const valorTotal = count * COMISSAO_CONSULTOR;
+      const pagamentoExistente = await tx.pagamento.findFirst({
+        where: {
           consultorId,
           mesReferencia,
           anoReferencia,
-          valorTotal,
-          quantidadeConsultas: count,
+          status: "PENDENTE",
+        },
+      });
+      if (pagamentoExistente) {
+        await tx.pagamento.update({
+          where: { id: pagamentoExistente.id },
+          data: {
+            valorTotal: { increment: valorTotal },
+            quantidadeConsultas: { increment: count },
+          },
+        });
+      } else {
+        await tx.pagamento.create({
+          data: {
+            consultorId,
+            mesReferencia,
+            anoReferencia,
+            valorTotal,
+            quantidadeConsultas: count,
+          },
+        });
+      }
+      await tx.consultor.update({
+        where: { id: consultorId },
+        data: {
+          totalConsultas: { increment: count },
+          totalComissoes: { increment: valorTotal },
         },
       });
     }
-    await prisma.consultor.update({
-      where: { id: consultorId },
-      data: {
-        totalConsultas: { increment: count },
-        totalComissoes: { increment: valorTotal },
-      },
-    });
-  }
+
+    return created;
+  });
 
   await criarAuditLog({
     usuarioId: session!.user.id,
