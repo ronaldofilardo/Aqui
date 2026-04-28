@@ -1,6 +1,5 @@
 {
   "buildCommand": "pnpm build",
   "framework": "nextjs",
-  "outputDirectory": "apps/web/.next",
-  "rootDirectory": "."
+  "outputDirectory": "apps/web/.next"
 }
