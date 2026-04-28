@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     select: { id: true, nomeFantasia: true },
   });
 
-  const ranking = topEstabs.map((t) => ({
+  const ranking = topEstabs.map((t: any) => ({
     estabelecimento: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia || "",
     totalConsultas: t._count.id,
   }));
