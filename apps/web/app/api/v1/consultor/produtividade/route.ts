@@ -30,14 +30,14 @@ export async function GET(req: NextRequest) {
     take: 5,
   });
 
-  const estabIds = topEstabs.map((e: any) => e.estabelecimentoId);
+  const estabIds: string[] = topEstabs.map((e: any) => e.estabelecimentoId);
   const estabs = await prisma.estabelecimento.findMany({
     where: { id: { in: estabIds } },
     select: { id: true, nomeFantasia: true },
   });
 
   const ranking = topEstabs.map((t: any) => ({
-    estabelecimento: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia || "",
+    estabelecimento: estabs.find((e: any) => e.id === t.estabelecimentoId)?.nomeFantasia || "",
     totalConsultas: t._count.id,
   }));
 
