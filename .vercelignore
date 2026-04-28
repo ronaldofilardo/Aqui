@@ -40,6 +40,3 @@ vitest.config.ts
 apps/_/.next
 packages/_/dist
 
-# Lock files (pnpm will install from pnpm-lock.yaml)
-
-pnpm-lock.yaml
