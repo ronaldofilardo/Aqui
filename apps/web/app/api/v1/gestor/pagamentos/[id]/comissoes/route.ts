@@ -55,7 +55,7 @@ export async function GET(
       status: pagamento.status,
       pagoEm: pagamento.pagoEm,
     },
-    comissoes: comissoes.map((c) => ({
+    comissoes: comissoes.map((c: any) => ({
       id: c.id,
       estabelecimento: c.estabelecimento.nomeFantasia,
       dataAgendamento: c.consulta?.dataAgendamento,

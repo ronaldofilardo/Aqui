@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: { criadoEm: "desc" },
-  });
+  }) as any[];
 
   type EstabGroup = {
     id: string;
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
   };
 
   // Agrupar comissões por estabelecimento
-  const grouped = comissoes.reduce((acc: Record<string, EstabGroup>, com) => {
+  const grouped = comissoes.reduce((acc: Record<string, EstabGroup>, com: any) => {
     const estabId = com.estabelecimento.id;
     if (!acc[estabId]) {
       acc[estabId] = {
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
       }
     }
     // Adicionar consultor único
-    if (!acc[estabId].consultores.find((c) => c.id === com.consultor.id)) {
+    if (!acc[estabId].consultores.find((c: any) => c.id === com.consultor.id)) {
       acc[estabId].consultores.push({
         id: com.consultor.id,
         nome: com.consultor.usuario.nome,
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
   }, {});
 
   // Status PAGO somente se TODAS as comissões estão pagas
-  const pagamentosEstabelecimentos = Object.values(grouped).map((g) => {
+  const pagamentosEstabelecimentos = Object.values(grouped).map((g: any) => {
     const { totalComissoes, pagas, ...rest } = g;
     return { ...rest, status: pagas === totalComissoes ? "PAGO" : "PENDENTE" };
   });

@@ -56,7 +56,7 @@ export async function GET(
   }
 
   const valorTotal = comissoes.reduce(
-    (sum, c) => sum + Number(c.valorEstabelecimento),
+    (sum: number, c: any) => sum + Number(c.valorEstabelecimento),
     0,
   );
 
@@ -84,7 +84,7 @@ export async function GET(
     status: "PAGAMENTO PROCESSADO",
   };
 
-  const comissoesFormatadas = comissoes.map((c) => ({
+  const comissoesFormatadas = comissoes.map((c: any) => ({
     id: c.id,
     estabelecimento: estabelecimento.nomeFantasia,
     consultor: c.consultor.usuario.nome,

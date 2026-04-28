@@ -126,7 +126,7 @@ export async function GET() {
       mesAtual: mes,
       anoAtual: ano,
     },
-    topConsultores: topConsultores.map((c) => ({
+    topConsultores: (topConsultores as any[]).map((c: any) => ({
       nome: c.usuario.nome,
       totalConsultas: c.totalConsultas,
       totalComissoes: Number(c.totalComissoes),

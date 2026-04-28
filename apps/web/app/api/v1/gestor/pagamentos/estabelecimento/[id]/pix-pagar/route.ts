@@ -55,7 +55,7 @@ export async function POST(
   }
 
   const valorTotal = comissoesPendentes.reduce(
-    (sum, c) => sum + Number(c.valorEstabelecimento),
+    (sum: number, c: any) => sum + Number(c.valorEstabelecimento),
     0,
   );
 
@@ -76,7 +76,7 @@ export async function POST(
   }
 
   await prisma.comissao.updateMany({
-    where: { id: { in: comissoesPendentes.map((c) => c.id) } },
+    where: { id: { in: comissoesPendentes.map((c: any) => c.id) } },
     data: { statusPagamento: "PAGO", dataPagamento: new Date() },
   });
 

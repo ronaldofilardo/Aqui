@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: { criadoEm: "desc" },
-  });
+  }) as any[];
 
   // Aggregate by consultor
   const grouped = comissoes.reduce<
@@ -95,11 +95,11 @@ export async function GET(req: NextRequest) {
 
   const totalConsultas = comissoes.length;
   const totalConsultores = comissoes.reduce(
-    (s, c) => s + Number(c.valorConsultor),
+    (s: number, c: any) => s + Number(c.valorConsultor),
     0,
   );
   const totalEstabelecimentos = comissoes.reduce(
-    (s, c) => s + Number(c.valorEstabelecimento),
+    (s: number, c: any) => s + Number(c.valorEstabelecimento),
     0,
   );
 

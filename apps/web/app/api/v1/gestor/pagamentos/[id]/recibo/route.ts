@@ -61,7 +61,7 @@ export async function GET(
     status: "PAGAMENTO PROCESSADO",
   };
 
-  const comissoesFormatadas = comissoes.map((c) => ({
+  const comissoesFormatadas = comissoes.map((c: any) => ({
     id: c.id,
     estabelecimento: c.estabelecimento.nomeFantasia,
     dataRealizacao: c.consulta.dataRealizacao,
