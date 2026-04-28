@@ -49,12 +49,12 @@ export async function GET(req: NextRequest) {
   const mesesLabels = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
   return ok({
-    mensal: stats.reverse().map((s) => ({
+    mensal: stats.reverse().map((s: any) => ({
       mes: `${mesesLabels[s.mes - 1]}/${String(s.ano).slice(2)}`,
       consultas: s.totalConsultas,
       comissao: 0,
     })),
-    topEstabelecimentos: ranking.map((r) => ({
+    topEstabelecimentos: ranking.map((r: any) => ({
       nome: r.estabelecimento,
       consultas: r.totalConsultas,
     })),
