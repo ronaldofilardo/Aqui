@@ -13,7 +13,7 @@ export async function criarAuditLog(params: {
       acao: params.acao,
       entidade: params.entidade,
       entidadeId: params.entidadeId || null,
-      detalhes: (params.detalhes as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      detalhes: params.detalhes ?? undefined,
     },
   });
 }
