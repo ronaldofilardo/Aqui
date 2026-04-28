@@ -1,9 +1,8 @@
 {
   "framework": "nextjs",
-  "rootDirectory": "apps/web",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@asa/web...",
-  "outputDirectory": ".next",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "outputDirectory": "apps/web/.next",
   "env": {
     "NEXTAUTH_URL": "@nextauth_url"
   }
