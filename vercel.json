@@ -1,9 +1,5 @@
 {
+  "buildCommand": "pnpm build",
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@asa/web...",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "outputDirectory": "apps/web/.next",
-  "env": {
-    "NEXTAUTH_URL": "@nextauth_url"
-  }
+  "outputDirectory": "apps/web/.next"
 }
