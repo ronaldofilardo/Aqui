@@ -199,3 +199,69 @@ describe("Design System — Mensagens de autenticação", () => {
     expect(msg.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Navegação do Estabelecimento (adicionada nesta sessão)
+// ---------------------------------------------------------------------------
+
+const estabelecimentoNav: NavItem[] = [
+  { label: "Dashboard", href: "/estabelecimento/dashboard", icon: "📊" },
+  {
+    label: "Produtividade",
+    href: "/estabelecimento/produtividade",
+    icon: "📈",
+  },
+  { label: "Comissões", href: "/estabelecimento/comissoes", icon: "💰" },
+];
+
+describe("Sidebar — Navegação do Estabelecimento", () => {
+  it("deve ter 3 itens de navegação", () => {
+    expect(estabelecimentoNav).toHaveLength(3);
+  });
+
+  it("todos os itens devem ter href, label e icon", () => {
+    estabelecimentoNav.forEach((item) => {
+      expect(item.href).toBeTruthy();
+      expect(item.label).toBeTruthy();
+      expect(item.icon).toBeTruthy();
+    });
+  });
+
+  it("hrefs do estabelecimento devem começar com /estabelecimento/", () => {
+    estabelecimentoNav.forEach((item) => {
+      expect(item.href.startsWith("/estabelecimento/")).toBe(true);
+    });
+  });
+
+  it("deve conter rota de dashboard", () => {
+    expect(
+      estabelecimentoNav.some((i) => i.href === "/estabelecimento/dashboard"),
+    ).toBe(true);
+  });
+
+  it("deve conter rota de comissoes", () => {
+    expect(
+      estabelecimentoNav.some((i) => i.href === "/estabelecimento/comissoes"),
+    ).toBe(true);
+  });
+});
+
+describe("Sidebar — Seleção de nav para ESTABELECIMENTO", () => {
+  function selectNav(tipo: string | undefined): NavItem[] {
+    if (tipo === "GESTOR") return gestorNav;
+    if (tipo === "ESTABELECIMENTO") return estabelecimentoNav;
+    return consultorNav;
+  }
+
+  it("deve retornar estabelecimentoNav para tipo ESTABELECIMENTO", () => {
+    expect(selectNav("ESTABELECIMENTO")).toBe(estabelecimentoNav);
+  });
+
+  it("não deve retornar nav do consultor para ESTABELECIMENTO", () => {
+    expect(selectNav("ESTABELECIMENTO")).not.toBe(consultorNav);
+  });
+
+  it("não deve retornar nav do gestor para ESTABELECIMENTO", () => {
+    expect(selectNav("ESTABELECIMENTO")).not.toBe(gestorNav);
+  });
+});

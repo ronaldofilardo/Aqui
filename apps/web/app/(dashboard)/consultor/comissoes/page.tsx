@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { NextUpdateBadge } from "@/components/next-update-badge";
 
 interface ComissaoConsultor {
   id: string;
@@ -33,9 +34,10 @@ export default function ConsultorComissoesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Minhas Comissões
-      </h1>
+      <div className="flex justify-between items-start mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Minhas Comissões</h1>
+        <NextUpdateBadge />
+      </div>
 
       <div className="flex gap-4 mb-6">
         <select

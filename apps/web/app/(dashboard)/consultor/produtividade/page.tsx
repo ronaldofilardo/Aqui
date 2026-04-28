@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { NextUpdateBadge } from "@/components/next-update-badge";
 
 interface ProdData {
   mensal: Array<{ mes: string; consultas: number; comissao: number }>;
@@ -42,7 +43,10 @@ export default function ProdutividadePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Produtividade</h1>
+      <div className="flex items-start justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Produtividade</h1>
+        <NextUpdateBadge />
+      </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4 shadow-sm">

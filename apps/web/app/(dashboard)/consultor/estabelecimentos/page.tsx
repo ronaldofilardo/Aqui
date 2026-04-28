@@ -16,7 +16,7 @@ interface Estabelecimento {
   conta?: string | null;
   cupomConfig: { codigoCupom: string } | null;
   documentos: Array<{ id: string; tipo: string; nomeOriginal: string }>;
-  _count: { comissoes: number };
+  _count: { comissoes: number; usuarios: number };
 }
 
 export default function EstabelecimentosPage() {
@@ -48,6 +48,13 @@ export default function EstabelecimentosPage() {
   const [cupomInlineId, setCupomInlineId] = useState<string | null>(null);
   const [cupomInlineCode, setCupomInlineCode] = useState("");
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [conviteModal, setConviteModal] = useState<{
+    estabId: string;
+    nomeFantasia: string;
+    link: string;
+  } | null>(null);
+  const [gerandoConvite, setGerandoConvite] = useState<string | null>(null);
+  const [copiadoConvite, setCopiadoConvite] = useState(false);
 
   const loadEstabs = () => {
     fetch("/api/v1/consultor/estabelecimentos")
@@ -232,6 +239,35 @@ export default function EstabelecimentosPage() {
       setMsg(err.error || "Erro no upload");
     }
     setUploadingId(null);
+  }
+
+  async function gerarConvite(estabId: string, nomeFantasia: string) {
+    setGerandoConvite(estabId);
+    const res = await fetch(
+      `/api/v1/consultor/estabelecimentos/${estabId}/convite`,
+    );
+    if (res.ok) {
+      const data = await res.json();
+      setConviteModal({ estabId, nomeFantasia, link: data.link });
+      setCopiadoConvite(false);
+    } else {
+      setMsg("Erro ao gerar link de acesso");
+    }
+    setGerandoConvite(null);
+  }
+
+  async function copiarLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiadoConvite(true);
+      setTimeout(() => setCopiadoConvite(false), 3000);
+    } catch {
+      // fallback: seleciona o texto
+      const el = document.querySelector<HTMLInputElement>(
+        "#convite-link-input",
+      );
+      el?.select();
+    }
   }
 
   async function downloadQR(estabId: string) {
@@ -545,12 +581,37 @@ export default function EstabelecimentosPage() {
                         Cupom: {e.cupomConfig.codigoCupom}
                       </span>
                     )}
+                    {e._count.usuarios > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                        Acesso ativo
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                        Sem acesso
+                      </span>
+                    )}
                     <span className="text-xs text-gray-400">
                       {e._count.comissoes} comissões
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => gerarConvite(e.id, e.nomeFantasia)}
+                    disabled={gerandoConvite === e.id}
+                    className={`text-xs px-3 py-1.5 rounded-lg transition ${e._count.usuarios > 0 ? "bg-gray-50 text-gray-600 hover:bg-gray-100" : "bg-primary-50 text-primary-700 hover:bg-primary-100"} disabled:opacity-50`}
+                    title={
+                      e._count.usuarios > 0
+                        ? "Gerar novo link de acesso"
+                        : "Enviar link de primeiro acesso"
+                    }
+                  >
+                    {gerandoConvite === e.id
+                      ? "Gerando..."
+                      : e._count.usuarios > 0
+                        ? "🔗 Reenviar acesso"
+                        : "🔗 Enviar acesso"}
+                  </button>
                   {e.cupomConfig && (
                     <button
                       onClick={() => downloadQR(e.id)}
@@ -687,6 +748,57 @@ export default function EstabelecimentosPage() {
               Nenhum estabelecimento cadastrado
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de convite */}
+      {conviteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">
+                  Link de acesso
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {conviteModal.nomeFantasia}
+                </p>
+              </div>
+              <button
+                onClick={() => setConviteModal(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-3">
+              Envie o link abaixo para o estabelecimento via WhatsApp, e-mail ou
+              qualquer outro canal. O link expira em <strong>7 dias</strong>.
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                id="convite-link-input"
+                type="text"
+                readOnly
+                value={conviteModal.link}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs text-gray-700 bg-gray-50 focus:outline-none select-all"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <button
+                onClick={() => copiarLink(conviteModal.link)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${copiadoConvite ? "bg-green-600 text-white" : "bg-primary-600 text-white hover:bg-primary-700"}`}
+              >
+                {copiadoConvite ? "✓ Copiado!" : "Copiar"}
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 mt-3">
+              O estabelecimento precisará informar nome, e-mail e criar uma
+              senha ao acessar o link.
+            </p>
+          </div>
         </div>
       )}
     </div>

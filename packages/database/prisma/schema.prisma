@@ -13,6 +13,11 @@ enum TipoUsuario {
   CONSULTOR
 }
 
+enum TipoAcessoEstabelecimento {
+  PROPRIETARIO
+  VISUALIZADOR
+}
+
 enum StatusUsuario {
   ATIVO
   INATIVO
@@ -126,6 +131,7 @@ model Estabelecimento {
   documentos  Documento[]
   cupomConfig CupomConfig?
   comissoes   Comissao[]
+  usuarios    UsuarioEstabelecimento[]
 
   @@map("estabelecimentos")
 }
@@ -253,4 +259,21 @@ model AuditLog {
   usuario Usuario? @relation(fields: [usuarioId], references: [id])
 
   @@map("audit_logs")
+}
+
+model UsuarioEstabelecimento {
+  id                String                      @id @default(uuid()) @db.Uuid
+  estabelecimentoId String                      @map("estabelecimento_id") @db.Uuid
+  nome              String                      @db.VarChar(255)
+  email             String                      @unique @db.VarChar(255)
+  senhaHash         String                      @map("senha_hash") @db.VarChar(255)
+  tipo              TipoAcessoEstabelecimento   @default(PROPRIETARIO)
+  ativo             Boolean                     @default(true)
+  criadoEm          DateTime                    @default(now()) @map("criado_em")
+  atualizadoEm      DateTime                    @default(now()) @updatedAt @map("atualizado_em")
+
+  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  @@index([estabelecimentoId])
+  @@map("usuarios_estabelecimentos")
 }

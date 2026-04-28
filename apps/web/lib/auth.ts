@@ -18,26 +18,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.senha) return null;
 
+        // Tenta autenticar como usuário do sistema (Admin/Gestor/Consultor)
         const user = await prisma.usuario.findUnique({
           where: { email: credentials.email as string },
           include: { consultor: true },
         });
 
-        if (!user || user.status !== "ATIVO") return null;
+        if (user && user.status === "ATIVO") {
+          const senhaValida = await compare(
+            credentials.senha as string,
+            user.senhaHash,
+          );
+          if (senhaValida) {
+            return {
+              id: user.id,
+              name: user.nome,
+              email: user.email,
+              tipo: user.tipo as "ADMIN" | "GESTOR" | "CONSULTOR",
+              consultorId: user.consultor?.id || null,
+              estabelecimentoId: null,
+            };
+          }
+        }
 
-        const senhaValida = await compare(
-          credentials.senha as string,
-          user.senhaHash,
-        );
-        if (!senhaValida) return null;
+        // Tenta autenticar como usuário de estabelecimento
+        const usuarioEstab = await prisma.usuarioEstabelecimento.findUnique({
+          where: { email: credentials.email as string },
+          include: {
+            estabelecimento: { select: { id: true, nomeFantasia: true } },
+          },
+        });
 
-        return {
-          id: user.id,
-          name: user.nome,
-          email: user.email,
-          tipo: user.tipo,
-          consultorId: user.consultor?.id || null,
-        };
+        if (usuarioEstab && usuarioEstab.ativo) {
+          const senhaValida = await compare(
+            credentials.senha as string,
+            usuarioEstab.senhaHash,
+          );
+          if (senhaValida) {
+            return {
+              id: usuarioEstab.id,
+              name: usuarioEstab.nome,
+              email: usuarioEstab.email,
+              tipo: "ESTABELECIMENTO" as const,
+              consultorId: null,
+              estabelecimentoId: usuarioEstab.estabelecimentoId,
+            };
+          }
+        }
+
+        return null;
       },
     }),
   ],
@@ -47,6 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.tipo = (user as any).tipo;
         token.consultorId = (user as any).consultorId;
+        token.estabelecimentoId = (user as any).estabelecimentoId;
       }
       return token;
     },
@@ -55,6 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).id = token.id;
         (session.user as any).tipo = token.tipo;
         (session.user as any).consultorId = token.consultorId;
+        (session.user as any).estabelecimentoId = token.estabelecimentoId;
       }
       return session;
     },

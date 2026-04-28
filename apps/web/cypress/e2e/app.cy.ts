@@ -27,6 +27,11 @@ describe("Rotas protegidas", () => {
     cy.visit("/consultor/estabelecimentos");
     cy.url().should("include", "/login");
   });
+
+  it("deve redirecionar estabelecimento não autenticado", () => {
+    cy.visit("/estabelecimento/dashboard");
+    cy.url().should("include", "/login");
+  });
 });
 
 describe("Validação pública de cupom", () => {

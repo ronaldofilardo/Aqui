@@ -31,11 +31,33 @@ const consultorNav: NavItem[] = [
   { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
 ];
 
+const estabelecimentoNav: NavItem[] = [
+  { label: "Dashboard", href: "/estabelecimento/dashboard", icon: "📊" },
+  {
+    label: "Produtividade",
+    href: "/estabelecimento/produtividade",
+    icon: "📈",
+  },
+  { label: "Comissões", href: "/estabelecimento/comissoes", icon: "💰" },
+];
+
+function getTipoLabel(tipo: string | undefined) {
+  if (tipo === "GESTOR") return "Gestor";
+  if (tipo === "CONSULTOR") return "Consultor";
+  if (tipo === "ESTABELECIMENTO") return "Estabelecimento";
+  return "";
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const tipo = session?.user?.tipo;
-  const navItems = tipo === "GESTOR" ? gestorNav : consultorNav;
+  const tipo = (session?.user as any)?.tipo;
+
+  let navItems: NavItem[];
+  if (tipo === "GESTOR") navItems = gestorNav;
+  else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;
+  else navItems = consultorNav;
+
   const initials = session?.user?.name
     ? session.user.name
         .split(" ")
@@ -71,10 +93,10 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-smooth focus-ring ${
                 active
                   ? "bg-white text-primary-700 shadow-sm"
-                  : "text-white/85 hover:bg-primary-500 hover:text-white"
+                  : "text-white hover:bg-primary-500 hover:text-white hover:shadow-sm"
               }`}
             >
               <span className="text-base leading-none">{item.icon}</span>
@@ -97,7 +119,7 @@ export function Sidebar() {
               {session?.user?.name}
             </p>
             <p className="text-primary-200 text-xs truncate">
-              {session?.user?.email}
+              {getTipoLabel(tipo)}
             </p>
           </div>
         </div>
