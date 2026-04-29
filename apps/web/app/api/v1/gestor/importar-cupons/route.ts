@@ -52,13 +52,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate against database (batch lookup to avoid N+1)
-  const codigosCupom = resultado.dados.map((d: typeof resultado.dados[0]) => d.nomeCupom);
+  const codigosCupom = resultado.dados.map(
+    (d: (typeof resultado.dados)[0]) => d.nomeCupom,
+  );
   const cupomConfigs = await prisma.cupomConfig.findMany({
     where: { codigoCupom: { in: codigosCupom } },
     include: { estabelecimento: true },
   });
   const cupomConfigsMap = new Map(
-    cupomConfigs.map((c: typeof cupomConfigs[0]) => [c.codigoCupom, c]),
+    cupomConfigs.map((c: (typeof cupomConfigs)[0]) => [c.codigoCupom, c]),
   );
 
   const dbErros: Array<{ linha: number; campo: string; mensagem: string }> = [];

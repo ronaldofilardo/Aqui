@@ -56,13 +56,15 @@ export async function GET(
       nome: consultor.usuario.nome,
       email: consultor.usuario.email,
     },
-    estabelecimentos: consultor.estabelecimentos.map((e: typeof consultor.estabelecimentos[0]) => ({
-      id: e.id,
-      nomeFantasia: e.nomeFantasia,
-      cidade: e.cidade,
-      estado: e.estado,
-      cupomConfig: e.cupomConfig,
-    })),
+    estabelecimentos: consultor.estabelecimentos.map(
+      (e: (typeof consultor.estabelecimentos)[0]) => ({
+        id: e.id,
+        nomeFantasia: e.nomeFantasia,
+        cidade: e.cidade,
+        estado: e.estado,
+        cupomConfig: e.cupomConfig,
+      }),
+    ),
   });
 }
 

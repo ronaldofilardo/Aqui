@@ -25,14 +25,15 @@ export async function GET(req: NextRequest) {
   });
 
   const total = comissoes.reduce(
-    (sum: number, c: typeof comissoes[0]) => sum + Number(c.valorEstabelecimento),
+    (sum: number, c: (typeof comissoes)[0]) =>
+      sum + Number(c.valorEstabelecimento),
     0,
   );
 
   return ok({
     mes,
     ano,
-    comissoes: comissoes.map((c: typeof comissoes[0]) => ({
+    comissoes: comissoes.map((c: (typeof comissoes)[0]) => ({
       id: c.id,
       pacienteNome: c.consulta?.cupomImportado?.pacienteNome ?? "—",
       servico: c.consulta?.cupomImportado?.servico ?? "—",

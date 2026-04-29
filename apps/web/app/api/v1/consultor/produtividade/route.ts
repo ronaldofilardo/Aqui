@@ -55,7 +55,7 @@ export async function GET(_req: NextRequest) {
 
   // Construir array de 12 meses (meses sem dados = 0)
   const byMonthMap = new Map(
-    groupedByMonth.map((g: typeof groupedByMonth[0]) => [
+    groupedByMonth.map((g: (typeof groupedByMonth)[0]) => [
       `${g.mesReferencia}-${g.anoReferencia}`,
       g._count.id,
     ]),
@@ -67,17 +67,22 @@ export async function GET(_req: NextRequest) {
   }));
 
   // Top estabelecimentos
-  const estabIds = topEstabsRaw.map((e: typeof topEstabsRaw[0]) => e.estabelecimentoId);
+  const estabIds = topEstabsRaw.map(
+    (e: (typeof topEstabsRaw)[0]) => e.estabelecimentoId,
+  );
   const estabs: { id: string; nomeFantasia: string | null }[] =
     await prisma.estabelecimento.findMany({
       where: { id: { in: estabIds } },
       select: { id: true, nomeFantasia: true },
     });
 
-  const topEstabelecimentos = topEstabsRaw.map((t: typeof topEstabsRaw[0]) => ({
-    nome: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",
-    consultas: t._count.id,
-  }));
+  const topEstabelecimentos = topEstabsRaw.map(
+    (t: (typeof topEstabsRaw)[0]) => ({
+      nome:
+        estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",
+      consultas: t._count.id,
+    }),
+  );
 
   return ok({
     mensal,
