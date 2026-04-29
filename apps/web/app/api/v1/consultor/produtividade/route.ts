@@ -73,7 +73,7 @@ export async function GET(_req: NextRequest) {
     select: { id: true, nomeFantasia: true },
   });
 
-  const topEstabelecimentos = topEstabsRaw.map((t) => ({
+  const topEstabelecimentos = topEstabsRaw.map((t: typeof topEstabsRaw[0]) => ({
     nome: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",
     consultas: t._count.id,
   }));

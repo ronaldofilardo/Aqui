@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest) {
   ]);
 
   const byMonthMap = new Map(
-    groupedByMonth.map((g) => [
+    groupedByMonth.map((g: typeof groupedByMonth[0]) => [
       `${g.mesReferencia}-${g.anoReferencia}`,
       { count: g._count.id, soma: Number(g._sum.valorEstabelecimento ?? 0) },
     ]),

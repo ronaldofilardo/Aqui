@@ -3,7 +3,9 @@
 ## ✅ Valores Prontos (Production)
 
 ### 1. NEXTAUTH_SECRET
+
 **Copie e cole exatamente:**
+
 ```
 MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==
 ```
@@ -11,7 +13,9 @@ MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIw
 ---
 
 ### 2. NEXTAUTH_URL
+
 **Copie e cole:**
+
 ```
 https://asaquii.vercel.app
 ```
@@ -19,7 +23,9 @@ https://asaquii.vercel.app
 ---
 
 ### 3. AUTH_SECRET
+
 **IDÊNTICO ao NEXTAUTH_SECRET — copie:**
+
 ```
 MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==
 ```
@@ -27,7 +33,9 @@ MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIw
 ---
 
 ### 4. DATABASE_URL
+
 **Copie e cole (produção Neon):**
+
 ```
 postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
@@ -35,14 +43,17 @@ postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-eas
 ---
 
 ### 5. ASAAS_API_KEY
+
 **⚠️ Precisa obter em:** https://admin.asaas.com/config/api
 
 Após gerar a chave na plataforma Asaas, será algo como:
+
 ```
 [sua-chave-aqui-começa-com-$aact_ ou $aas_]
 ```
 
 Exemplo (fictício):
+
 ```
 $aact_YWJjZGVmZ2hpamtsbW5vcA==
 ```
@@ -50,7 +61,9 @@ $aact_YWJjZGVmZ2hpamtsbW5vcA==
 ---
 
 ### 6. ASAAS_SANDBOX
+
 **Para produção, copie:**
+
 ```
 false
 ```
@@ -75,14 +88,14 @@ false
 
 ## 🎯 Resumo da Configuração
 
-| Nome | Valor | Origem |
-|------|-------|--------|
+| Nome                | Valor                                                                                      | Origem                  |
+| ------------------- | ------------------------------------------------------------------------------------------ | ----------------------- |
 | **NEXTAUTH_SECRET** | `MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==` | Gerado para este deploy |
-| **NEXTAUTH_URL** | `https://asaquii.vercel.app` | Domínio Vercel |
-| **AUTH_SECRET** | `MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==` | Igual a NEXTAUTH_SECRET |
-| **DATABASE_URL** | `postgresql://neondb_owner:npg_DFWCYc1JnuX8@...` | Neon Cloud (prod) |
-| **ASAAS_API_KEY** | `[sua-chave-asaas]` | Asaas Dashboard |
-| **ASAAS_SANDBOX** | `false` | Produção = false |
+| **NEXTAUTH_URL**    | `https://asaquii.vercel.app`                                                               | Domínio Vercel          |
+| **AUTH_SECRET**     | `MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==` | Igual a NEXTAUTH_SECRET |
+| **DATABASE_URL**    | `postgresql://neondb_owner:npg_DFWCYc1JnuX8@...`                                           | Neon Cloud (prod)       |
+| **ASAAS_API_KEY**   | `[sua-chave-asaas]`                                                                        | Asaas Dashboard         |
+| **ASAAS_SANDBOX**   | `false`                                                                                    | Produção = false        |
 
 ---
 
