@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@asa/database";
 import { NextResponse } from "next/server";
 
 export async function getSession() {
@@ -35,6 +36,21 @@ export async function requireGestor() {
   if (session.user.tipo !== "GESTOR")
     return { session: null, error: forbidden() };
   return { session, error: null };
+}
+
+export async function requireGestorWithScope() {
+  const session = await getSession();
+  if (!session?.user) return { session: null, consultorIds: [], error: unauthorized() };
+  if (session.user.tipo !== "GESTOR")
+    return { session: null, consultorIds: [], error: forbidden() };
+
+  const gestoresConsultores = await prisma.gestorConsultor.findMany({
+    where: { gestorId: session.user.id },
+    select: { consultorId: true },
+  });
+
+  const consultorIds = gestoresConsultores.map((gc) => gc.consultorId);
+  return { session, consultorIds, error: null };
 }
 
 export async function requireConsultor() {

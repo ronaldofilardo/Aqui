@@ -1,16 +1,31 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok } from "@/lib/api-helpers";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
+
+  // Se gestor não tem nenhum consultor atribuído, retorna vazio
+  if (consultorIds.length === 0) {
+    return ok({
+      mes: new Date().getMonth() + 1,
+      ano: new Date().getFullYear(),
+      agrupado: [],
+      agrupadoPorEstabelecimento: [],
+      totais: { totalConsultas: 0, totalConsultores: 0, totalEstabelecimentos: 0 },
+    });
+  }
 
   const url = new URL(req.url);
   const mes = Number(url.searchParams.get("mes")) || new Date().getMonth() + 1;
   const ano = Number(url.searchParams.get("ano")) || new Date().getFullYear();
 
-  const where = { mesReferencia: mes, anoReferencia: ano };
+  const where = {
+    mesReferencia: mes,
+    anoReferencia: ano,
+    consultorId: { in: consultorIds }, // ESCOPO: Apenas consultores atribuídos a este gestor
+  };
 
   const comissoes = await prisma.comissao.findMany({
     where,

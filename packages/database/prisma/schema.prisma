@@ -78,9 +78,10 @@ model Usuario {
   criadoEm     DateTime      @default(now()) @map("criado_em")
   atualizadoEm DateTime      @default(now()) @updatedAt @map("atualizado_em")
 
-  consultor   Consultor?
-  cupomConfig CupomConfig[]
-  auditLogs   AuditLog[]
+  consultor              Consultor?
+  cupomConfig            CupomConfig[]
+  auditLogs              AuditLog[]
+  gestoresConsultores    GestorConsultor[] @relation("gestor_atribuicoes")
 
   @@map("usuarios")
 }
@@ -98,10 +99,11 @@ model Consultor {
   totalComissoes Decimal  @default(0) @map("total_comissoes") @db.Decimal(10, 2)
   criadoEm       DateTime @default(now()) @map("criado_em")
 
-  usuario          Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  estabelecimentos Estabelecimento[]
-  comissoes        Comissao[]
-  pagamentos       Pagamento[]
+  usuario                Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  estabelecimentos       Estabelecimento[]
+  comissoes              Comissao[]
+  pagamentos             Pagamento[]
+  gestoresAtribuicoes    GestorConsultor[] @relation("consultores_atribuidos")
 
   @@map("consultores")
 }
@@ -276,4 +278,19 @@ model UsuarioEstabelecimento {
 
   @@index([estabelecimentoId])
   @@map("usuarios_estabelecimentos")
+}
+
+model GestorConsultor {
+  id           String   @id @default(uuid()) @db.Uuid
+  gestorId     String   @map("gestor_id") @db.Uuid
+  consultorId  String   @map("consultor_id") @db.Uuid
+  atribuidoEm  DateTime @default(now()) @map("atribuido_em")
+
+  gestor       Usuario   @relation("gestor_atribuicoes", fields: [gestorId], references: [id], onDelete: Cascade)
+  consultor    Consultor @relation("consultores_atribuidos", fields: [consultorId], references: [id], onDelete: Cascade)
+
+  @@unique([gestorId, consultorId])
+  @@index([gestorId])
+  @@index([consultorId])
+  @@map("gestores_consultores")
 }
