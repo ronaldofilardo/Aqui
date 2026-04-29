@@ -68,10 +68,11 @@ export async function GET(_req: NextRequest) {
 
   // Top estabelecimentos
   const estabIds = topEstabsRaw.map((e: typeof topEstabsRaw[0]) => e.estabelecimentoId);
-  const estabs = await prisma.estabelecimento.findMany({
-    where: { id: { in: estabIds } },
-    select: { id: true, nomeFantasia: true },
-  });
+  const estabs: { id: string; nomeFantasia: string | null }[] =
+    await prisma.estabelecimento.findMany({
+      where: { id: { in: estabIds } },
+      select: { id: true, nomeFantasia: true },
+    });
 
   const topEstabelecimentos = topEstabsRaw.map((t: typeof topEstabsRaw[0]) => ({
     nome: estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",

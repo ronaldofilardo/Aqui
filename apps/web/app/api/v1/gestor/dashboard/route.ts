@@ -126,7 +126,7 @@ export async function GET() {
       mesAtual: mes,
       anoAtual: ano,
     },
-    topConsultores: topConsultores.map((c) => ({
+    topConsultores: topConsultores.map((c: typeof topConsultores[0]) => ({
       nome: c.usuario.nome,
       totalConsultas: c.totalConsultas,
       totalComissoes: Number(c.totalComissoes),
