@@ -6,9 +6,8 @@ interface Bucket {
 }
 
 // In-memory store: IP → bucket
-// NOTE: This is single-instance only. For multi-instance production deployments
-// (e.g. Vercel with multiple serverless functions), replace with
-// @upstash/ratelimit + Redis.
+// NOTE: Single-instance only. For production multi-instance deployments,
+// consider adding Redis (Redis Cloud, AWS ElastiCache, etc).
 const store = new Map<string, Bucket>();
 
 export interface RateLimitOptions {
@@ -19,10 +18,16 @@ export interface RateLimitOptions {
 }
 
 /**
- * Token-bucket rate limiter.
+ * Token-bucket rate limiter (in-memory, single-instance).
  * Returns true if the request should be allowed, false if it should be blocked.
+ * NOTE: Skipped in development (NODE_ENV !== 'production').
  */
 export function checkRateLimit(key: string, opts: RateLimitOptions): boolean {
+  // Disable rate limiting in development
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+
   const now = Date.now();
   const bucket = store.get(key);
 

@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
       ano: new Date().getFullYear(),
       agrupado: [],
       agrupadoPorEstabelecimento: [],
-      totais: { totalConsultas: 0, totalConsultores: 0, totalEstabelecimentos: 0 },
+      totais: {
+        totalConsultas: 0,
+        totalConsultores: 0,
+        totalEstabelecimentos: 0,
+      },
     });
   }
 

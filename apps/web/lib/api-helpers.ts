@@ -40,7 +40,8 @@ export async function requireGestor() {
 
 export async function requireGestorWithScope() {
   const session = await getSession();
-  if (!session?.user) return { session: null, consultorIds: [], error: unauthorized() };
+  if (!session?.user)
+    return { session: null, consultorIds: [], error: unauthorized() };
   if (session.user.tipo !== "GESTOR")
     return { session: null, consultorIds: [], error: forbidden() };
 
@@ -51,6 +52,42 @@ export async function requireGestorWithScope() {
 
   const consultorIds = gestoresConsultores.map((gc) => gc.consultorId);
   return { session, consultorIds, error: null };
+}
+
+export async function requireGestorWithUserScope() {
+  const session = await getSession();
+  if (!session?.user)
+    return {
+      session: null,
+      consultorIds: [],
+      usuarioIds: [],
+      error: unauthorized(),
+    };
+  if (session.user.tipo !== "GESTOR")
+    return {
+      session: null,
+      consultorIds: [],
+      usuarioIds: [],
+      error: forbidden(),
+    };
+
+  const gestoresConsultores = await prisma.gestorConsultor.findMany({
+    where: { gestorId: session.user.id },
+    select: {
+      consultorId: true,
+      consultor: { select: { usuarioId: true } },
+    },
+  });
+
+  const consultorIds = gestoresConsultores.map(
+    (gc: { consultorId: string; consultor: { usuarioId: string } }) =>
+      gc.consultorId,
+  );
+  const usuarioIds = gestoresConsultores.map(
+    (gc: { consultorId: string; consultor: { usuarioId: string } }) =>
+      gc.consultor.usuarioId,
+  );
+  return { session, consultorIds, usuarioIds, error: null };
 }
 
 export async function requireConsultor() {

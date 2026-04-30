@@ -5,7 +5,7 @@ import { agendarConsultaSchema } from "@asa/shared";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  // Rate limiting: 10 agendamentos por minuto por IP
+  // Rate limiting: 10 agendamentos por minuto por IP (skipped in development)
   const ip = getClientIp(req);
   if (!checkRateLimit(`agendar:${ip}`, { max: 10, windowMs: 60_000 })) {
     return tooManyRequests(60_000);

@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok, badRequest } from "@/lib/api-helpers";
 import { processarPagamentosSchema } from "@asa/shared";
 import { criarTransferenciaPix } from "@/lib/asaas-client";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireGestor();
+  const { session, error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const body = await req.json();
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       mesReferencia,
       anoReferencia,
       statusPagamento: "PENDENTE",
+      consultorId: { in: consultorIds },
     },
     include: {
       consultor: {

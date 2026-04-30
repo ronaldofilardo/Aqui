@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok } from "@/lib/api-helpers";
 
 export async function GET() {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const estabelecimentos = await prisma.estabelecimento.findMany({
+    where: { consultorId: { in: consultorIds } },
     include: {
       consultor: { include: { usuario: { select: { nome: true } } } },
       cupomConfig: true,

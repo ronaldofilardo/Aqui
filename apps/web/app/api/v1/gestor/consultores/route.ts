@@ -1,15 +1,22 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
-import { requireGestor, ok, created, badRequest } from "@/lib/api-helpers";
+import {
+  requireGestor,
+  requireGestorWithScope,
+  ok,
+  created,
+  badRequest,
+} from "@/lib/api-helpers";
 import { criarConsultorSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function GET() {
-  const { session, error } = await requireGestor();
+  const { session, error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const consultores = await prisma.consultor.findMany({
+    where: { id: { in: consultorIds } },
     include: {
       usuario: {
         select: {
@@ -53,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   const exists = await prisma.usuario.findUnique({ where: { email } });
   if (exists) {
-    return badRequest("Email já cadastrado");
+    return badRequest("Não foi possível completar o cadastro");
   }
 
   if (cpf) {

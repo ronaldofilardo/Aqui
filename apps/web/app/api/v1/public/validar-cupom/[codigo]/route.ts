@@ -7,9 +7,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ codigo: string }> },
 ) {
-  // Rate limiting: 20 validações por minuto por IP
+  // Rate limiting: 20 validações por minuto por IP (skipped in development)
   const ip = getClientIp(req);
-  if (!checkRateLimit(`validar-cupom:${ip}`, { max: 20, windowMs: 60_000 })) {
+  if (
+    !checkRateLimit(`validar-cupom:${ip}`, {
+      max: 20,
+      windowMs: 60_000,
+    })
+  ) {
     return tooManyRequests(60_000);
   }
 

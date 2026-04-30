@@ -1,15 +1,20 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, badRequest, notFound } from "@/lib/api-helpers";
+import {
+  requireGestorWithScope,
+  ok,
+  badRequest,
+  notFound,
+  forbidden,
+} from "@/lib/api-helpers";
 import { criarAuditLog } from "@/lib/audit";
 
 function gerarTxIdPix(): string {
+  const { randomBytes } = require("crypto");
   const now = new Date();
   const pad = (n: number, d = 2) => String(n).padStart(d, "0");
   const timestamp = `${String(now.getFullYear()).slice(-2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const random = Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, "0");
+  const random = randomBytes(4).toString("hex");
   return `${timestamp}${random}`;
 }
 
@@ -17,7 +22,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const { session, error } = await requireGestor();
+  const { session, error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const pagamentoId = params.id;
@@ -36,6 +41,10 @@ export async function POST(
 
   if (!pagamento) {
     return notFound("Pagamento não encontrado");
+  }
+
+  if (!consultorIds.includes(pagamento.consultorId)) {
+    return forbidden();
   }
 
   if (pagamento.status === "PAGO") {
@@ -76,10 +85,9 @@ export async function POST(
   };
 
   // TODO: integrar com Sendgrid, AWS SES ou similar para envio real de email
-  console.info("[pix-pagar] recibo consultor", {
-    para: emailDestino,
-    beneficiario: nomeRecebedor,
-    txId,
+  console.info("[pix-pagar] pagamento processado", {
+    pagamentoId,
+    consultorId: pagamento.consultorId,
     referencia: recibo.referencia,
   });
 

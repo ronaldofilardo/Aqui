@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok } from "@/lib/api-helpers";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const url = new URL(req.url);
@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
 
   // Pagamentos de consultores
   const pagamentosConsultores = await prisma.pagamento.findMany({
-    where: { mesReferencia: mes, anoReferencia: ano },
+    where: {
+      mesReferencia: mes,
+      anoReferencia: ano,
+      consultorId: { in: consultorIds },
+    },
     include: {
       consultor: {
         include: { usuario: { select: { nome: true, email: true } } },
@@ -23,7 +27,11 @@ export async function GET(req: NextRequest) {
 
   // Pagamentos de estabelecimentos (agrupado por estabelecimento)
   const comissoes = (await prisma.comissao.findMany({
-    where: { mesReferencia: mes, anoReferencia: ano },
+    where: {
+      mesReferencia: mes,
+      anoReferencia: ano,
+      consultorId: { in: consultorIds },
+    },
     include: {
       estabelecimento: {
         select: {

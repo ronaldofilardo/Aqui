@@ -1,12 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, notFound } from "@/lib/api-helpers";
+import {
+  requireGestorWithScope,
+  ok,
+  notFound,
+  forbidden,
+} from "@/lib/api-helpers";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const pagamentoId = params.id;
@@ -27,6 +32,10 @@ export async function GET(
 
   if (!pagamento) {
     return notFound("Pagamento não encontrado");
+  }
+
+  if (!consultorIds.includes(pagamento.consultorId)) {
+    return forbidden();
   }
 
   if (pagamento.status !== "PAGO") {

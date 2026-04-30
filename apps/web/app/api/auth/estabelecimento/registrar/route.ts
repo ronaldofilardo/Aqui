@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
     });
     if (existente) {
       return NextResponse.json(
-        { error: "Email já cadastrado" },
-        { status: 409 },
+        { error: "Não foi possível completar o cadastro" },
+        { status: 400 },
       );
     }
 

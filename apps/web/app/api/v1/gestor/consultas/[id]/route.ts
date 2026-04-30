@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, badRequest, notFound } from "@/lib/api-helpers";
+import {
+  requireGestorWithScope,
+  ok,
+  badRequest,
+  notFound,
+  forbidden,
+} from "@/lib/api-helpers";
 import {
   atualizarConsultaSchema,
   COMISSAO_ESTABELECIMENTO,
@@ -12,7 +18,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { session, error } = await requireGestor();
+  const { session, error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const { id } = await params;
@@ -38,6 +44,12 @@ export async function PATCH(
   });
 
   if (!consulta) return notFound("Consulta não encontrada");
+
+  const estabConsultorId =
+    consulta.cupomImportado.cupomConfig.estabelecimento.consultorId;
+  if (!consultorIds.includes(estabConsultorId)) {
+    return forbidden();
+  }
 
   const { status, valorPago } = parsed.data;
 

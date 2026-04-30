@@ -79,7 +79,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
             gestorId,
             consultorId,
           },
-        })
+        }),
       ).rejects.toThrow();
     });
   });

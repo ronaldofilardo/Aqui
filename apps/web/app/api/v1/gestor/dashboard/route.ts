@@ -1,5 +1,5 @@
 import { prisma } from "@asa/database";
-import { requireGestor, ok } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok } from "@/lib/api-helpers";
 
 function calcularVariacao(atual: number, anterior: number): number {
   if (anterior === 0) return atual > 0 ? 100 : 0;
@@ -7,7 +7,7 @@ function calcularVariacao(atual: number, anterior: number): number {
 }
 
 export async function GET() {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const now = new Date();
@@ -17,6 +17,8 @@ export async function GET() {
   // Mês anterior
   const mesAnterior = mes === 1 ? 12 : mes - 1;
   const anoAnterior = mes === 1 ? ano - 1 : ano;
+
+  const scopeFilter = { consultorId: { in: consultorIds } };
 
   const [
     totalConsultores,
@@ -32,46 +34,67 @@ export async function GET() {
     valorPendentesAgg,
     valorPagasAgg,
   ] = await Promise.all([
-    prisma.consultor.count(),
-    prisma.estabelecimento.count({ where: { status: "ATIVO" } }),
-    prisma.comissao.count({
-      where: { mesReferencia: mes, anoReferencia: ano },
+    prisma.consultor.count({ where: { id: { in: consultorIds } } }),
+    prisma.estabelecimento.count({
+      where: { status: "ATIVO", consultorId: { in: consultorIds } },
     }),
     prisma.comissao.count({
-      where: { mesReferencia: mesAnterior, anoReferencia: anoAnterior },
+      where: { mesReferencia: mes, anoReferencia: ano, ...scopeFilter },
     }),
-    prisma.comissao.count({ where: { statusPagamento: "PENDENTE" } }),
+    prisma.comissao.count({
+      where: {
+        mesReferencia: mesAnterior,
+        anoReferencia: anoAnterior,
+        ...scopeFilter,
+      },
+    }),
+    prisma.comissao.count({
+      where: { statusPagamento: "PENDENTE", ...scopeFilter },
+    }),
     prisma.comissao.count({
       where: {
         statusPagamento: "PENDENTE",
         mesReferencia: mesAnterior,
         anoReferencia: anoAnterior,
+        ...scopeFilter,
       },
     }),
-    prisma.comissao.count({ where: { statusPagamento: "PAGO" } }),
+    prisma.comissao.count({
+      where: { statusPagamento: "PAGO", ...scopeFilter },
+    }),
     prisma.comissao.count({
       where: {
         statusPagamento: "PAGO",
         mesReferencia: mesAnterior,
         anoReferencia: anoAnterior,
+        ...scopeFilter,
       },
     }),
-    prisma.cupomImportado.count(),
     prisma.cupomImportado.count({
-      where: { mesReferencia: mesAnterior, anoReferencia: anoAnterior },
+      where: {
+        cupomConfig: { estabelecimento: { consultorId: { in: consultorIds } } },
+      },
+    }),
+    prisma.cupomImportado.count({
+      where: {
+        mesReferencia: mesAnterior,
+        anoReferencia: anoAnterior,
+        cupomConfig: { estabelecimento: { consultorId: { in: consultorIds } } },
+      },
     }),
     prisma.comissao.aggregate({
       _sum: { valorConsultor: true },
-      where: { statusPagamento: "PENDENTE" },
+      where: { statusPagamento: "PENDENTE", ...scopeFilter },
     }),
     prisma.comissao.aggregate({
       _sum: { valorConsultor: true },
-      where: { statusPagamento: "PAGO" },
+      where: { statusPagamento: "PAGO", ...scopeFilter },
     }),
   ]);
 
   // Top consultores
   const topConsultores = await prisma.consultor.findMany({
+    where: { id: { in: consultorIds } },
     include: { usuario: { select: { nome: true } } },
     orderBy: { totalConsultas: "desc" },
     take: 5,
@@ -85,7 +108,9 @@ export async function GET() {
 
   const evolucaoCounts = await Promise.all(
     evolucaoMeses.map(({ mes: m, ano: a }) =>
-      prisma.comissao.count({ where: { mesReferencia: m, anoReferencia: a } }),
+      prisma.comissao.count({
+        where: { mesReferencia: m, anoReferencia: a, ...scopeFilter },
+      }),
     ),
   );
 

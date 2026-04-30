@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
+import { requireGestorWithScope, ok, badRequest } from "@/lib/api-helpers";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireGestor();
+  const { error, consultorIds } = await requireGestorWithScope();
   if (error) return error;
 
   const url = new URL(req.url);
@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
   let data: unknown[] = [];
 
   if (tipo === "comissoes") {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      consultorId: { in: consultorIds },
+    };
     if (mes) where.mesReferencia = mes;
     if (ano) where.anoReferencia = ano;
 
@@ -30,6 +32,13 @@ export async function GET(req: NextRequest) {
     });
   } else if (tipo === "consultas") {
     data = await prisma.consulta.findMany({
+      where: {
+        cupomImportado: {
+          cupomConfig: {
+            estabelecimento: { consultorId: { in: consultorIds } },
+          },
+        },
+      },
       include: {
         cupomImportado: {
           include: {
@@ -82,7 +91,9 @@ export async function GET(req: NextRequest) {
     const csvLines = [
       headers.join(";"),
       ...flatRows.map((r: any) =>
-        headers.map((h: any) => `"${(r[h] || "").replace(/"/g, '""')}"`).join(";"),
+        headers
+          .map((h: any) => `"${(r[h] || "").replace(/"/g, '""')}"`)
+          .join(";"),
       ),
     ];
     const csv = csvLines.join("\n");
