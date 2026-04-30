@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { requireGestor, ok, badRequest, notFound } from "@/lib/api-helpers";
+import {
+  requireGestor,
+  ok,
+  badRequest,
+  notFound,
+  forbidden,
+} from "@/lib/api-helpers";
 import { z } from "zod";
 
 const createCupomSchema = z.object({
@@ -84,6 +90,12 @@ export async function POST(
   const { estabelecimentoId, codigoCupom, descricao } = parsed.data;
   const { id } = await params;
 
+  // Verify gestor has scope over this consultor
+  const gestorConsultor = await prisma.gestorConsultor.findFirst({
+    where: { gestorId: session!.user.id, consultorId: id },
+  });
+  if (!gestorConsultor) return forbidden();
+
   // Verify the estabelecimento belongs to this consultor
   const estabelecimento = await prisma.estabelecimento.findFirst({
     where: { id: estabelecimentoId, consultorId: id },
@@ -92,30 +104,29 @@ export async function POST(
     return notFound("Estabelecimento não encontrado para este consultor");
   }
 
-  // Check if already has a cupom config
-  const existing = await prisma.cupomConfig.findUnique({
-    where: { estabelecimentoId },
+  // Check if code is already in use by ANOTHER estabelecimento
+  const codeInUse = await prisma.cupomConfig.findUnique({
+    where: { codigoCupom },
+    include: { estabelecimento: { select: { nomeFantasia: true } } },
   });
-  if (existing) {
+  if (codeInUse && codeInUse.estabelecimentoId !== estabelecimentoId) {
     return badRequest(
-      "Este estabelecimento já possui um código de cupom cadastrado",
+      `Código '${codigoCupom}' já está cadastrado para outro estabelecimento (${codeInUse.estabelecimento.nomeFantasia}). Use um código diferente.`,
     );
   }
 
-  // Check unique cupom code
-  const codeInUse = await prisma.cupomConfig.findUnique({
-    where: { codigoCupom },
-  });
-  if (codeInUse) {
-    return badRequest(`Código de cupom '${codigoCupom}' já está em uso`);
-  }
-
-  const cupomConfig = await prisma.cupomConfig.create({
-    data: {
+  // Upsert: create or update the cupom config for this estabelecimento
+  const cupomConfig = await prisma.cupomConfig.upsert({
+    where: { estabelecimentoId },
+    create: {
       estabelecimentoId,
       codigoCupom,
       descricao: descricao ?? null,
       criadoPor: session!.user.id,
+    },
+    update: {
+      codigoCupom,
+      descricao: descricao ?? null,
     },
   });
 

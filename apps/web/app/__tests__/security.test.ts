@@ -149,8 +149,7 @@ describe("Security Hardening Tests", () => {
 
   describe("CSP Headers", () => {
     it("CSP deve bloquear scripts inline por padrão", () => {
-      const cspPolicy =
-        "default-src 'self'; script-src 'self' 'unsafe-inline'";
+      const cspPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'";
 
       // Policy documentada (tech debt para nonce-based em Next.js 15+)
       expect(cspPolicy).toContain("default-src 'self'");

@@ -30,7 +30,10 @@ export default function ConsultorCuponsPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [msg, setMsg] = useState<{
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
 
   // form state
   const [selectedEstabelecimento, setSelectedEstabelecimento] = useState("");
@@ -68,7 +71,10 @@ export default function ConsultorCuponsPage() {
     });
 
     if (res.ok) {
-      setMsg({ text: "Código de cupom cadastrado com sucesso!", type: "success" });
+      setMsg({
+        text: "Código de cupom cadastrado com sucesso!",
+        type: "success",
+      });
       setSelectedEstabelecimento("");
       setCodigoCupom("");
       setDescricao("");
@@ -84,7 +90,7 @@ export default function ConsultorCuponsPage() {
     if (!confirm("Remover este código de cupom?")) return;
     const res = await fetch(
       `/api/v1/gestor/consultores/${id}/cupons?cupomConfigId=${cupomConfigId}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     if (res.ok) {
       setMsg({ text: "Código removido com sucesso.", type: "success" });
@@ -108,7 +114,7 @@ export default function ConsultorCuponsPage() {
           ← Consultores
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">
-          Cupons — {data.consultor.nome}
+          Estabelecimentos — {data.consultor.nome}
         </h1>
       </div>
 
@@ -124,9 +130,12 @@ export default function ConsultorCuponsPage() {
       {semCupom.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Registrar Código de Cupom
+            Registrar Código de Cupom no Estabelecimento
           </h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Estabelecimento *
@@ -177,7 +186,7 @@ export default function ConsultorCuponsPage() {
                 disabled={submitting}
                 className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition text-sm font-medium disabled:opacity-50"
               >
-                {submitting ? "Salvando..." : "Registrar Código"}
+                {submitting ? "Salvando..." : "Registrar Cupom"}
               </button>
             </div>
           </form>
@@ -194,13 +203,27 @@ export default function ConsultorCuponsPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Estabelecimento</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Cidade/UF</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Código Cupom</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Descrição</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Importações</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
-              <th className="text-left px-6 py-3 text-gray-500 font-medium">Ações</th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Estabelecimento
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Cidade/UF
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Código Cupom
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Descrição
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Importações
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Status
+              </th>
+              <th className="text-left px-6 py-3 text-gray-500 font-medium">
+                Ações
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -237,14 +260,15 @@ export default function ConsultorCuponsPage() {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  {e.cupomConfig && e.cupomConfig._count.cuponsImportados === 0 && (
-                    <button
-                      onClick={() => handleDelete(e.cupomConfig!.id)}
-                      className="text-xs text-red-600 hover:text-red-800 font-medium"
-                    >
-                      Remover
-                    </button>
-                  )}
+                  {e.cupomConfig &&
+                    e.cupomConfig._count.cuponsImportados === 0 && (
+                      <button
+                        onClick={() => handleDelete(e.cupomConfig!.id)}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium"
+                      >
+                        Remover
+                      </button>
+                    )}
                 </td>
               </tr>
             ))}

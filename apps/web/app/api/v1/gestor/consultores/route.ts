@@ -1,22 +1,15 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
-import {
-  requireGestor,
-  requireGestorWithScope,
-  ok,
-  created,
-  badRequest,
-} from "@/lib/api-helpers";
+import { requireGestor, ok, created, badRequest } from "@/lib/api-helpers";
 import { criarConsultorSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function GET() {
-  const { session, error, consultorIds } = await requireGestorWithScope();
+  const { session, error } = await requireGestor();
   if (error) return error;
 
   const consultores = await prisma.consultor.findMany({
-    where: { id: { in: consultorIds } },
     include: {
       usuario: {
         select: {
@@ -94,6 +87,13 @@ export async function POST(req: NextRequest) {
         bancoNome,
         agencia,
         conta,
+      },
+    });
+
+    await tx.gestorConsultor.create({
+      data: {
+        gestorId: session!.user.id,
+        consultorId: consultor.id,
       },
     });
 

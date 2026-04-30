@@ -34,7 +34,6 @@ export default function EstabelecimentosPage() {
     email: "",
     responsavelNome: "",
     responsavelCpf: "",
-    codigoCupom: "",
     pixTipo: "",
     pixChave: "",
     bancoNome: "",
@@ -45,8 +44,7 @@ export default function EstabelecimentosPage() {
   const [msg, setMsg] = useState("");
   const [cnpjError, setCnpjError] = useState("");
   const [pixError, setPixError] = useState("");
-  const [cupomInlineId, setCupomInlineId] = useState<string | null>(null);
-  const [cupomInlineCode, setCupomInlineCode] = useState("");
+
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [conviteModal, setConviteModal] = useState<{
     estabId: string;
@@ -151,25 +149,15 @@ export default function EstabelecimentosPage() {
     }
     setSubmitting(true);
     setMsg("");
-    const { codigoCupom, ...estabData } = form;
     const res = await fetch("/api/v1/consultor/estabelecimentos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(estabData),
+      body: JSON.stringify(form),
     });
     if (res.ok) {
-      const novoEstab = await res.json();
-      if (codigoCupom.trim()) {
-        await fetch("/api/v1/consultor/cupons", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            estabelecimentoId: novoEstab.id,
-            codigoCupom: codigoCupom.trim(),
-          }),
-        });
-      }
-      setMsg("Estabelecimento cadastrado!");
+      setMsg(
+        "Estabelecimento cadastrado! O gestor irá registrar o código do cupom.",
+      );
       setForm({
         nomeFantasia: "",
         razaoSocial: "",
@@ -181,7 +169,6 @@ export default function EstabelecimentosPage() {
         email: "",
         responsavelNome: "",
         responsavelCpf: "",
-        codigoCupom: "",
         pixTipo: "",
         pixChave: "",
         bancoNome: "",
@@ -195,27 +182,6 @@ export default function EstabelecimentosPage() {
       setMsg(err.error || "Erro ao cadastrar");
     }
     setSubmitting(false);
-  }
-
-  async function handleCupomInline(e: React.FormEvent, estabId: string) {
-    e.preventDefault();
-    const res = await fetch("/api/v1/consultor/cupons", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        estabelecimentoId: estabId,
-        codigoCupom: cupomInlineCode.trim(),
-      }),
-    });
-    if (res.ok) {
-      setMsg("Cupom atribuído com sucesso!");
-      setCupomInlineId(null);
-      setCupomInlineCode("");
-      loadEstabs();
-    } else {
-      const err = await res.json();
-      setMsg(err.error || "Erro ao atribuir cupom");
-    }
   }
 
   async function handleUpload(estabId: string, file: File, tipo: string) {
@@ -446,21 +412,6 @@ export default function EstabelecimentosPage() {
               className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Código do Cupom
-            </label>
-            <input
-              type="text"
-              value={form.codigoCupom}
-              onChange={(e) =>
-                setForm({ ...form, codigoCupom: e.target.value.toUpperCase() })
-              }
-              placeholder="Ex: A200 (opcional)"
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-            />
-          </div>
-
           {/* Seção de Dados Bancários */}
           <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-200">
             <h4 className="text-sm font-semibold text-gray-900 mb-4">
@@ -620,17 +571,6 @@ export default function EstabelecimentosPage() {
                       QR Code
                     </button>
                   )}
-                  {!e.cupomConfig && cupomInlineId !== e.id && (
-                    <button
-                      onClick={() => {
-                        setCupomInlineId(e.id);
-                        setCupomInlineCode("");
-                      }}
-                      className="text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100"
-                    >
-                      + Cupom
-                    </button>
-                  )}
                   <label className="text-xs bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
                     {uploadingId === e.id ? "Enviando..." : "Upload Doc"}
                     <input
@@ -652,38 +592,10 @@ export default function EstabelecimentosPage() {
                   </label>
                 </div>
               </div>
-              {cupomInlineId === e.id && (
-                <form
-                  onSubmit={(ev) => handleCupomInline(ev, e.id)}
-                  className="mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center"
-                >
-                  <input
-                    type="text"
-                    required
-                    value={cupomInlineCode}
-                    onChange={(ev) =>
-                      setCupomInlineCode(ev.target.value.toUpperCase())
-                    }
-                    placeholder="Código do cupom (ex: A200)"
-                    className="flex-1 px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700"
-                  >
-                    Atribuir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCupomInlineId(null);
-                      setCupomInlineCode("");
-                    }}
-                    className="text-xs text-gray-500 px-2 py-1.5"
-                  >
-                    Cancelar
-                  </button>
-                </form>
+              {!e.cupomConfig && (
+                <p className="mt-3 pt-3 border-t border-gray-100 text-xs text-amber-600">
+                  Aguardando registro do código de cupom pelo gestor
+                </p>
               )}
               {e.documentos.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-100">

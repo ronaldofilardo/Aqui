@@ -73,6 +73,7 @@ export default function AcessoPage() {
         nome: form.nome.trim(),
         email: form.email.trim().toLowerCase(),
         senha: form.senha,
+        inviteToken: token,
       }),
     });
 

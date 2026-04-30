@@ -2,28 +2,8 @@
 
 import { useEffect, useState } from "react";
 import React from "react";
+import Link from "next/link";
 import { validarCPF } from "@asa/shared";
-
-interface Cupom {
-  id: string;
-  codigoCupom: string;
-  descricao: string | null;
-  status: string;
-  _count: { cuponsImportados: number };
-}
-
-interface Estabelecimento {
-  id: string;
-  nomeFantasia: string;
-  cidade: string | null;
-  estado: string | null;
-  cupomConfig: Cupom | null;
-}
-
-interface CuponData {
-  consultor: { id: string; nome: string; email: string };
-  estabelecimentos: Estabelecimento[];
-}
 
 interface Consultor {
   id: string;
@@ -47,11 +27,6 @@ export default function ConsultoresPage() {
   const [consultores, setConsultores] = useState<Consultor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [expandedCupons, setExpandedCupons] = useState<string | null>(null);
-  const [cuponData, setCuponData] = useState<{
-    [key: string]: CuponData | null;
-  }>({});
-  const [loadingCupons, setLoadingCupons] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -127,25 +102,6 @@ export default function ConsultoresPage() {
       .then((r) => r.json())
       .then(setConsultores)
       .finally(() => setLoading(false));
-  };
-
-  const toggleCupons = async (consultorId: string) => {
-    if (expandedCupons === consultorId) {
-      setExpandedCupons(null);
-      return;
-    }
-
-    if (!cuponData[consultorId]) {
-      setLoadingCupons(true);
-      const res = await fetch(
-        `/api/v1/gestor/consultores/${consultorId}/cupons`,
-      );
-      const data = await res.json();
-      setCuponData((prev) => ({ ...prev, [consultorId]: data }));
-      setLoadingCupons(false);
-    }
-
-    setExpandedCupons(consultorId);
   };
 
   useEffect(() => {
@@ -402,13 +358,12 @@ export default function ConsultoresPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 flex items-center gap-3">
-                      <button
-                        onClick={() => toggleCupons(c.id)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                      <Link
+                        href={`/gestor/consultores/${c.id}`}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
                       >
-                        <span>{expandedCupons === c.id ? "▼" : "▶"}</span>
-                        <span>Cupons</span>
-                      </button>
+                        Estabelecimentos
+                      </Link>
                       <button
                         onClick={() => toggleStatus(c.id, c.usuario.status)}
                         className="text-xs text-primary-600 hover:text-primary-800 font-medium"
@@ -417,81 +372,6 @@ export default function ConsultoresPage() {
                       </button>
                     </td>
                   </tr>
-
-                  {expandedCupons === c.id && (
-                    <tr className="bg-gray-50 hover:bg-gray-50">
-                      <td colSpan={6} className="px-6 py-4">
-                        {loadingCupons ? (
-                          <p className="text-gray-500 text-sm">
-                            Carregando cupons...
-                          </p>
-                        ) : cuponData[c.id]?.estabelecimentos?.length === 0 ? (
-                          <p className="text-gray-500 text-sm">
-                            Nenhum estabelecimento cadastrado
-                          </p>
-                        ) : (
-                          <div className="space-y-3">
-                            {cuponData[c.id]?.estabelecimentos?.map((est) => (
-                              <div
-                                key={est.id}
-                                className="bg-white border border-gray-200 rounded-lg p-4"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <div>
-                                    <p className="font-medium text-gray-900">
-                                      {est.nomeFantasia}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {est.cidade &&
-                                        est.estado &&
-                                        `${est.cidade}, ${est.estado}`}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {est.cupomConfig ? (
-                                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="font-medium text-blue-900">
-                                        Cupom: {est.cupomConfig.codigoCupom}
-                                      </span>
-                                      <span
-                                        className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                          est.cupomConfig.status === "ATIVO"
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-red-100 text-red-700"
-                                        }`}
-                                      >
-                                        {est.cupomConfig.status}
-                                      </span>
-                                    </div>
-                                    <div className="text-gray-600 text-xs space-y-1">
-                                      {est.cupomConfig.descricao && (
-                                        <p>
-                                          Descrição: {est.cupomConfig.descricao}
-                                        </p>
-                                      )}
-                                      <p className="text-blue-700 font-medium">
-                                        Importados:{" "}
-                                        {
-                                          est.cupomConfig._count
-                                            .cuponsImportados
-                                        }
-                                      </p>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-gray-400 italic">
-                                    Nenhum cupom configurado
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               ))}
               {consultores.length === 0 && (
