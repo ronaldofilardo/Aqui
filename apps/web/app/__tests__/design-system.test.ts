@@ -25,8 +25,6 @@ const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
   { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
-  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
-  { label: "Pagamentos", href: "/gestor/pagamentos", icon: "💳" },
   { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
 
@@ -59,8 +57,8 @@ function generateInitials(name: string | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 describe("Sidebar — Navegação do Gestor", () => {
-  it("deve ter 6 itens de navegação", () => {
-    expect(gestorNav).toHaveLength(6);
+  it("deve ter 4 itens de navegação", () => {
+    expect(gestorNav).toHaveLength(4);
   });
 
   it("todos os itens devem ter href, label e icon", () => {
@@ -79,10 +77,6 @@ describe("Sidebar — Navegação do Gestor", () => {
 
   it("deve conter rota de dashboard", () => {
     expect(gestorNav.some((i) => i.href === "/gestor/dashboard")).toBe(true);
-  });
-
-  it("deve conter rota de pagamentos", () => {
-    expect(gestorNav.some((i) => i.href === "/gestor/pagamentos")).toBe(true);
   });
 });
 

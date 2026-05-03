@@ -91,11 +91,6 @@ async function main() {
   });
 
   console.log("✅ Seed executado com sucesso!");
-  console.log("  Admin: admin@asa.com / 123456");
-  console.log("  Gestor: admin@asa.com.br / admin123");
-  console.log("  Gestora: vanda@asa.com / 123456");
-  console.log("  Consultor: consultor@asa.com.br / consultor123");
-  console.log("  Consultor CPF: 530.511.739-91 / consultor123");
 }
 
 main()

@@ -6,72 +6,45 @@
 - ✅ **DATABASE_URL**: Configurado (Neon neondb)
 - ❓ **NEXTAUTH_URL**: Precisa ser definida
 - ❌ **AUTH_SECRET**: Faltando
-- ❌ **ASAAS_API_KEY**: Faltando
 
 ## 🔐 Variáveis Necessárias
 
 ### 1. NEXTAUTH_SECRET (CRÍTICO)
 
-**Gerado para este deploy:**
-
-```
-NEXTAUTH_SECRET=asaquii_prod_32bytes_randomkey_2026_04_28_secure_token
-```
-
-**Como gerar um novo (se necessário):**
+**Gere um novo valor seguro com:**
 
 ```bash
 openssl rand -base64 32
 ```
 
+**NUNCA copie valores de documentação. Cada deploy deve ter um secret novo.**
+
 ### 2. NEXTAUTH_URL
 
 ```
-NEXTAUTH_URL=https://asaquii.vercel.app
+NEXTAUTH_URL=https://seu-dominio.vercel.app
 ```
 
 ### 3. AUTH_SECRET
 
-Deve ser idêntico a NEXTAUTH_SECRET:
-
-```
-AUTH_SECRET=asaquii_prod_32bytes_randomkey_2026_04_28_secure_token
-```
+Deve ser idêntico a NEXTAUTH_SECRET — use o mesmo valor gerado acima.
 
 ### 4. DATABASE_URL
 
-✅ **Já configurado:**
+✅ **Configure apenas em Vercel Environment Variables UI**
 
-```
-postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-```
-
-### 5. ASAAS_API_KEY
-
-Obtenha em: https://admin.asaas.com/api
-
-```
-ASAAS_API_KEY=[sua-chave-api-asaas]
-```
-
-### 6. ASAAS_SANDBOX (Produção = false)
-
-```
-ASAAS_SANDBOX=false
-```
+⚠️ **NUNCA em repositório ou documentação.**
 
 ## 📋 Checklist Vercel Dashboard
 
 1. Vá para: **Vercel → asaquii → Settings → Environment Variables**
 2. Para cada variável abaixo, clique **"Add Environment Variable"**:
 
-| Variável        | Valor                                                    | Ambientes                        |
-| --------------- | -------------------------------------------------------- | -------------------------------- |
-| NEXTAUTH_SECRET | `asaquii_prod_32bytes_randomkey_2026_04_28_secure_token` | Production, Preview, Development |
-| NEXTAUTH_URL    | `https://asaquii.vercel.app`                             | Production, Preview, Development |
-| AUTH_SECRET     | `asaquii_prod_32bytes_randomkey_2026_04_28_secure_token` | Production, Preview, Development |
-| ASAAS_API_KEY   | `[sua-chave]`                                            | Production                       |
-| ASAAS_SANDBOX   | `false`                                                  | Production                       |
+| Variável        | Valor                                 | Ambientes                        |
+| --------------- | ------------------------------------- | -------------------------------- |
+| NEXTAUTH_SECRET | `[GERE_COM: openssl rand -base64 32]` | Production, Preview, Development |
+| NEXTAUTH_URL    | `https://seu-dominio.vercel.app`      | Production, Preview, Development |
+| AUTH_SECRET     | `[MESMO_QUE_NEXTAUTH_SECRET]`         | Production, Preview, Development |
 
 3. Clique **"Save"** após cada uma
 4. Aguarde refresh (alguns segundos)
@@ -98,6 +71,7 @@ curl -X GET https://asaquii.vercel.app/api/auth/session
 
 # 3. Verifique logs
 Vercel Dashboard → Deployments → [seu-deployment] → Logs
+
 ```
 
 ## 🐛 Se der erro

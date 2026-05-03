@@ -114,7 +114,6 @@ Usuario (tipo=GESTOR)
 
 ### Segurança Residual
 
-- ⚠️ Webhook `/api/v1/webhooks/asaas` sem autenticação → requer validação de assinatura
 - ⚠️ Modelo UsuarioEstabelecimento paralelo → reconciliar com Usuario principal
 - ⚠️ Valores de comissão hardcoded (10, 20) → implementar tabela de configuração
 

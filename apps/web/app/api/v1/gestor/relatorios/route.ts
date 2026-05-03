@@ -7,30 +7,14 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const url = new URL(req.url);
-  const tipo = url.searchParams.get("tipo") || "comissoes";
+  const tipo = url.searchParams.get("tipo") || "consultas";
   const mes = Number(url.searchParams.get("mes")) || undefined;
   const ano = Number(url.searchParams.get("ano")) || undefined;
   const formato = url.searchParams.get("formato") || "json";
 
   let data: unknown[] = [];
 
-  if (tipo === "comissoes") {
-    const where: Record<string, unknown> = {
-      consultorId: { in: consultorIds },
-    };
-    if (mes) where.mesReferencia = mes;
-    if (ano) where.anoReferencia = ano;
-
-    data = await prisma.comissao.findMany({
-      where,
-      include: {
-        consultor: { include: { usuario: { select: { nome: true } } } },
-        estabelecimento: { select: { nomeFantasia: true } },
-        consulta: true,
-      },
-      orderBy: { criadoEm: "desc" },
-    });
-  } else if (tipo === "consultas") {
+  if (tipo === "consultas") {
     data = await prisma.consulta.findMany({
       where: {
         cupomImportado: {
@@ -51,7 +35,7 @@ export async function GET(req: NextRequest) {
       orderBy: { criadoEm: "desc" },
     });
   } else {
-    return badRequest("Tipo deve ser 'comissoes' ou 'consultas'");
+    return badRequest("Tipo deve ser 'consultas'");
   }
 
   if (formato === "csv") {

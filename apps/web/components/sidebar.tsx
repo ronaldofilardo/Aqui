@@ -14,8 +14,6 @@ const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
   { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
-  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
-  { label: "Pagamentos", href: "/gestor/pagamentos", icon: "💳" },
   { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
 

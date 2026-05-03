@@ -54,19 +54,6 @@ enum StatusConsulta {
   NAO_COMPARECEU
 }
 
-enum StatusPagamentoComissao {
-  PENDENTE
-  PAGO
-  CANCELADO
-}
-
-enum StatusPagamento {
-  PENDENTE
-  PROCESSANDO
-  PAGO
-  FALHOU
-}
-
 model Usuario {
   id           String        @id @default(uuid()) @db.Uuid
   nome         String        @db.VarChar(255)
@@ -96,13 +83,10 @@ model Consultor {
   agencia        String?  @db.VarChar(10)
   conta          String?  @db.VarChar(20)
   totalConsultas Int      @default(0) @map("total_consultas")
-  totalComissoes Decimal  @default(0) @map("total_comissoes") @db.Decimal(10, 2)
   criadoEm       DateTime @default(now()) @map("criado_em")
 
   usuario                Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   estabelecimentos       Estabelecimento[]
-  comissoes              Comissao[]
-  pagamentos             Pagamento[]
   gestoresAtribuicoes    GestorConsultor[] @relation("consultores_atribuidos")
 
   @@map("consultores")
@@ -132,7 +116,6 @@ model Estabelecimento {
   consultor   Consultor    @relation(fields: [consultorId], references: [id], onDelete: Cascade)
   documentos  Documento[]
   cupomConfig CupomConfig?
-  comissoes   Comissao[]
   usuarios    UsuarioEstabelecimento[]
 
   @@map("estabelecimentos")
@@ -203,50 +186,8 @@ model Consulta {
   criadoEm         DateTime       @default(now()) @map("criado_em")
 
   cupomImportado CupomImportado @relation(fields: [cupomImportadoId], references: [id])
-  comissao       Comissao?
 
   @@map("consultas")
-}
-
-model Comissao {
-  id                   String                  @id @default(uuid()) @db.Uuid
-  consultaId           String                  @unique @map("consulta_id") @db.Uuid
-  estabelecimentoId    String                  @map("estabelecimento_id") @db.Uuid
-  consultorId          String                  @map("consultor_id") @db.Uuid
-  valorEstabelecimento Decimal                 @default(10.00) @map("valor_estabelecimento") @db.Decimal(10, 2)
-  valorConsultor       Decimal                 @default(20.00) @map("valor_consultor") @db.Decimal(10, 2)
-  mesReferencia        Int                     @map("mes_referencia")
-  anoReferencia        Int                     @map("ano_referencia")
-  statusPagamento      StatusPagamentoComissao @default(PENDENTE) @map("status_pagamento")
-  dataPagamento        DateTime?               @map("data_pagamento")
-  criadoEm             DateTime                @default(now()) @map("criado_em")
-
-  consulta        Consulta        @relation(fields: [consultaId], references: [id])
-  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id])
-  consultor       Consultor       @relation(fields: [consultorId], references: [id])
-
-  @@index([mesReferencia, anoReferencia])
-  @@index([consultorId])
-  @@map("comissoes")
-}
-
-model Pagamento {
-  id                  String          @id @default(uuid()) @db.Uuid
-  consultorId         String          @map("consultor_id") @db.Uuid
-  mesReferencia       Int             @map("mes_referencia")
-  anoReferencia       Int             @map("ano_referencia")
-  valorTotal          Decimal         @map("valor_total") @db.Decimal(10, 2)
-  quantidadeConsultas Int             @map("quantidade_consultas")
-  status              StatusPagamento @default(PENDENTE)
-  pixTxid             String?         @map("pix_txid") @db.VarChar(100)
-  dataPagamento       DateTime?       @map("data_pagamento")
-  criadoEm            DateTime        @default(now()) @map("criado_em")
-  pagoEm              DateTime?       @map("pago_em")
-
-  consultor Consultor @relation(fields: [consultorId], references: [id])
-
-  @@index([status])
-  @@map("pagamentos")
 }
 
 model AuditLog {

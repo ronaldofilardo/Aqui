@@ -4,7 +4,6 @@ import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
 import {
   parseCupomFile,
   importarCuponsSchema,
-  COMISSAO_CONSULTOR,
 } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
@@ -125,7 +124,7 @@ export async function POST(req: NextRequest) {
 
   const allErros = [...resultado.erros, ...dbErros];
 
-  // Atomic import + Pagamento + Consultor totals inside single transaction
+  // Atomic import + Consultor totals inside single transaction
   const importados = await prisma.$transaction(async (tx) => {
     const created = [];
     const countByConsultor = new Map<string, number>();
@@ -147,22 +146,13 @@ export async function POST(req: NextRequest) {
           status: "USADO",
         },
       });
-      const consulta = await tx.consulta.create({
+      await tx.consulta.create({
         data: {
           cupomImportadoId: cupom.id,
           status: "REALIZADA",
           dataAgendamento: item.agendamento,
           dataRealizacao: new Date(),
           valorPago: precoFinal,
-        },
-      });
-      await tx.comissao.create({
-        data: {
-          consultaId: consulta.id,
-          estabelecimentoId: item.estabelecimentoId,
-          consultorId: item.consultorId,
-          mesReferencia,
-          anoReferencia,
         },
       });
       created.push({
@@ -176,41 +166,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Pagamento + Consultor totals inside the same transaction (atomicity)
+    // Update consultor totalConsultas
     for (const [consultorId, count] of countByConsultor.entries()) {
-      const valorTotal = count * COMISSAO_CONSULTOR;
-      const pagamentoExistente = await tx.pagamento.findFirst({
-        where: {
-          consultorId,
-          mesReferencia,
-          anoReferencia,
-          status: "PENDENTE",
-        },
-      });
-      if (pagamentoExistente) {
-        await tx.pagamento.update({
-          where: { id: pagamentoExistente.id },
-          data: {
-            valorTotal: { increment: valorTotal },
-            quantidadeConsultas: { increment: count },
-          },
-        });
-      } else {
-        await tx.pagamento.create({
-          data: {
-            consultorId,
-            mesReferencia,
-            anoReferencia,
-            valorTotal,
-            quantidadeConsultas: count,
-          },
-        });
-      }
       await tx.consultor.update({
         where: { id: consultorId },
         data: {
           totalConsultas: { increment: count },
-          totalComissoes: { increment: valorTotal },
         },
       });
     }

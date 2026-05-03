@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth-config";
 
 // ---------------------------------------------------------------------------
+// Security: Enforce HTTPS in production
+// ---------------------------------------------------------------------------
+function enforceHttpsProduction(req: NextRequest): NextResponse | null {
+  // Only enforce in production
+  if (process.env.NODE_ENV !== "production") {
+    return null;
+  }
+
+  // Check if request is not HTTPS
+  const protocol = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol;
+  if (protocol !== "https:") {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+    return NextResponse.redirect(url);
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Allowed origins for CORS on /api/v1/* routes
 // ---------------------------------------------------------------------------
 function getAllowedOrigin(): string {
@@ -26,6 +46,13 @@ function buildCorsHeaders(origin: string): Record<string, string> {
 // ---------------------------------------------------------------------------
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Enforce HTTPS in production
+  const httpsResponse = enforceHttpsProduction(req);
+  if (httpsResponse) {
+    return httpsResponse;
+  }
+
   const isApiV1 = pathname.startsWith("/api/v1/");
 
   // ------ CORS ---------------------------------------------------------------

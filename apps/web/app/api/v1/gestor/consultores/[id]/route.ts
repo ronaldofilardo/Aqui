@@ -25,7 +25,7 @@ export async function GET(
         },
       },
       estabelecimentos: { include: { cupomConfig: true } },
-      _count: { select: { comissoes: true, pagamentos: true } },
+      _count: { select: {} },
     },
   });
 

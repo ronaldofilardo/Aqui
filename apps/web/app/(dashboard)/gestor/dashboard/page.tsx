@@ -10,14 +10,6 @@ interface DashboardData {
     consultasMes: number;
     consultasMesAnterior: number;
     variacaoConsultas: number;
-    comissoesPendentes: number;
-    comissoesPendentesAnterior: number;
-    variacaoPendentes: number;
-    comissoesPagas: number;
-    comissoesPagasAnterior: number;
-    variacaoPagas: number;
-    valorComissoesPendentes: number;
-    valorComissoesPagas: number;
     totalCuponsImportados: number;
     totalCuponsImportadosAnterior: number;
     variacaoCupons: number;
@@ -27,7 +19,6 @@ interface DashboardData {
   topConsultores: Array<{
     nome: string;
     totalConsultas: number;
-    totalComissoes: number;
   }>;
   evolucao: Array<{ mes: number; ano: number; totalConsultas: number }>;
 }
@@ -211,52 +202,6 @@ export default function GestorDashboard() {
         </div>
       </div>
 
-      {/* FINANÇAS */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <span>💰</span> Finanças
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <StatCardEnhanced
-            label="Comissões Pagas"
-            value={`R$ ${resumo.valorComissoesPagas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            variacao={resumo.variacaoPagas}
-            icon="✅"
-            color="text-green-600"
-            subtexto={`${resumo.comissoesPagas} operações`}
-          />
-          <StatCardEnhanced
-            label="A Receber"
-            value={`R$ ${resumo.valorComissoesPendentes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            variacao={resumo.variacaoPendentes}
-            icon="⏳"
-            color={
-              resumo.comissoesPendentes > 0
-                ? "text-yellow-600"
-                : "text-gray-600"
-            }
-            subtexto={`${resumo.comissoesPendentes} operações pendentes`}
-          />
-          <StatCardEnhanced
-            label="Total de Consultores"
-            value={resumo.totalConsultores}
-            icon="👥"
-            color="text-indigo-600"
-            subtexto="Rede ativa"
-          />
-        </div>
-
-        {/* ALERT */}
-        {resumo.comissoesPendentes > 0 && (
-          <AlertCard
-            title="Comissões Pendentes"
-            message={`Você tem ${resumo.comissoesPendentes} comissão(ões) aguardando processamento e pagamento`}
-            value={`R$ ${resumo.valorComissoesPendentes.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            actionLabel="Ir para Pagamentos"
-          />
-        )}
-      </div>
-
       {/* PERFORMANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Consultores */}
@@ -301,7 +246,6 @@ export default function GestorDashboard() {
                     </div>
                     <div className="flex gap-4 text-xs text-gray-600">
                       <span>{c.totalConsultas} consultas</span>
-                      <span>R$ {c.totalComissoes.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

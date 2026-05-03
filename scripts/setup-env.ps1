@@ -24,9 +24,11 @@ $headers = @{
 }
 
 $envVars = @(
-    @{ key = "DATABASE_URL"; value = "postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" },
+    # DATABASE_URL MUST be configured manually in Vercel UI Dashboard
+    # NEVER hardcode database connection strings in scripts or documentation
+    # To configure: https://vercel.com/dashboard → Project Settings → Environment Variables
     @{ key = "NEXTAUTH_SECRET"; value = $NextAuthSecret },
-    @{ key = "NEXTAUTH_URL"; value = "https://asaqui.vercel.app" },
+    @{ key = "NEXTAUTH_URL"; value = "https://seu-dominio.vercel.app" },
     @{ key = "AUTH_SECRET"; value = $NextAuthSecret },
     @{ key = "ASAAS_SANDBOX"; value = "false" }
 )

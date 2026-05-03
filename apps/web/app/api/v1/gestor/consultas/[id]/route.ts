@@ -9,8 +9,6 @@ import {
 } from "@/lib/api-helpers";
 import {
   atualizarConsultaSchema,
-  COMISSAO_ESTABELECIMENTO,
-  COMISSAO_CONSULTOR,
 } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
@@ -65,26 +63,12 @@ export async function PATCH(
 
     if (status === "REALIZADA") {
       const estab = consulta.cupomImportado.cupomConfig.estabelecimento;
-      const now = new Date();
-
-      await tx.comissao.create({
-        data: {
-          consultaId: id,
-          estabelecimentoId: estab.id,
-          consultorId: estab.consultorId,
-          valorEstabelecimento: COMISSAO_ESTABELECIMENTO,
-          valorConsultor: COMISSAO_CONSULTOR,
-          mesReferencia: now.getMonth() + 1,
-          anoReferencia: now.getFullYear(),
-        },
-      });
 
       // Update consultor totals
       await tx.consultor.update({
         where: { id: estab.consultorId },
         data: {
           totalConsultas: { increment: 1 },
-          totalComissoes: { increment: COMISSAO_CONSULTOR },
         },
       });
     }

@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 
 interface ProdData {
-  mensal: Array<{ mes: string; consultas: number; comissao: number }>;
-  totais: { consultas: number; comissao: number };
-}
-
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  mensal: Array<{ mes: string; consultas: number }>;
+  totais: { consultas: number };
 }
 
 export default function EstabelecimentoProdutividadePage() {
@@ -27,10 +23,7 @@ export default function EstabelecimentoProdutividadePage() {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-8 w-48 bg-gray-200 rounded-lg" />
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-24 bg-gray-200 rounded-xl" />
-          <div className="h-24 bg-gray-200 rounded-xl" />
-        </div>
+        <div className="h-24 bg-gray-200 rounded-xl" />
         <div className="h-64 bg-gray-200 rounded-xl" />
       </div>
     );
@@ -54,23 +47,13 @@ export default function EstabelecimentoProdutividadePage() {
       <h1 className="text-2xl font-bold text-gray-900">Produtividade</h1>
 
       {/* Totais */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-            Consultas Totais
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
-            {data.totais.consultas}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-            Comissão Total
-          </p>
-          <p className="text-2xl font-bold text-primary-700 mt-2">
-            {formatCurrency(data.totais.comissao)}
-          </p>
-        </div>
+      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+          Consultas Totais
+        </p>
+        <p className="text-3xl font-bold text-gray-900 mt-2">
+          {data.totais.consultas}
+        </p>
       </div>
 
       {/* Gráfico 12 meses */}
@@ -80,21 +63,6 @@ export default function EstabelecimentoProdutividadePage() {
         </h2>
         {data.totais.consultas === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-              <svg
-                className="w-6 h-6 text-gray-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </div>
             <p className="text-sm text-gray-400">
               Nenhuma consulta registrada ainda
             </p>
@@ -138,9 +106,6 @@ export default function EstabelecimentoProdutividadePage() {
                 <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Consultas
                 </th>
-                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Comissão
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -151,9 +116,6 @@ export default function EstabelecimentoProdutividadePage() {
                   </td>
                   <td className="px-6 py-3.5 text-right text-gray-700">
                     {m.consultas}
-                  </td>
-                  <td className="px-6 py-3.5 text-right font-medium text-primary-700">
-                    {formatCurrency(m.comissao)}
                   </td>
                 </tr>
               ))}

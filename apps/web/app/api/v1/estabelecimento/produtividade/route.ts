@@ -31,42 +31,36 @@ export async function GET(_req: NextRequest) {
     ultimos12.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
   }
 
-  // Uma única query agrupada + totais em paralelo (fix N+1)
-  const [groupedByMonth, totaisAggregate] = await Promise.all([
-    prisma.comissao.groupBy({
+  const cupomScope = {
+    status: "USADO" as const,
+    cupomConfig: { estabelecimentoId },
+  };
+
+  const [groupedByMonth, totalAggregate] = await Promise.all([
+    prisma.cupomImportado.groupBy({
       by: ["mesReferencia", "anoReferencia"],
-      where: { estabelecimentoId },
+      where: cupomScope,
       _count: { id: true },
-      _sum: { valorEstabelecimento: true },
     }),
-    prisma.comissao.aggregate({
-      where: { estabelecimentoId },
-      _count: { id: true },
-      _sum: { valorEstabelecimento: true },
-    }),
+    prisma.cupomImportado.count({ where: cupomScope }),
   ]);
 
   const byMonthMap = new Map(
     groupedByMonth.map((g: (typeof groupedByMonth)[0]) => [
       `${g.mesReferencia}-${g.anoReferencia}`,
-      { count: g._count.id, soma: Number(g._sum.valorEstabelecimento ?? 0) },
+      g._count.id,
     ]),
   );
 
-  const mensal = ultimos12.map(({ mes, ano }) => {
-    const d = byMonthMap.get(`${mes}-${ano}`) ?? { count: 0, soma: 0 };
-    return {
-      mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
-      consultas: d.count,
-      comissao: d.soma,
-    };
-  });
+  const mensal = ultimos12.map(({ mes, ano }) => ({
+    mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
+    consultas: byMonthMap.get(`${mes}-${ano}`) ?? 0,
+  }));
 
   return ok({
     mensal,
     totais: {
-      consultas: totaisAggregate._count.id,
-      comissao: Number(totaisAggregate._sum.valorEstabelecimento ?? 0),
+      consultas: totalAggregate,
     },
   });
 }

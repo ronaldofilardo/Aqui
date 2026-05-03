@@ -29,31 +29,35 @@ export async function GET(_req: NextRequest) {
     ultimos12.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
   }
 
-  // Uma única query agrupada em vez de 12 queries sequenciais (fix N+1)
-  const [groupedByMonth, topEstabsRaw, consultor, totalEstabelecimentos] =
+  const cupomScope = {
+    cupomConfig: { estabelecimento: { consultorId } },
+  };
+
+  const [groupedByMonth, topCupomConfigs, consultor, totalEstabelecimentos] =
     await Promise.all([
-      prisma.comissao.groupBy({
+      prisma.cupomImportado.groupBy({
         by: ["mesReferencia", "anoReferencia"],
-        where: { consultorId },
+        where: { status: "USADO", ...cupomScope },
         _count: { id: true },
       }),
-      prisma.comissao.groupBy({
-        by: ["estabelecimentoId"],
-        where: { consultorId },
-        _count: { id: true },
-        orderBy: { _count: { id: "desc" } },
+      prisma.cupomConfig.findMany({
+        where: { estabelecimento: { consultorId } },
+        include: {
+          estabelecimento: { select: { nomeFantasia: true } },
+          _count: { select: { cuponsImportados: { where: { status: "USADO" } } } },
+        },
+        orderBy: { cuponsImportados: { _count: "desc" } },
         take: 5,
       }),
       prisma.consultor.findUnique({
         where: { id: consultorId },
-        select: { totalConsultas: true, totalComissoes: true },
+        select: { totalConsultas: true },
       }),
       prisma.estabelecimento.count({
         where: { consultorId, status: "ATIVO" },
       }),
     ]);
 
-  // Construir array de 12 meses (meses sem dados = 0)
   const byMonthMap = new Map(
     groupedByMonth.map((g: (typeof groupedByMonth)[0]) => [
       `${g.mesReferencia}-${g.anoReferencia}`,
@@ -63,33 +67,18 @@ export async function GET(_req: NextRequest) {
   const mensal = ultimos12.map(({ mes, ano }) => ({
     mes: `${mesesLabels[mes - 1]}/${String(ano).slice(2)}`,
     consultas: byMonthMap.get(`${mes}-${ano}`) ?? 0,
-    comissao: 0,
   }));
 
-  // Top estabelecimentos
-  const estabIds = topEstabsRaw.map(
-    (e: (typeof topEstabsRaw)[0]) => e.estabelecimentoId,
-  );
-  const estabs: { id: string; nomeFantasia: string | null }[] =
-    await prisma.estabelecimento.findMany({
-      where: { id: { in: estabIds } },
-      select: { id: true, nomeFantasia: true },
-    });
-
-  const topEstabelecimentos = topEstabsRaw.map(
-    (t: (typeof topEstabsRaw)[0]) => ({
-      nome:
-        estabs.find((e) => e.id === t.estabelecimentoId)?.nomeFantasia ?? "",
-      consultas: t._count.id,
-    }),
-  );
+  const topEstabelecimentos = topCupomConfigs.map((cc: (typeof topCupomConfigs)[0]) => ({
+    nome: cc.estabelecimento.nomeFantasia,
+    consultas: cc._count.cuponsImportados,
+  }));
 
   return ok({
     mensal,
     topEstabelecimentos,
     totais: {
       consultasTotal: consultor?.totalConsultas ?? 0,
-      comissaoTotal: Number(consultor?.totalComissoes ?? 0),
       estabelecimentos: totalEstabelecimentos,
     },
   });

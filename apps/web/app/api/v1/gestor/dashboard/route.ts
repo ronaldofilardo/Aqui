@@ -14,81 +14,32 @@ export async function GET() {
   const mes = now.getMonth() + 1;
   const ano = now.getFullYear();
 
-  // Mês anterior
   const mesAnterior = mes === 1 ? 12 : mes - 1;
   const anoAnterior = mes === 1 ? ano - 1 : ano;
 
-  const scopeFilter = { consultorId: { in: consultorIds } };
+  const cupomScope = { cupomConfig: { estabelecimento: { consultorId: { in: consultorIds } } } };
 
   const [
     totalConsultores,
     totalEstabelecimentos,
     consultasMes,
     consultasMesAnterior,
-    comissoesPendentes,
-    comissoesPendentesAnterior,
-    comissoesPagas,
-    comissoesPagasAnterior,
     totalCuponsImportados,
     totalCuponsImportadosAnterior,
-    valorPendentesAgg,
-    valorPagasAgg,
   ] = await Promise.all([
     prisma.consultor.count({ where: { id: { in: consultorIds } } }),
     prisma.estabelecimento.count({
       where: { status: "ATIVO", consultorId: { in: consultorIds } },
     }),
-    prisma.comissao.count({
-      where: { mesReferencia: mes, anoReferencia: ano, ...scopeFilter },
-    }),
-    prisma.comissao.count({
-      where: {
-        mesReferencia: mesAnterior,
-        anoReferencia: anoAnterior,
-        ...scopeFilter,
-      },
-    }),
-    prisma.comissao.count({
-      where: { statusPagamento: "PENDENTE", ...scopeFilter },
-    }),
-    prisma.comissao.count({
-      where: {
-        statusPagamento: "PENDENTE",
-        mesReferencia: mesAnterior,
-        anoReferencia: anoAnterior,
-        ...scopeFilter,
-      },
-    }),
-    prisma.comissao.count({
-      where: { statusPagamento: "PAGO", ...scopeFilter },
-    }),
-    prisma.comissao.count({
-      where: {
-        statusPagamento: "PAGO",
-        mesReferencia: mesAnterior,
-        anoReferencia: anoAnterior,
-        ...scopeFilter,
-      },
+    prisma.cupomImportado.count({
+      where: { mesReferencia: mes, anoReferencia: ano, ...cupomScope },
     }),
     prisma.cupomImportado.count({
-      where: {
-        cupomConfig: { estabelecimento: { consultorId: { in: consultorIds } } },
-      },
+      where: { mesReferencia: mesAnterior, anoReferencia: anoAnterior, ...cupomScope },
     }),
+    prisma.cupomImportado.count({ where: cupomScope }),
     prisma.cupomImportado.count({
-      where: {
-        mesReferencia: mesAnterior,
-        anoReferencia: anoAnterior,
-        cupomConfig: { estabelecimento: { consultorId: { in: consultorIds } } },
-      },
-    }),
-    prisma.comissao.aggregate({
-      _sum: { valorConsultor: true },
-      where: { statusPagamento: "PENDENTE", ...scopeFilter },
-    }),
-    prisma.comissao.aggregate({
-      _sum: { valorConsultor: true },
-      where: { statusPagamento: "PAGO", ...scopeFilter },
+      where: { mesReferencia: mesAnterior, anoReferencia: anoAnterior, ...cupomScope },
     }),
   ]);
 
@@ -108,8 +59,8 @@ export async function GET() {
 
   const evolucaoCounts = await Promise.all(
     evolucaoMeses.map(({ mes: m, ano: a }) =>
-      prisma.comissao.count({
-        where: { mesReferencia: m, anoReferencia: a, ...scopeFilter },
+      prisma.cupomImportado.count({
+        where: { mesReferencia: m, anoReferencia: a, ...cupomScope },
       }),
     ),
   );
@@ -129,19 +80,6 @@ export async function GET() {
       consultasMes,
       consultasMesAnterior,
       variacaoConsultas: calcularVariacao(consultasMes, consultasMesAnterior),
-      comissoesPendentes,
-      comissoesPendentesAnterior,
-      variacaoPendentes: calcularVariacao(
-        comissoesPendentes,
-        comissoesPendentesAnterior,
-      ),
-      comissoesPagas,
-      comissoesPagasAnterior,
-      variacaoPagas: calcularVariacao(comissoesPagas, comissoesPagasAnterior),
-      valorComissoesPendentes: Number(
-        valorPendentesAgg._sum.valorConsultor ?? 0,
-      ),
-      valorComissoesPagas: Number(valorPagasAgg._sum.valorConsultor ?? 0),
       totalCuponsImportados,
       totalCuponsImportadosAnterior,
       variacaoCupons: calcularVariacao(
@@ -154,8 +92,7 @@ export async function GET() {
     topConsultores: topConsultores.map((c: (typeof topConsultores)[0]) => ({
       nome: c.usuario.nome,
       totalConsultas: c.totalConsultas,
-      totalComissoes: Number(c.totalComissoes),
     })),
-    evolucao: evolucao,
+    evolucao,
   });
 }

@@ -10,7 +10,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000002',
   'Administrador',
   'admin@asa.com',
-  '$2a$12$R9h7cIPz0gi.URNNX3kh2OPST9/PgBkPbklmCHEqP2oKmnk6CqK.2',  -- Password: 123456 (bcrypt hashed)
+  '$2a$12$R9h7cIPz0gi.URNNX3kh2OPST9/PgBkPbklmCHEqP2oKmnk6CqK.2',
   'ADMIN',
   '(11) 99999-0000',
   'ATIVO',

@@ -82,7 +82,7 @@ describe("Security Hardening Tests", () => {
   describe("Log Sanitization - PII Removal", () => {
     it("logs devem remover email/nome/txId sensíveis", () => {
       const logEntry = {
-        pagamentoId: "pay_123",
+        operacaoId: "op_123",
         consultorId: "consul_456",
         referencia: "ref_789",
         // NÃO deve ter: email, name, txId
@@ -91,17 +91,17 @@ describe("Security Hardening Tests", () => {
       expect(logEntry).not.toHaveProperty("email");
       expect(logEntry).not.toHaveProperty("name");
       expect(logEntry).not.toHaveProperty("txId");
-      expect(logEntry).toHaveProperty("pagamentoId");
+      expect(logEntry).toHaveProperty("operacaoId");
       expect(logEntry).toHaveProperty("consultorId");
     });
 
     it("opaque IDs devem ser preservados para auditoria", () => {
       const logEntry = {
-        pagamentoId: "pay_123",
+        operacaoId: "op_123",
         consultorId: "consul_456",
       };
 
-      expect(logEntry.pagamentoId).toBeDefined();
+      expect(logEntry.operacaoId).toBeDefined();
       expect(logEntry.consultorId).toBeDefined();
     });
   });

@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { validateSecrets } from "@/lib/validate-secrets";
+
+// Validate security configuration at startup
+validateSecrets();
 
 const inter = Inter({
   subsets: ["latin"],

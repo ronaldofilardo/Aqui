@@ -4,69 +4,41 @@
 
 ### 1. NEXTAUTH_SECRET
 
-**Copie e cole exatamente:**
+**Gere um novo valor seguro:**
 
+```bash
+openssl rand -base64 32
 ```
-MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==
-```
+
+**NUNCA use valores de exemplo ou documentação em produção.**
 
 ---
 
 ### 2. NEXTAUTH_URL
 
-**Copie e cole:**
+**Configure seu domínio:**
 
 ```
-https://asaquii.vercel.app
+https://seu-dominio.vercel.app
 ```
 
 ---
 
 ### 3. AUTH_SECRET
 
-**IDÊNTICO ao NEXTAUTH_SECRET — copie:**
-
-```
-MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==
-```
+**IDÊNTICO ao NEXTAUTH_SECRET — use o mesmo valor gerado acima.**
 
 ---
 
 ### 4. DATABASE_URL
 
-**Copie e cole (produção Neon):**
+**Configure em Vercel Environment Variables**
 
 ```
-postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+[CONFIGURE_IN_VERCEL_DASHBOARD_ONLY]
 ```
 
----
-
-### 5. ASAAS_API_KEY
-
-**⚠️ Precisa obter em:** https://admin.asaas.com/config/api
-
-Após gerar a chave na plataforma Asaas, será algo como:
-
-```
-[sua-chave-aqui-começa-com-$aact_ ou $aas_]
-```
-
-Exemplo (fictício):
-
-```
-$aact_YWJjZGVmZ2hpamtsbW5vcA==
-```
-
----
-
-### 6. ASAAS_SANDBOX
-
-**Para produção, copie:**
-
-```
-false
-```
+⚠️ **NUNCA copie database URLs em documentação ou repositório. Use apenas Vercel UI.**
 
 ---
 
@@ -88,14 +60,12 @@ false
 
 ## 🎯 Resumo da Configuração
 
-| Nome                | Valor                                                                                      | Origem                  |
-| ------------------- | ------------------------------------------------------------------------------------------ | ----------------------- |
-| **NEXTAUTH_SECRET** | `MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==` | Gerado para este deploy |
-| **NEXTAUTH_URL**    | `https://asaquii.vercel.app`                                                               | Domínio Vercel          |
-| **AUTH_SECRET**     | `MjcwZjU4YWM3ZTM5MzAyYjg1ZmJjMTcyODk0YTcwYWRhOTU4ZTQ4ZjJhYmY5NTYxNDI5ZmVkYzc2ZjIwYzQxYQ==` | Igual a NEXTAUTH_SECRET |
-| **DATABASE_URL**    | `postgresql://neondb_owner:npg_DFWCYc1JnuX8@...`                                           | Neon Cloud (prod)       |
-| **ASAAS_API_KEY**   | `[sua-chave-asaas]`                                                                        | Asaas Dashboard         |
-| **ASAAS_SANDBOX**   | `false`                                                                                    | Produção = false        |
+| Nome                | Valor                                  | Origem                |
+| ------------------- | -------------------------------------- | --------------------- |
+| **NEXTAUTH_SECRET** | `[GERE_COM: openssl rand -base64 32]`  | Novo para cada deploy |
+| **NEXTAUTH_URL**    | `https://seu-dominio.vercel.app`       | Configure seu domínio |
+| **AUTH_SECRET**     | `[MESMO_QUE_NEXTAUTH_SECRET]`          | Idêntico              |
+| **DATABASE_URL**    | `[CONFIGURE_EM_VERCEL_DASHBOARD_ONLY]` | Neon Cloud (prod)     |
 
 ---
 
@@ -103,12 +73,11 @@ false
 
 - **NEXTAUTH_SECRET e AUTH_SECRET devem ser IDÊNTICOS**
 - **DATABASE_URL aponta para PRODUÇÃO** (Neon neondb)
-- **ASAAS_SANDBOX deve ser `false` em produção**
-- **Todos os 6 valores devem estar marcados para Production/Preview/Development**
+- **Todos os 4 valores devem estar marcados para Production/Preview/Development**
 
 ---
 
-## ✅ Após Salvar Todas as 6 Variáveis
+## ✅ Após Salvar Todas as 4 Variáveis
 
 1. Vá para **Deployments**
 2. Encontre o último deployment (que falhou)

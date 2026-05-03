@@ -58,13 +58,13 @@ node_modules
 Adicione no **Vercel Dashboard → Settings → Environment Variables**:
 
 ```
-DATABASE_URL        → postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-NEXTAUTH_SECRET     → [gerar novo]
+DATABASE_URL        → [CONFIGURE_VIA_VERCEL_UI_ONLY]
+NEXTAUTH_SECRET     → [GERE_COM: openssl rand -base64 32]
 NEXTAUTH_URL        → https://seu-dominio.vercel.app
-AUTH_SECRET         → [mesmo que NEXTAUTH_SECRET]
-ASAAS_API_KEY       → [chave API Asaas]
-ASAAS_SANDBOX       → false (produção)
+AUTH_SECRET         → [MESMO_QUE_NEXTAUTH_SECRET]
 ```
+
+⚠️ **CRÍTICO**: NUNCA copie/comita secrets no repositório.
 
 ### 🚀 Próximas Ações
 

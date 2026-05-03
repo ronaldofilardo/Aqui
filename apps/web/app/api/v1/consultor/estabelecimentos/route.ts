@@ -13,7 +13,7 @@ export async function GET() {
     include: {
       cupomConfig: true,
       documentos: true,
-      _count: { select: { comissoes: true, usuarios: true } },
+      _count: { select: { usuarios: true } },
     },
     orderBy: { criadoEm: "desc" },
   });

@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { NextUpdateBadge } from "@/components/next-update-badge";
 
 interface ProdData {
-  mensal: Array<{ mes: string; consultas: number; comissao: number }>;
+  mensal: Array<{ mes: string; consultas: number }>;
   topEstabelecimentos: Array<{ nome: string; consultas: number }>;
   totais: {
     consultasTotal: number;
-    comissaoTotal: number;
     estabelecimentos: number;
   };
 }
@@ -48,17 +47,11 @@ export default function ProdutividadePage() {
         <NextUpdateBadge />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4 shadow-sm">
           <p className="text-sm text-gray-500">Consultas Totais</p>
           <p className="text-3xl font-bold text-primary-700">
             {data.totais.consultasTotal}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Comissão Total</p>
-          <p className="text-3xl font-bold text-green-700">
-            R$ {data.totais.comissaoTotal.toFixed(2)}
           </p>
         </div>
         <div className="bg-white rounded-xl border p-4 shadow-sm">

@@ -11,7 +11,7 @@ export async function GET() {
     include: {
       consultor: { include: { usuario: { select: { nome: true } } } },
       cupomConfig: true,
-      _count: { select: { documentos: true, comissoes: true } },
+      _count: { select: { documentos: true } },
     },
     orderBy: { criadoEm: "desc" },
   });

@@ -22,17 +22,17 @@ Adicione as seguintes variáveis de ambiente no Vercel Dashboard → Project Set
 ### Base de Dados (obrigatório)
 
 ```
-DATABASE_URL=postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+[CONFIGURE_IN_VERCEL_DASHBOARD_ONLY]
 ```
 
-⚠️ **Importante**: Use a URL de produção do Neon (neondb)
+⚠️ **NUNCA copie ou comita database URLs. Configure apenas via Vercel UI.**
 
 ### NextAuth (obrigatório)
 
 ```
-NEXTAUTH_SECRET=[gerar novo valor]
+NEXTAUTH_SECRET=[GERE_COM: openssl rand -base64 32]
 NEXTAUTH_URL=https://seu-dominio.vercel.app (ou seu domínio customizado)
-AUTH_SECRET=[mesmo valor de NEXTAUTH_SECRET]
+AUTH_SECRET=[MESMO_QUE_NEXTAUTH_SECRET]
 ```
 
 📝 Para gerar NEXTAUTH_SECRET seguro:
@@ -41,19 +41,11 @@ AUTH_SECRET=[mesmo valor de NEXTAUTH_SECRET]
 openssl rand -base64 32
 ```
 
-### Asaas Integration
-
-```
-ASAAS_API_KEY=[sua_chave_api_asaas]
-ASAAS_SANDBOX=false  (produção) ou true (teste)
-```
-
 ## Checklist de Deploy
 
 - [ ] DATABASE_URL configurada e testada
 - [ ] NEXTAUTH_SECRET regenerado e seguro
 - [ ] NEXTAUTH_URL apontando para o domínio correto
-- [ ] ASAAS_API_KEY (se aplicável)
 - [ ] Build validado localmente (`pnpm build` ✅)
 - [ ] Sem arquivos `.env` no repositório
 - [ ] `.vercelignore` configurado
