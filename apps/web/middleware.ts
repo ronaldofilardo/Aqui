@@ -42,6 +42,21 @@ function buildCorsHeaders(origin: string): Record<string, string> {
 }
 
 // ---------------------------------------------------------------------------
+// Protected Routes (require authentication)
+// ---------------------------------------------------------------------------
+const protectedRoutes = [
+  "/gestor",
+  "/consultor",
+  "/estabelecimento",
+  "/admin",
+  "/rh",
+  "/api/v1/gestor",
+  "/api/v1/consultor",
+  "/api/v1/estabelecimento",
+  "/api/v1/admin",
+];
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 export async function middleware(req: NextRequest) {
@@ -54,6 +69,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const isApiV1 = pathname.startsWith("/api/v1/");
+  const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
 
   // ------ CORS ---------------------------------------------------------------
   if (isApiV1) {
@@ -83,18 +99,35 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ------ Auth guard for dashboard & authenticated API routes ----------------
-  const authResult = await auth(req as any);
-
-  // Attach CORS headers to API responses
-  if (isApiV1 && authResult instanceof NextResponse) {
-    const corsHeaders = buildCorsHeaders(getAllowedOrigin());
-    Object.entries(corsHeaders).forEach(([k, v]) =>
-      authResult.headers.set(k, v),
-    );
+  // ------ Auth guard for protected routes ----
+  if (isProtected) {
+    const session = await auth();
+    if (!session) {
+      // Redirect to login preserving the original URL
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
-  return authResult;
+  // ------ Redirect authenticated users away from login page ----
+  if (pathname === "/login") {
+    const session = await auth();
+    if (session) {
+      // User is already logged in, redirect to dashboard based on tipo
+      const userType = (session.user as any)?.tipo;
+      const dashboards: Record<string, string> = {
+        GESTOR: "/gestor/dashboard",
+        CONSULTOR: "/consultor/dashboard",
+        ESTABELECIMENTO: "/estabelecimento/dashboard",
+        ADMIN: "/admin/dashboard",
+      };
+      const redirectUrl = dashboards[userType] || "/";
+      return NextResponse.redirect(new URL(redirectUrl, req.url));
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
