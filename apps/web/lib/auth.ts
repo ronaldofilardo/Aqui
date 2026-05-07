@@ -24,7 +24,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { consultor: true },
         });
 
-        if (user && user.status === "ATIVO") {
+        if (user) {
+          // Permitir ATIVO ou sem status definido (para compatibilidade)
+          if (user.status !== "ATIVO" && user.status !== undefined) {
+            return null;
+          }
+
           const senhaValida = await compare(
             credentials.senha as string,
             user.senhaHash,
@@ -34,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               id: user.id,
               name: user.nome,
               email: user.email,
-              tipo: user.tipo as "GESTOR" | "CONSULTOR",
+              tipo: user.tipo as "ADMIN" | "GESTOR" | "CONSULTOR",
               consultorId: user.consultor?.id || null,
               estabelecimentoId: null,
             };
@@ -49,7 +54,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
-        if (usuarioEstab && usuarioEstab.ativo) {
+        if (usuarioEstab) {
+          // Permitir ativo=true ou sem status definido (para compatibilidade)
+          if (usuarioEstab.ativo === false) {
+            return null;
+          }
+
           const senhaValida = await compare(
             credentials.senha as string,
             usuarioEstab.senhaHash,
