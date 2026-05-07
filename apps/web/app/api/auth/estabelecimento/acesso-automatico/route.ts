@@ -4,6 +4,7 @@ import { prisma } from "@asa/database";
 import { validateInviteToken } from "@/lib/invite-token";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { getBaseUrl } from "@/lib/utils";
 
 /**
  * POST /api/auth/estabelecimento/acesso-automatico
@@ -123,8 +124,10 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
+    const baseUrl = getBaseUrl(req);
+
     return NextResponse.json({
-      link: `/reset-senha?token=${plainToken}&type=USUARIO_ESTABELECIMENTO`,
+      link: `${baseUrl}/reset-senha?token=${plainToken}&type=USUARIO_ESTABELECIMENTO`,
       email: usuarioEstab.email,
       nomeFantasia: estab.nomeFantasia,
     });

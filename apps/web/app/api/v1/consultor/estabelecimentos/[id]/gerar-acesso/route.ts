@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import { prisma } from "@asa/database";
 import { requireConsultor, ok, badRequest } from "@/lib/api-helpers";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function POST(
   req: NextRequest,
@@ -88,7 +89,8 @@ export async function POST(
       },
     });
 
-    const resetLink = `/reset-senha?token=${token}&type=USUARIO_ESTABELECIMENTO`;
+    const baseUrl = getBaseUrl(req);
+    const resetLink = `${baseUrl}/reset-senha?token=${token}&type=USUARIO_ESTABELECIMENTO`;
 
     return ok({
       success: true,
