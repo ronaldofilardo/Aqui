@@ -1,6 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "AUTH_SECRET",
+    "ASAAS_SANDBOX"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
