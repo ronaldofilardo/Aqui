@@ -4,15 +4,41 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Gestor Admin
-  const senhaGestor = await hash("admin123", 12);
+  // Admin
+  const senhaAdmin = await hash("123456", 12);
+  await prisma.usuario.upsert({
+    where: { email: "admin@asa.com" },
+    update: { senhaHash: senhaAdmin },
+    create: {
+      nome: "Administrador",
+      email: "admin@asa.com",
+      senhaHash: senhaAdmin,
+      tipo: "ADMIN",
+    },
+  });
+
+  // Gestor
+  const senhaGestor = await hash("123456", 12);
   const gestor = await prisma.usuario.upsert({
+    where: { email: "gestor@asa.com" },
+    update: { senhaHash: senhaGestor },
+    create: {
+      nome: "Gestor",
+      email: "gestor@asa.com",
+      senhaHash: senhaGestor,
+      tipo: "GESTOR",
+    },
+  });
+
+  // Gestor Admin (Legado)
+  const senhaGestorAdmin = await hash("admin123", 12);
+  await prisma.usuario.upsert({
     where: { email: "admin@asa.com.br" },
     update: {},
     create: {
       nome: "Administrador ASA",
       email: "admin@asa.com.br",
-      senhaHash: senhaGestor,
+      senhaHash: senhaGestorAdmin,
       tipo: "GESTOR",
       telefone: "(11) 99999-0000",
     },
