@@ -15,7 +15,7 @@ export default function AcessoPage() {
 
   const [info, setInfo] = useState<ConviteInfo | null>(null);
   const [status, setStatus] = useState<
-    "loading" | "invalid" | "ready" | "success"
+    "loading" | "invalid" | "ready" | "success" | "redirecting"
   >("loading");
   const [form, setForm] = useState({
     nome: "",
@@ -36,7 +36,7 @@ export default function AcessoPage() {
           // If it's a reset token for a user (not estabelecimento), redirect to password reset
           if (data.valid) {
             setResetLink(`/reset-senha?token=${token}&type=USUARIO`);
-            setStatus("success");
+            setStatus("redirecting");
             return;
           }
         }
@@ -60,10 +60,10 @@ export default function AcessoPage() {
   }, [token]);
 
   useEffect(() => {
-    if (status === "success" && resetLink) {
+    if (status === "redirecting" && resetLink) {
       const timer = setTimeout(() => {
         router.push(resetLink);
-      }, 2000);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [status, resetLink, router]);
@@ -112,6 +112,14 @@ export default function AcessoPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-500 text-sm">Verificando link...</div>
+      </div>
+    );
+  }
+
+  if (status === "redirecting") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500 text-sm">Preparando acesso...</div>
       </div>
     );
   }

@@ -2,6 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -22,6 +29,7 @@ function ResetPasswordContent() {
     {},
   );
   const [success, setSuccess] = useState(false);
+  const [openModal, setOpenModal] = useState(true);
 
   const [formData, setFormData] = useState({
     password: "",
@@ -31,8 +39,14 @@ function ResetPasswordContent() {
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   useEffect(() => {
-    validateToken();
-  }, [token, type]);
+    if (!token) {
+      setValidating(false);
+      setOpenModal(false);
+      router.push("/login");
+    } else {
+      validateToken();
+    }
+  }, [token, type, router]);
 
   const validateToken = async () => {
     if (!token || !type) {
@@ -115,6 +129,7 @@ function ResetPasswordContent() {
       toast.success("Senha redefinida com sucesso!");
 
       setTimeout(() => {
+        setOpenModal(false);
         router.push("/login");
       }, 2000);
     } catch (err) {
@@ -126,117 +141,142 @@ function ResetPasswordContent() {
     }
   };
 
-  if (validating) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    router.push("/login");
+  };
 
-  if (!valid) {
+  // Invalid token or error state
+  if (!validating && !valid) {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertCircle className="h-6 w-6 text-red-600" />
-            <h2 className="text-lg font-semibold text-red-900">
-              Link Inválido
-            </h2>
+      <Dialog open={openModal} onOpenChange={setOpenModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+              <DialogTitle>Link Inválido</DialogTitle>
+            </div>
+            <DialogDescription className="text-red-600 mt-4">
+              {error || "Link inválido ou expirado"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button onClick={handleCloseModal} variant="outline">
+              Voltar ao Login
+            </Button>
           </div>
-          <p className="text-red-700 mb-4">{error}</p>
-          <Button onClick={() => router.push("/login")} className="w-full">
-            Voltar ao Login
-          </Button>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
+  // Success state
   if (success) {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="rounded-lg border border-green-200 bg-green-50 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
-            <h2 className="text-lg font-semibold text-green-900">Sucesso!</h2>
+      <Dialog open={openModal} onOpenChange={setOpenModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <DialogTitle>Sucesso!</DialogTitle>
+            </div>
+            <DialogDescription className="text-green-600 mt-4">
+              Sua senha foi redefinida com sucesso. Você será redirecionado para o
+              login em alguns segundos...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button onClick={handleCloseModal}>Ir para Login</Button>
           </div>
-          <p className="text-green-700 mb-4">
-            Sua senha foi redefinida com sucesso. Você será redirecionado para o
-            login em alguns segundos...
-          </p>
-          <Button
-            onClick={() => router.push("/login")}
-            className="w-full"
-            variant="default"
-          >
-            Ir para Login
-          </Button>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
+  // Reset form state
   return (
-    <div className="max-w-md mx-auto py-12">
-      <div className="rounded-lg border bg-white p-8">
-        <h1 className="text-2xl font-bold mb-2">Redefinir Senha</h1>
-        <p className="text-gray-600 mb-6">Para: {userData.email}</p>
+    <Dialog open={openModal} onOpenChange={setOpenModal}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Redefinir Senha</DialogTitle>
+          <DialogDescription>
+            Crie uma nova senha para a conta {userData.email}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Nova Senha</label>
-            <Input
-              type="password"
-              value={formData.password}
-              onChange={handlePasswordChange}
-              placeholder="Digite sua nova senha"
-              required
-            />
-            {passwordErrors.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {passwordErrors.map((error) => (
-                  <p key={error} className="text-xs text-red-600">
-                    • {error}
-                  </p>
-                ))}
-              </div>
-            )}
+        {validating ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Confirmar Senha
-            </label>
-            <Input
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) =>
-                setFormData({ ...formData, confirmPassword: e.target.value })
-              }
-              placeholder="Confirme sua nova senha"
-              required
-            />
-            {formData.password &&
-              formData.confirmPassword &&
-              formData.password !== formData.confirmPassword && (
-                <p className="mt-2 text-xs text-red-600">
-                  As senhas não conferem
-                </p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Nova Senha
+              </label>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={handlePasswordChange}
+                placeholder="Digite sua nova senha"
+                required
+                disabled={loading}
+              />
+              {passwordErrors.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {passwordErrors.map((error) => (
+                    <p key={error} className="text-xs text-red-600">
+                      • {error}
+                    </p>
+                  ))}
+                </div>
               )}
-          </div>
+            </div>
 
-          <Button
-            type="submit"
-            disabled={loading || passwordErrors.length > 0}
-            className="w-full"
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "Redefinindo..." : "Redefinir Senha"}
-          </Button>
-        </form>
-      </div>
-    </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Confirmar Senha
+              </label>
+              <Input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
+                placeholder="Confirme sua nova senha"
+                required
+                disabled={loading}
+              />
+              {formData.password &&
+                formData.confirmPassword &&
+                formData.password !== formData.confirmPassword && (
+                  <p className="mt-2 text-xs text-red-600">
+                    As senhas não conferem
+                  </p>
+                )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseModal}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || passwordErrors.length > 0}
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? "Redefinindo..." : "Redefinir Senha"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -42,8 +42,7 @@ export default function EstabelecimentosPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
-  const [cnpjError, setCnpjError] = useState("");
-  const [pixError, setPixError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [conviteModal, setConviteModal] = useState<{
@@ -138,15 +137,27 @@ export default function EstabelecimentosPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const errors: Record<string, string> = {};
+    
+    if (!form.nomeFantasia.trim()) {
+      errors.nomeFantasia = "Nome fantasia é obrigatório";
+    }
+    
     const digits = form.cnpj.replace(/\D/g, "");
     if (digits.length > 0 && !validarCNPJ(form.cnpj)) {
-      setCnpjError("CNPJ inválido");
-      return;
+      errors.cnpj = "CNPJ inválido";
     }
+    
     if (form.pixChave && form.pixTipo && !validarChavePix()) {
-      setPixError("Chave PIX inválida para o tipo selecionado");
+      errors.pixChave = "Chave PIX inválida para o tipo selecionado";
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+    
+    setFieldErrors({});
     setSubmitting(true);
     setMsg("");
     const res = await fetch("/api/v1/consultor/estabelecimentos", {
@@ -156,7 +167,7 @@ export default function EstabelecimentosPage() {
     });
     if (res.ok) {
       setMsg(
-        "Estabelecimento cadastrado! O gestor irá registrar o código do cupom.",
+        "Estabelecimento cadastrado! Clique em 'Gerar Acesso' para criar o link de cadastro de senha.",
       );
       setForm({
         nomeFantasia: "",
@@ -179,7 +190,11 @@ export default function EstabelecimentosPage() {
       loadEstabs();
     } else {
       const err = await res.json();
-      setMsg(err.error || "Erro ao cadastrar");
+      if (err.error && err.error.includes("CNPJ")) {
+        setFieldErrors({ cnpj: err.error });
+      } else {
+        setMsg(err.error || "Erro ao cadastrar");
+      }
     }
     setSubmitting(false);
   }
@@ -210,7 +225,8 @@ export default function EstabelecimentosPage() {
   async function gerarConvite(estabId: string, nomeFantasia: string) {
     setGerandoConvite(estabId);
     const res = await fetch(
-      `/api/v1/consultor/estabelecimentos/${estabId}/convite`,
+      `/api/v1/consultor/estabelecimentos/${estabId}/gerar-acesso`,
+      { method: "POST" },
     );
     if (res.ok) {
       const data = await res.json();

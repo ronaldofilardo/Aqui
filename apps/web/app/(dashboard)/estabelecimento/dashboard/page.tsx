@@ -11,7 +11,8 @@ interface DashboardData {
   evolucao: Array<{ mes: string; consultas: number; comissao: number }>;
 }
 
-function formatCurrency(value: number) {
+function formatCurrency(value: number | null | undefined) {
+  if (!value) return "R$ 0,00";
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
