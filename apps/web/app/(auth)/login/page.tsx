@@ -64,7 +64,9 @@ export default function LoginPage() {
     const session = await res.json();
     const tipo = session?.user?.tipo;
 
-    if (tipo === "GESTOR") {
+    if (tipo === "ADMIN") {
+      router.push("/admin/usuarios");
+    } else if (tipo === "GESTOR") {
       router.push("/gestor/dashboard");
     } else if (tipo === "ESTABELECIMENTO") {
       router.push("/estabelecimento/dashboard");
