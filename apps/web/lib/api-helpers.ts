@@ -38,6 +38,14 @@ export async function requireGestor() {
   return { session, error: null };
 }
 
+export async function requireAdmin() {
+  const session = await getSession();
+  if (!session?.user) return { session: null, error: unauthorized() };
+  if (session.user.tipo !== "ADMIN")
+    return { session: null, error: forbidden() };
+  return { session, error: null };
+}
+
 export async function requireGestorWithScope() {
   const session = await getSession();
   if (!session?.user)

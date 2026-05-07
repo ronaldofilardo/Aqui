@@ -69,6 +69,7 @@ model Usuario {
   cupomConfig            CupomConfig[]
   auditLogs              AuditLog[]
   gestoresConsultores    GestorConsultor[] @relation("gestor_atribuicoes")
+  passwordResetTokens    PasswordResetToken[]
 
   @@map("usuarios")
 }
@@ -215,7 +216,8 @@ model UsuarioEstabelecimento {
   criadoEm          DateTime                    @default(now()) @map("criado_em")
   atualizadoEm      DateTime                    @default(now()) @updatedAt @map("atualizado_em")
 
-  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  estabelecimento   Estabelecimento             @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  passwordResetTokens PasswordResetToken[]
 
   @@index([estabelecimentoId])
   @@map("usuarios_estabelecimentos")
@@ -234,4 +236,21 @@ model GestorConsultor {
   @@index([gestorId])
   @@index([consultorId])
   @@map("gestores_consultores")
+}
+
+model PasswordResetToken {
+  id                        String   @id @default(uuid()) @db.Uuid
+  usuarioId                 String?  @map("usuario_id") @db.Uuid
+  usuarioEstabelecimentoId  String?  @map("usuario_estabelecimento_id") @db.Uuid
+  token                     String   @unique @db.VarChar(255)
+  expiresAt                 DateTime @map("expires_at")
+  criadoEm                  DateTime @default(now()) @map("criado_em")
+
+  usuario                   Usuario?                  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioEstabelecimento    UsuarioEstabelecimento?   @relation(fields: [usuarioEstabelecimentoId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([usuarioEstabelecimentoId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

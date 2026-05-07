@@ -10,6 +10,10 @@ interface NavItem {
   icon: string;
 }
 
+const adminNav: NavItem[] = [
+  { label: "Usuários", href: "/admin/usuarios", icon: "👤" },
+];
+
 const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
@@ -40,6 +44,7 @@ const estabelecimentoNav: NavItem[] = [
 ];
 
 function getTipoLabel(tipo: string | undefined) {
+  if (tipo === "ADMIN") return "Administrador";
   if (tipo === "GESTOR") return "Gestor";
   if (tipo === "CONSULTOR") return "Consultor";
   if (tipo === "ESTABELECIMENTO") return "Estabelecimento";
@@ -52,7 +57,8 @@ export function Sidebar() {
   const tipo = (session?.user as any)?.tipo;
 
   let navItems: NavItem[];
-  if (tipo === "GESTOR") navItems = gestorNav;
+  if (tipo === "ADMIN") navItems = adminNav;
+  else if (tipo === "GESTOR") navItems = gestorNav;
   else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;
   else navItems = consultorNav;
 

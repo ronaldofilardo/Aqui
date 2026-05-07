@@ -1,6 +1,6 @@
 import "next-auth";
 
-export type TipoAcesso = "GESTOR" | "CONSULTOR" | "ESTABELECIMENTO";
+export type TipoAcesso = "ADMIN" | "GESTOR" | "CONSULTOR" | "ESTABELECIMENTO";
 
 declare module "next-auth" {
   interface User {
