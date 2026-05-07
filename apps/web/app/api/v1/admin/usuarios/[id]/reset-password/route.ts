@@ -6,7 +6,6 @@ import {
   hashToken,
   getTokenExpirationTime,
 } from "@/lib/password-reset";
-import { getBaseUrl } from "@/lib/utils";
 
 export async function POST(
   request: NextRequest,
@@ -91,8 +90,7 @@ export async function POST(
     }
 
     // Generate reset link
-    const baseUrl = getBaseUrl(request);
-    const resetLink = `${baseUrl}/reset-senha?token=${token}&type=${userType}`;
+    const resetLink = `/reset-senha?token=${token}&type=${userType}`;
 
     return NextResponse.json({
       success: true,

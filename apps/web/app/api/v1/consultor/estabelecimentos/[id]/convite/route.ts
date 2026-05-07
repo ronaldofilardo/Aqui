@@ -21,11 +21,9 @@ export async function GET(
   if (estab.consultorId !== session!.user.consultorId) return forbidden();
 
   const token = generateInviteToken(id);
-  const baseUrl =
-    process.env.NEXTAUTH_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
   return NextResponse.json({
-    link: `${baseUrl}/acesso/${token}`,
+    link: `/acesso/${token}`,
     expiresEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   });
 }

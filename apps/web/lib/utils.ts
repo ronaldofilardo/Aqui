@@ -5,14 +5,36 @@ export function cn(...classes: (string | undefined | null | false)[]) {
 export function getBaseUrl(req?: {
   nextUrl?: { protocol: string; host: string };
 }): string {
+  let baseUrl = "";
+
+  // Priority 1: NEXTAUTH_URL (explicitly configured)
   if (process.env.NEXTAUTH_URL) {
-    return process.env.NEXTAUTH_URL.replace(/\/$/, "");
+    baseUrl = process.env.NEXTAUTH_URL;
   }
-  if (req?.nextUrl) {
-    return `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  // Priority 2: Request nextUrl
+  else if (req?.nextUrl?.host && req?.nextUrl?.protocol) {
+    baseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  // Priority 3: VERCEL_URL (auto-detected in Vercel)
+  else if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
   }
-  return "http://localhost:3000";
+  // Priority 4: Dev fallback
+  else {
+    baseUrl = "http://localhost:3000";
+  }
+
+  // Ensure no trailing slash and no protocol duplication
+  baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
+  
+  // Safety check: if URL looks malformed (contains protocol twice), extract the first one
+  if ((baseUrl.match(/https?:\/\//g) || []).length > 1) {
+    // Extract first complete URL
+    const match = baseUrl.match(/^(https?:\/\/[^/]+)/);
+    if (match) {
+      baseUrl = match[1];
+    }
+  }
+
+  return baseUrl;
 }
