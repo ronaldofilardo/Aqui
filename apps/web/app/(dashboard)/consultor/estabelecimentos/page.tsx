@@ -138,25 +138,25 @@ export default function EstabelecimentosPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errors: Record<string, string> = {};
-    
+
     if (!form.nomeFantasia.trim()) {
       errors.nomeFantasia = "Nome fantasia é obrigatório";
     }
-    
+
     const digits = form.cnpj.replace(/\D/g, "");
     if (digits.length > 0 && !validarCNPJ(form.cnpj)) {
       errors.cnpj = "CNPJ inválido";
     }
-    
+
     if (form.pixChave && form.pixTipo && !validarChavePix()) {
       errors.pixChave = "Chave PIX inválida para o tipo selecionado";
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
     }
-    
+
     setFieldErrors({});
     setSubmitting(true);
     setMsg("");
@@ -329,19 +329,25 @@ export default function EstabelecimentosPage() {
               onChange={(e) => {
                 const masked = formatCNPJ(e.target.value);
                 setForm({ ...form, cnpj: masked });
-                setCnpjError("");
+                if (fieldErrors.cnpj) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.cnpj;
+                    return next;
+                  });
+                }
               }}
               onBlur={() => {
                 const digits = form.cnpj.replace(/\D/g, "");
                 if (digits.length > 0 && !validarCNPJ(form.cnpj)) {
-                  setCnpjError("CNPJ inválido");
+                  setFieldErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" }));
                 }
               }}
               placeholder="00.000.000/0000-00"
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${cnpjError ? "border-red-500" : ""}`}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${fieldErrors.cnpj ? "border-red-500" : ""}`}
             />
-            {cnpjError && (
-              <p className="text-red-500 text-xs mt-1">{cnpjError}</p>
+            {fieldErrors.cnpj && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.cnpj}</p>
             )}
           </div>
           <div>
@@ -443,7 +449,13 @@ export default function EstabelecimentosPage() {
               value={form.pixTipo}
               onChange={(e) => {
                 setForm({ ...form, pixTipo: e.target.value });
-                setPixError("");
+                if (fieldErrors.pixChave) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.pixChave;
+                    return next;
+                  });
+                }
               }}
               className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
             >
@@ -464,12 +476,18 @@ export default function EstabelecimentosPage() {
               value={form.pixChave}
               onChange={(e) => {
                 setForm({ ...form, pixChave: e.target.value });
-                setPixError("");
+                if (fieldErrors.pixChave) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.pixChave;
+                    return next;
+                  });
+                }
               }}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${pixError ? "border-red-500" : ""}`}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${fieldErrors.pixChave ? "border-red-500" : ""}`}
             />
-            {pixError && (
-              <p className="text-red-500 text-xs mt-1">{pixError}</p>
+            {fieldErrors.pixChave && (
+              <p className="text-red-500 text-xs mt-1">{fieldErrors.pixChave}</p>
             )}
           </div>
 

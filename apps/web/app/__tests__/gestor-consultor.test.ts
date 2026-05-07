@@ -12,8 +12,9 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
     usuarioGestorId = "00000000-0000-0000-0000-000000000001";
     usuarioConsultorId = "00000000-0000-0000-0000-000000000002";
 
-    // Limpar dados de teste anteriores
+    // Limpar dados de teste anteriores (respeitar FK constraints)
     await prisma.gestorConsultor.deleteMany({});
+    await prisma.estabelecimento.deleteMany({});
     await prisma.consultor.deleteMany({});
     await prisma.usuario.deleteMany({});
 
@@ -51,8 +52,9 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
   });
 
   afterAll(async () => {
-    // Limpar dados de teste
+    // Limpar dados de teste (respeitar FK constraints)
     await prisma.gestorConsultor.deleteMany({});
+    await prisma.estabelecimento.deleteMany({});
     await prisma.consultor.deleteMany({});
     await prisma.usuario.deleteMany({});
   });

@@ -181,8 +181,8 @@ function ResetPasswordContent() {
               <DialogTitle>Sucesso!</DialogTitle>
             </div>
             <DialogDescription className="text-green-600 mt-4">
-              Sua senha foi redefinida com sucesso. Você será redirecionado para o
-              login em alguns segundos...
+              Sua senha foi redefinida com sucesso. Você será redirecionado para
+              o login em alguns segundos...
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-6">

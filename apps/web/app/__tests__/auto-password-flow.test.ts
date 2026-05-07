@@ -14,10 +14,10 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   let estabelecimentoId: string;
 
   beforeAll(async () => {
-    // Limpar dados de teste anteriores
-    await prisma.gestorConsultor.deleteMany({});
+    // Limpar dados de teste anteriores (respeitar FK constraints)
     await prisma.passwordResetToken.deleteMany({});
     await prisma.usuarioEstabelecimento.deleteMany({});
+    await prisma.gestorConsultor.deleteMany({});
     await prisma.estabelecimento.deleteMany({});
     await prisma.consultor.deleteMany({});
     await prisma.usuario.deleteMany({});
@@ -35,10 +35,10 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   });
 
   afterAll(async () => {
-    // Limpar dados de teste
-    await prisma.gestorConsultor.deleteMany({});
+    // Limpar dados de teste (respeitar FK constraints)
     await prisma.passwordResetToken.deleteMany({});
     await prisma.usuarioEstabelecimento.deleteMany({});
+    await prisma.gestorConsultor.deleteMany({});
     await prisma.estabelecimento.deleteMany({});
     await prisma.consultor.deleteMany({});
     await prisma.usuario.deleteMany({});
