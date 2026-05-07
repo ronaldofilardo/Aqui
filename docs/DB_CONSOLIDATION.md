@@ -27,6 +27,7 @@ NODE_ENV="development"
 ```
 
 **Exemplo para DEV (substituir USER e PASSWORD com seus valores locais):**
+
 ```bash
 DATABASE_URL="postgresql://postgres:your_local_password@localhost:5432/asa_db"
 ```

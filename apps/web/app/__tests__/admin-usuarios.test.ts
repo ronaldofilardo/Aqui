@@ -10,7 +10,7 @@ describe("Admin Usuarios API", () => {
       ];
 
       const filtered = allGestores.filter((g) => g.id !== currentUserId);
-      
+
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe("gestor-2");
       expect(filtered[0].email).toBe("gestor2@example.com");
@@ -28,11 +28,11 @@ describe("Admin Usuarios API", () => {
 
     it("should return estabelecimento usuarios", () => {
       const usuarios = [
-        { 
-          id: "e1", 
-          nome: "User Est 1", 
+        {
+          id: "e1",
+          nome: "User Est 1",
           tipo: "ESTABELECIMENTO",
-          estabelecimento: "Est 1"
+          estabelecimento: "Est 1",
         },
       ];
 

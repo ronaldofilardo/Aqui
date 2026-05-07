@@ -30,7 +30,6 @@ export default function ConsultoresPage() {
   const [form, setForm] = useState({
     nome: "",
     email: "",
-    senha: "",
     cpf: "",
     telefone: "",
     pixChave: "",
@@ -39,6 +38,8 @@ export default function ConsultoresPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
+  const [generatedLink, setGeneratedLink] = useState<string>("");
+  const [validation, setValidation] = useState<Record<string, "valid" | "invalid" | "">>({});
 
   const validarFormulario = (): boolean => {
     const novoErros: FormErrors = {};
@@ -51,10 +52,6 @@ export default function ConsultoresPage() {
       novoErros.email = "Email é obrigatório";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       novoErros.email = "Email inválido";
-    }
-
-    if (!form.senha.trim() || form.senha.length < 6) {
-      novoErros.senha = "Senha deve ter no mínimo 6 caracteres";
     }
 
     if (!form.cpf.trim()) {
@@ -118,6 +115,7 @@ export default function ConsultoresPage() {
 
     setSubmitting(true);
     setMsg("");
+    setGeneratedLink("");
 
     const res = await fetch("/api/v1/gestor/consultores", {
       method: "POST",
@@ -129,17 +127,19 @@ export default function ConsultoresPage() {
     });
 
     if (res.ok) {
-      setMsg("Consultor cadastrado com sucesso!");
+      const data = await res.json();
+      setMsg("✓ Consultor cadastrado com sucesso!");
+      setGeneratedLink(data.link || "");
       setForm({
         nome: "",
         email: "",
-        senha: "",
         cpf: "",
         telefone: "",
         pixChave: "",
         pixTipo: "",
       });
       setErrors({});
+      setValidation({});
       setShowForm(false);
       loadConsultores();
     } else {
@@ -168,6 +168,35 @@ export default function ConsultoresPage() {
         return novoErros;
       });
     }
+
+    // Real-time validation with debounce
+    if (field === "email" && value.trim()) {
+      setValidation((prev) => ({ ...prev, email: "" }));
+      clearTimeout((window as any).emailTimeout);
+      (window as any).emailTimeout = setTimeout(() => {
+        validateEmailRealTime(value);
+      }, 500);
+    }
+
+    if (field === "cpf" && value.trim()) {
+      setValidation((prev) => ({ ...prev, cpf: "" }));
+      clearTimeout((window as any).cpfTimeout);
+      (window as any).cpfTimeout = setTimeout(() => {
+        validateCpfRealTime(value);
+      }, 500);
+    }
+  };
+
+  const validateEmailRealTime = async (email: string) => {
+    const res = await fetch(`/api/v1/gestor/consultores/check-email?email=${encodeURIComponent(email)}`);
+    const data = await res.json();
+    setValidation((prev) => ({ ...prev, email: data.valid ? "valid" : "invalid" }));
+  };
+
+  const validateCpfRealTime = async (cpf: string) => {
+    const res = await fetch(`/api/v1/gestor/consultores/check-cpf?cpf=${encodeURIComponent(cpf)}`);
+    const data = await res.json();
+    setValidation((prev) => ({ ...prev, cpf: data.valid ? "valid" : "invalid" }));
   };
 
   return (
@@ -187,6 +216,31 @@ export default function ConsultoresPage() {
           className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes("sucesso") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
         >
           {msg}
+        </div>
+      )}
+
+      {generatedLink && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm font-medium text-blue-900 mb-2">Link de primeiro acesso:</p>
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              readOnly
+              value={`${window.location.origin}${generatedLink}`}
+              className="flex-1 px-3 py-2 text-sm border rounded-lg bg-white border-blue-300 text-blue-900"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}${generatedLink}`);
+                alert("Link copiado!");
+              }}
+              className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Copiar
+            </button>
+          </div>
+          <p className="text-xs text-blue-700 mt-2">Compartilhe este link com o consultor para que ele possa fazer seu primeiro acesso e criar sua senha.</p>
         </div>
       )}
 
@@ -224,20 +278,10 @@ export default function ConsultoresPage() {
             {errors.email && (
               <p className="text-red-600 text-xs mt-1">{errors.email}</p>
             )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha *
-            </label>
-            <input
-              type="password"
-              required
-              value={form.senha}
-              onChange={(e) => handleFormChange("senha", e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${errors.senha ? "border-red-500" : ""}`}
-            />
-            {errors.senha && (
-              <p className="text-red-600 text-xs mt-1">{errors.senha}</p>
+            {validation.email && !errors.email && (
+              <p className={`text-xs mt-1 ${validation.email === "valid" ? "text-green-600" : "text-red-600"}`}>
+                {validation.email === "valid" ? "✓ Email disponível" : "✗ Email já cadastrado"}
+              </p>
             )}
           </div>
           <div>
@@ -254,6 +298,11 @@ export default function ConsultoresPage() {
             />
             {errors.cpf && (
               <p className="text-red-600 text-xs mt-1">{errors.cpf}</p>
+            )}
+            {validation.cpf && !errors.cpf && (
+              <p className={`text-xs mt-1 ${validation.cpf === "valid" ? "text-green-600" : "text-red-600"}`}>
+                {validation.cpf === "valid" ? "✓ CPF disponível" : "✗ CPF já cadastrado"}
+              </p>
             )}
           </div>
           <div>

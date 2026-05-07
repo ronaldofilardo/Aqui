@@ -4,6 +4,7 @@ import { hash } from "bcryptjs";
 import { requireGestor, ok, created, badRequest } from "@/lib/api-helpers";
 import { criarConsultorSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
+import { generateResetToken, hashToken } from "@/lib/password-reset";
 
 export async function GET() {
   const { session, error } = await requireGestor();
@@ -41,7 +42,6 @@ export async function POST(req: NextRequest) {
   const {
     nome,
     email,
-    senha,
     cpf,
     telefone,
     pixChave,
@@ -65,7 +65,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const senhaHash = await hash(senha, 12);
+  // Generate temporary password: first 5 digits of CPF
+  const cpfDigits = cpf ? cpf.replace(/\D/g, "") : "12345";
+  const senhaTemporaria = cpfDigits.substring(0, 5);
+  const senhaHash = await hash(senhaTemporaria, 12);
+
+  // Generate reset token for first access
+  const token = generateResetToken();
+  const tokenHash = hashToken(token);
 
   const result = await prisma.$transaction(async (tx: any) => {
     const usuario = await tx.usuario.create({
@@ -75,6 +82,7 @@ export async function POST(req: NextRequest) {
         senhaHash,
         tipo: "CONSULTOR",
         telefone,
+        senhaTemporaria: true,
       },
     });
 
@@ -97,7 +105,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return { usuario, consultor };
+    // Create password reset token for first access (valid 7 days)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await tx.passwordResetToken.create({
+      data: {
+        usuarioId: usuario.id,
+        token: tokenHash,
+        expiresAt,
+      },
+    });
+
+    return { usuario, consultor, token };
   });
 
   await criarAuditLog({
@@ -113,5 +132,6 @@ export async function POST(req: NextRequest) {
     usuarioId: result.usuario.id,
     nome,
     email,
+    link: `/acesso/${result.token}`,
   });
 }

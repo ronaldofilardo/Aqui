@@ -4,6 +4,7 @@ import { prisma } from "@asa/database";
 import { badRequest } from "@/lib/api-helpers";
 import { validateInviteToken } from "@/lib/invite-token";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
+import { generateResetToken, hashToken } from "@/lib/password-reset";
 
 export async function POST(req: NextRequest) {
   // Rate limiting: 5 registrations per minute per IP
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { email, senha, nome, inviteToken } = body;
+    const { email, nome, inviteToken } = body;
 
     // Validate invite token first — prevents enumeration of estabelecimentoIds
     if (!inviteToken || typeof inviteToken !== "string") {
@@ -34,8 +35,8 @@ export async function POST(req: NextRequest) {
 
     const { estabelecimentoId } = tokenData;
 
-    if (!email || !senha || !nome) {
-      return badRequest("Campos obrigatórios: email, senha, nome");
+    if (!email || !nome) {
+      return badRequest("Campos obrigatórios: email, nome");
     }
 
     if (
@@ -43,10 +44,6 @@ export async function POST(req: NextRequest) {
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     ) {
       return badRequest("Email inválido");
-    }
-
-    if (typeof senha !== "string" || senha.length < 6) {
-      return badRequest("Senha deve ter no mínimo 6 caracteres");
     }
 
     // Verificar estabelecimento existe
@@ -68,17 +65,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const senhaHash = await hash(senha, 12);
+    // Generate temporary password: first 5 digits of CNPJ
+    const cnpjDigits = estabelecimento.cnpj
+      ? estabelecimento.cnpj.replace(/\D/g, "")
+      : "12345";
+    const senhaTemporaria = cnpjDigits.substring(0, 5);
+    const senhaHash = await hash(senhaTemporaria, 12);
 
-    const usuario = await prisma.usuarioEstabelecimento.create({
-      data: {
-        estabelecimentoId,
-        nome,
-        email,
-        senhaHash,
-        tipo: "PROPRIETARIO",
-        ativo: true,
-      },
+    // Generate reset token for first access
+    const token = generateResetToken();
+    const tokenHash = hashToken(token);
+
+    const usuario = await prisma.$transaction(async (tx: any) => {
+      const user = await tx.usuarioEstabelecimento.create({
+        data: {
+          estabelecimentoId,
+          nome,
+          email,
+          senhaHash,
+          tipo: "PROPRIETARIO",
+          ativo: true,
+          senhaTemporaria: true,
+        },
+      });
+
+      // Create password reset token for first access (valid 7 days)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      await tx.passwordResetToken.create({
+        data: {
+          usuarioEstabelecimentoId: user.id,
+          token: tokenHash,
+          expiresAt,
+        },
+      });
+
+      return { ...user, token };
     });
 
     return NextResponse.json(
@@ -87,10 +109,12 @@ export async function POST(req: NextRequest) {
         id: usuario.id,
         email: usuario.email,
         nome: usuario.nome,
+        link: `/reset-senha?token=${usuario.token}&type=USUARIO_ESTABELECIMENTO`,
       },
       { status: 201 },
     );
-  } catch {
+  } catch (err) {
+    console.error("Erro ao registrar estabelecimento:", err);
     return NextResponse.json(
       { error: "Erro interno no servidor" },
       { status: 500 },

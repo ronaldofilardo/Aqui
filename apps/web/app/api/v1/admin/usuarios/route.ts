@@ -38,9 +38,9 @@ export async function GET() {
 
     // Format gestores (exclude self)
     const gestores = await prisma.usuario.findMany({
-      where: { 
+      where: {
         tipo: "GESTOR",
-        id: { not: currentUserId }
+        id: { not: currentUserId },
       },
       select: {
         id: true,

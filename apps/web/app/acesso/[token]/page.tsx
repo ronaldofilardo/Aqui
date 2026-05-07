@@ -20,12 +20,11 @@ export default function AcessoPage() {
   const [form, setForm] = useState({
     nome: "",
     email: "",
-    senha: "",
-    confirmar: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [resetLink, setResetLink] = useState<string>("");
 
   useEffect(() => {
     fetch(`/api/v1/public/convite/${token}`)
@@ -44,16 +43,21 @@ export default function AcessoPage() {
       .catch(() => setStatus("invalid"));
   }, [token]);
 
+  useEffect(() => {
+    if (status === "success" && resetLink) {
+      const timer = setTimeout(() => {
+        router.push(resetLink);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, resetLink, router]);
+
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!form.nome.trim()) errs.nome = "Nome é obrigatório";
     if (!form.email.trim()) errs.email = "Email é obrigatório";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = "Email inválido";
-    if (!form.senha) errs.senha = "Senha é obrigatória";
-    else if (form.senha.length < 6) errs.senha = "Mínimo 6 caracteres";
-    if (form.senha !== form.confirmar)
-      errs.confirmar = "As senhas não conferem";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -72,12 +76,13 @@ export default function AcessoPage() {
         estabelecimentoId: info.estabelecimentoId,
         nome: form.nome.trim(),
         email: form.email.trim().toLowerCase(),
-        senha: form.senha,
         inviteToken: token,
       }),
     });
 
     if (res.ok) {
+      const data = await res.json();
+      setResetLink(data.link || "/reset-senha");
       setStatus("success");
     } else {
       const data = await res.json();
@@ -185,38 +190,6 @@ export default function AcessoPage() {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={form.senha}
-              onChange={(e) => setForm({ ...form, senha: e.target.value })}
-              placeholder="Mínimo 6 caracteres"
-              className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${errors.senha ? "border-red-400" : "border-gray-300"}`}
-            />
-            {errors.senha && (
-              <p className="text-red-500 text-xs mt-1">{errors.senha}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirmar senha
-            </label>
-            <input
-              type="password"
-              value={form.confirmar}
-              onChange={(e) => setForm({ ...form, confirmar: e.target.value })}
-              placeholder="Repita a senha"
-              className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${errors.confirmar ? "border-red-400" : "border-gray-300"}`}
-            />
-            {errors.confirmar && (
-              <p className="text-red-500 text-xs mt-1">{errors.confirmar}</p>
-            )}
-          </div>
-
           {serverError && (
             <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {serverError}
@@ -228,7 +201,7 @@ export default function AcessoPage() {
             disabled={submitting}
             className="w-full bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 transition text-sm font-medium disabled:opacity-50 mt-2"
           >
-            {submitting ? "Criando acesso..." : "Criar acesso"}
+            {submitting ? "Criando acesso..." : "Prosseguir"}
           </button>
         </form>
       </div>

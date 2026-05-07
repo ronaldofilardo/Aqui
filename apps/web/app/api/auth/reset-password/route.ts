@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (type === "USUARIO" && resetToken.usuarioId) {
       await prisma.usuario.update({
         where: { id: resetToken.usuarioId },
-        data: { senhaHash },
+        data: { senhaHash, senhaTemporaria: false },
       });
     } else if (
       type === "USUARIO_ESTABELECIMENTO" &&
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     ) {
       await prisma.usuarioEstabelecimento.update({
         where: { id: resetToken.usuarioEstabelecimentoId },
-        data: { senhaHash },
+        data: { senhaHash, senhaTemporaria: false },
       });
     } else {
       return NextResponse.json(

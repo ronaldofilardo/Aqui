@@ -187,6 +187,7 @@ Test Files  1 failed | 8 passed (9)
 ## ✅ Follow-up Remediation (07/05/2026)
 
 ### DB_CONSOLIDATION.md Final Cleanup
+
 - [x] Removidas credenciais de produção Neon (`npg_DFWCYc1JnuX8`)
 - [x] Removida senha local hardcoded (`123456`)
 - [x] Removida connection string completa de produção
@@ -194,7 +195,7 @@ Test Files  1 failed | 8 passed (9)
 - [x] Comando psql com credentials removido
 - [x] Host produção removido (`ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech`)
 - [x] Commit: `b40a15e8` — "fix(security): remove production credentials from DB_CONSOLIDATION.md"
-- [x] Verificação Final: 
+- [x] Verificação Final:
   - ✅ `git grep "npg_"` → Sem resultados (credentials removidas)
   - ✅ `git grep "123456"` → Sem resultados em .md/.ps1/.sql
   - ✅ Build: Sucesso (47.2s)
