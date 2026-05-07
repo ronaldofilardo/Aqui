@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin, getSession } from "@/lib/api-helpers";
 import { prisma } from "@asa/database";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Validate admin access and get session
