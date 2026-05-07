@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @asa/database prisma migrate deploy && pnpm --filter @asa/database build && pnpm --filter @asa/web build",
+  "buildCommand": "pnpm vercel-build",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
   "outputDirectory": ".next"

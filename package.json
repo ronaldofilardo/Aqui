@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "vercel-build": "pnpm --filter @asa/database prisma migrate deploy && pnpm build",
     "lint": "turbo lint",
     "test": "turbo test",
     "db:migrate": "pnpm --filter @asa/database prisma migrate dev",
