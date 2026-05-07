@@ -27,20 +27,36 @@ export default function AcessoPage() {
   const [resetLink, setResetLink] = useState<string>("");
 
   useEffect(() => {
-    fetch(`/api/v1/public/convite/${token}`)
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((data) => {
-        if (!data) {
-          setStatus("invalid");
+    async function validateToken() {
+      try {
+        // Try to validate as reset token (for consultors/users)
+        const resetRes = await fetch(`/api/auth/validate-reset-token/${token}`);
+        if (resetRes.ok) {
+          const data = await resetRes.json();
+          // If it's a reset token for a user (not estabelecimento), redirect to password reset
+          if (data.type === "USUARIO") {
+            setResetLink(`/reset-senha?token=${token}&type=USUARIO`);
+            setStatus("success");
+            return;
+          }
+        }
+
+        // Try to validate as invite token (for establishments)
+        const inviteRes = await fetch(`/api/v1/public/convite/${token}`);
+        if (inviteRes.ok) {
+          const inviteData = await inviteRes.json();
+          setInfo(inviteData);
+          setStatus("ready");
           return;
         }
-        setInfo(data);
-        setStatus("ready");
-      })
-      .catch(() => setStatus("invalid"));
+
+        setStatus("invalid");
+      } catch {
+        setStatus("invalid");
+      }
+    }
+
+    validateToken();
   }, [token]);
 
   useEffect(() => {
