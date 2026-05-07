@@ -30,11 +30,11 @@ export default function AcessoPage() {
     async function validateToken() {
       try {
         // Try to validate as reset token (for consultors/users)
-        const resetRes = await fetch(`/api/auth/validate-reset-token/${token}`);
+        const resetRes = await fetch(`/api/auth/validate-reset-token?token=${token}&type=USUARIO`);
         if (resetRes.ok) {
           const data = await resetRes.json();
           // If it's a reset token for a user (not estabelecimento), redirect to password reset
-          if (data.type === "USUARIO") {
+          if (data.valid) {
             setResetLink(`/reset-senha?token=${token}&type=USUARIO`);
             setStatus("success");
             return;

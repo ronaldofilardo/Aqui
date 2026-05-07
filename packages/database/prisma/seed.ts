@@ -30,8 +30,6 @@ async function main() {
     },
   });
 
-
-
   console.log("✅ Seed executado com sucesso!");
 }
 

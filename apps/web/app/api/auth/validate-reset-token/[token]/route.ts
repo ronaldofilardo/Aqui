@@ -9,10 +9,7 @@ export async function GET(
   const { token } = await params;
 
   if (!token) {
-    return NextResponse.json(
-      { error: "Token não fornecido" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Token não fornecido" }, { status: 400 });
   }
 
   const tokenHash = hashToken(token);
@@ -37,10 +34,7 @@ export async function GET(
   }
 
   if (isTokenExpired(resetToken.expiresAt)) {
-    return NextResponse.json(
-      { error: "Token expirado" },
-      { status: 410 },
-    );
+    return NextResponse.json({ error: "Token expirado" }, { status: 410 });
   }
 
   const usuario = resetToken.usuario || resetToken.usuarioEstabelecimento;

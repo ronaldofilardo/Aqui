@@ -6,7 +6,7 @@ import { generateResetToken, hashToken } from "@/lib/password-reset";
 describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   const testEmail = `test-${Date.now()}@example.com`;
   const testCpf = "12345678901";
-  
+
   let usuarioId: string;
   let gestorId: string;
   let consultorId: string;
@@ -215,7 +215,9 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       });
 
       expect(resetToken.token).toBe(hashedToken);
-      expect(resetToken.usuarioEstabelecimentoId).toBe(usuarioEstabelecimentoId);
+      expect(resetToken.usuarioEstabelecimentoId).toBe(
+        usuarioEstabelecimentoId,
+      );
     });
   });
 

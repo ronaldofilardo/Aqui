@@ -1,4 +1,5 @@
 # AUDITORIA - Plano de Implementação Auto-Senha & Primeiro Acesso
+
 **Data:** 7 de maio de 2026
 **Status:** ✅ 100% EXECUTADO E VALIDADO
 
@@ -7,6 +8,7 @@
 ## 1. CHECKLIST DE IMPLEMENTAÇÃO (100% COMPLETO)
 
 ### ✅ Fase 1: Alterações de Banco de Dados
+
 - [x] **Migração criada:** `20260507_add_senha_temporaria`
   - Adicionado campo `senha_temporaria BOOLEAN DEFAULT true` a `usuarios`
   - Adicionado campo `senha_temporaria BOOLEAN DEFAULT true` a `usuarios_estabelecimentos`
@@ -15,6 +17,7 @@
 - [x] **Migração executada em TEST (asa_db_test):** ✅ SUCESSO
 
 ### ✅ Fase 2: Esquemas de Validação
+
 - [x] **`criarConsultorSchema` atualizado:** Removido campo `senha`
   - Mantém validação de: `nome`, `email`, `cpf`, `telefone`, `pixChave`, `pixTipo`, `bancoNome`, `agencia`, `conta`
   - Sem campo de senha (removido com sucesso)
@@ -22,6 +25,7 @@
 ### ✅ Fase 3: Endpoints de API
 
 #### Consultores (5 endpoints)
+
 1. [x] **POST `/api/v1/gestor/consultores`** - Criar consultor
    - Auto-gera senha temporária: primeiros 5 dígitos do CPF
    - Hash com bcryptjs (12 rounds)
@@ -40,6 +44,7 @@
    - Status: ✅ IMPLEMENTADO
 
 #### Estabelecimento
+
 4. [x] **POST `/api/auth/estabelecimento/registrar`** - Registrar usuário de estabelecimento
    - Auto-gera senha temporária (primeiros 5 dígitos do `responsavelCpf`)
    - Cria PasswordResetToken com 7 dias de expiração
@@ -47,6 +52,7 @@
    - Status: ✅ IMPLEMENTADO
 
 #### Password Reset
+
 5. [x] **POST `/api/auth/reset-password`** - Mudar senha
    - Define `senhaTemporaria = false` para `Usuario` e `UsuarioEstabelecimento` após sucesso
    - Marca fim do primeiro acesso
@@ -75,6 +81,7 @@
 ## 2. VALIDAÇÃO DE MIGRAÇÕES
 
 ### DEV Database (asa_db)
+
 ```
 Status: ✅ TODOS OS PENDENTES APLICADOS
 
@@ -87,6 +94,7 @@ Migrações Aplicadas:
 ```
 
 ### TEST Database (asa_db_test)
+
 ```
 Status: ✅ TODOS OS PENDENTES APLICADOS
 
@@ -108,6 +116,7 @@ Migrações Aplicadas:
 **Resultado Final:** ✅ 11 TESTES PASSARAM (11/11)
 
 #### Grupos de Testes
+
 1. **Usuario com senhaTemporaria** (2 testes)
    - ✅ Criar usuário com `senhaTemporaria=true` por padrão
    - ✅ Atualizar `senhaTemporaria` para `false`
@@ -136,6 +145,7 @@ Migrações Aplicadas:
 ## 4. REVISÃO DE CÓDIGO LEGADO
 
 ### Verificações Realizadas:
+
 - ✅ Não encontradas referências legadas a campo `senha` em formulários
 - ✅ Schema `criarConsultorSchema` limpo (sem campo `senha`)
 - ✅ Endpoints de API migrados corretamente (sem referências a senha manual)
@@ -165,6 +175,7 @@ Time:     1m3.28s
 ```
 
 ### Warnings Identificados (Esperados):
+
 - **DYNAMIC_SERVER_USAGE:** Erros informativos normais para rotas de API dinâmicas em Next.js 14
   - `/api/auth/validate-reset-token` (usa `nextUrl.searchParams`)
   - `/api/v1/admin/usuarios` (usa `headers`)
@@ -178,6 +189,7 @@ Time:     1m3.28s
 ## 6. FLUXO DE PRIMEIRO ACESSO (Validado)
 
 ### Cenário 1: Novo Consultor
+
 ```
 1. Gestor preenche formulário em /gestor/consultores
    - Nome, Email, CPF, Telefone, PIX
@@ -211,6 +223,7 @@ Time:     1m3.28s
 ```
 
 ### Cenário 2: Novo Usuário de Estabelecimento
+
 ```
 Mesmo fluxo, mas através do endpoint:
 - POST /api/auth/estabelecimento/registrar
@@ -223,18 +236,18 @@ Mesmo fluxo, mas através do endpoint:
 
 ## 7. CHECKLIST FINAL DE AUDITORIA
 
-| Item | Status | Evidência |
-|------|--------|-----------|
-| **Implementação Completa** | ✅ 100% | 5 endpoints + 2 páginas + 1 schema atualizado |
-| **Migrações DEV** | ✅ SUCESSO | Todos os 5 migrations aplicadas |
-| **Migrações TEST** | ✅ SUCESSO | Todos os 6 migrations aplicadas |
-| **Testes Unitários** | ✅ 11/11 PASSOU | auto-password-flow.test.ts completo |
-| **Código Legado** | ✅ LIMPO | Nenhuma referência obsoleta encontrada |
-| **Build Production** | ✅ PASSOU | 0 erros, warnings esperados |
-| **Security Validation** | ✅ PASSOU | 6x confirmações de secrets configurados |
-| **Type Safety** | ✅ PASSOU | TypeScript strict mode OK |
-| **API Endpoints** | ✅ 5/5 FUNCIONAL | Todos compilam e estão prontos |
-| **Frontend Components** | ✅ 3/3 ATUALIZADO | Consultores, Acesso, Reset-Senha |
+| Item                       | Status            | Evidência                                     |
+| -------------------------- | ----------------- | --------------------------------------------- |
+| **Implementação Completa** | ✅ 100%           | 5 endpoints + 2 páginas + 1 schema atualizado |
+| **Migrações DEV**          | ✅ SUCESSO        | Todos os 5 migrations aplicadas               |
+| **Migrações TEST**         | ✅ SUCESSO        | Todos os 6 migrations aplicadas               |
+| **Testes Unitários**       | ✅ 11/11 PASSOU   | auto-password-flow.test.ts completo           |
+| **Código Legado**          | ✅ LIMPO          | Nenhuma referência obsoleta encontrada        |
+| **Build Production**       | ✅ PASSOU         | 0 erros, warnings esperados                   |
+| **Security Validation**    | ✅ PASSOU         | 6x confirmações de secrets configurados       |
+| **Type Safety**            | ✅ PASSOU         | TypeScript strict mode OK                     |
+| **API Endpoints**          | ✅ 5/5 FUNCIONAL  | Todos compilam e estão prontos                |
+| **Frontend Components**    | ✅ 3/3 ATUALIZADO | Consultores, Acesso, Reset-Senha              |
 
 ---
 
@@ -260,6 +273,7 @@ Mesmo fluxo, mas através do endpoint:
 ✅ **PLANO 100% EXECUTADO E VALIDADO**
 
 **Implementação:**
+
 - Auto-geração de senhas temporárias a partir de primeiros 5 dígitos do CPF
 - Criação automática de tokens de primeiro acesso (7 dias)
 - Remoção completa de campo de senha em formulários de criação
@@ -267,6 +281,7 @@ Mesmo fluxo, mas através do endpoint:
 - Fluxo de primeiro acesso com redirect automático para reset de senha
 
 **Qualidade:**
+
 - 11 testes unitários passando
 - Build production validado com 0 erros
 - Migrações executadas em DEV e TEST com sucesso
@@ -274,6 +289,7 @@ Mesmo fluxo, mas através do endpoint:
 - Type safety garantida pelo TypeScript
 
 **Próximas Etapas:**
+
 1. Deploy para staging/produção (com migrações)
 2. Testar fluxo completo em produção
 3. Comunicar mudanças aos gestores

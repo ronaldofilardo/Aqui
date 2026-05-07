@@ -39,7 +39,9 @@ export default function ConsultoresPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [generatedLink, setGeneratedLink] = useState<string>("");
-  const [validation, setValidation] = useState<Record<string, "valid" | "invalid" | "">>({});
+  const [validation, setValidation] = useState<
+    Record<string, "valid" | "invalid" | "">
+  >({});
 
   const validarFormulario = (): boolean => {
     const novoErros: FormErrors = {};
@@ -188,15 +190,25 @@ export default function ConsultoresPage() {
   };
 
   const validateEmailRealTime = async (email: string) => {
-    const res = await fetch(`/api/v1/gestor/consultores/check-email?email=${encodeURIComponent(email)}`);
+    const res = await fetch(
+      `/api/v1/gestor/consultores/check-email?email=${encodeURIComponent(email)}`,
+    );
     const data = await res.json();
-    setValidation((prev) => ({ ...prev, email: data.valid ? "valid" : "invalid" }));
+    setValidation((prev) => ({
+      ...prev,
+      email: data.valid ? "valid" : "invalid",
+    }));
   };
 
   const validateCpfRealTime = async (cpf: string) => {
-    const res = await fetch(`/api/v1/gestor/consultores/check-cpf?cpf=${encodeURIComponent(cpf)}`);
+    const res = await fetch(
+      `/api/v1/gestor/consultores/check-cpf?cpf=${encodeURIComponent(cpf)}`,
+    );
     const data = await res.json();
-    setValidation((prev) => ({ ...prev, cpf: data.valid ? "valid" : "invalid" }));
+    setValidation((prev) => ({
+      ...prev,
+      cpf: data.valid ? "valid" : "invalid",
+    }));
   };
 
   return (
@@ -221,7 +233,9 @@ export default function ConsultoresPage() {
 
       {generatedLink && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm font-medium text-blue-900 mb-2">Link de primeiro acesso:</p>
+          <p className="text-sm font-medium text-blue-900 mb-2">
+            Link de primeiro acesso:
+          </p>
           <div className="flex gap-2 items-center">
             <input
               type="text"
@@ -232,7 +246,9 @@ export default function ConsultoresPage() {
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}${generatedLink}`);
+                navigator.clipboard.writeText(
+                  `${window.location.origin}${generatedLink}`,
+                );
                 alert("Link copiado!");
               }}
               className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -240,7 +256,10 @@ export default function ConsultoresPage() {
               Copiar
             </button>
           </div>
-          <p className="text-xs text-blue-700 mt-2">Compartilhe este link com o consultor para que ele possa fazer seu primeiro acesso e criar sua senha.</p>
+          <p className="text-xs text-blue-700 mt-2">
+            Compartilhe este link com o consultor para que ele possa fazer seu
+            primeiro acesso e criar sua senha.
+          </p>
         </div>
       )}
 
@@ -279,8 +298,12 @@ export default function ConsultoresPage() {
               <p className="text-red-600 text-xs mt-1">{errors.email}</p>
             )}
             {validation.email && !errors.email && (
-              <p className={`text-xs mt-1 ${validation.email === "valid" ? "text-green-600" : "text-red-600"}`}>
-                {validation.email === "valid" ? "✓ Email disponível" : "✗ Email já cadastrado"}
+              <p
+                className={`text-xs mt-1 ${validation.email === "valid" ? "text-green-600" : "text-red-600"}`}
+              >
+                {validation.email === "valid"
+                  ? "✓ Email disponível"
+                  : "✗ Email já cadastrado"}
               </p>
             )}
           </div>
@@ -300,8 +323,12 @@ export default function ConsultoresPage() {
               <p className="text-red-600 text-xs mt-1">{errors.cpf}</p>
             )}
             {validation.cpf && !errors.cpf && (
-              <p className={`text-xs mt-1 ${validation.cpf === "valid" ? "text-green-600" : "text-red-600"}`}>
-                {validation.cpf === "valid" ? "✓ CPF disponível" : "✗ CPF já cadastrado"}
+              <p
+                className={`text-xs mt-1 ${validation.cpf === "valid" ? "text-green-600" : "text-red-600"}`}
+              >
+                {validation.cpf === "valid"
+                  ? "✓ CPF disponível"
+                  : "✗ CPF já cadastrado"}
               </p>
             )}
           </div>
