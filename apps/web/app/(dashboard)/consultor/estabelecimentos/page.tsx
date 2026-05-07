@@ -340,7 +340,10 @@ export default function EstabelecimentosPage() {
               onBlur={() => {
                 const digits = form.cnpj.replace(/\D/g, "");
                 if (digits.length > 0 && !validarCNPJ(form.cnpj)) {
-                  setFieldErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" }));
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    cnpj: "CNPJ inválido",
+                  }));
                 }
               }}
               placeholder="00.000.000/0000-00"
@@ -487,7 +490,9 @@ export default function EstabelecimentosPage() {
               className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none ${fieldErrors.pixChave ? "border-red-500" : ""}`}
             />
             {fieldErrors.pixChave && (
-              <p className="text-red-500 text-xs mt-1">{fieldErrors.pixChave}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {fieldErrors.pixChave}
+              </p>
             )}
           </div>
 

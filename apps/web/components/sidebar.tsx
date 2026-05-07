@@ -17,6 +17,7 @@ const adminNav: NavItem[] = [
 const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
+  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
   { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
   { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
@@ -29,7 +30,6 @@ const consultorNav: NavItem[] = [
   },
   { label: "Comissões", href: "/consultor/comissoes", icon: "💰" },
   { label: "Produtividade", href: "/consultor/produtividade", icon: "📈" },
-  { label: "Extrato", href: "/consultor/extrato", icon: "📄" },
   { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
 ];
 

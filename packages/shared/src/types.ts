@@ -11,8 +11,6 @@ export type StatusConsulta =
   | "REALIZADA"
   | "CANCELADA"
   | "NAO_COMPARECEU";
-export type StatusPagamentoComissao = "PENDENTE" | "PAGO" | "CANCELADO";
-export type StatusPagamento = "PENDENTE" | "PROCESSANDO" | "PAGO" | "FALHOU";
 
 export interface CupomImportadoLinha {
   nomeCupom: string;
