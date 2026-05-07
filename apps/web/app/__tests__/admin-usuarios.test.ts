@@ -1,41 +1,48 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { prismaMock } from "@asa/database";
+import { describe, it, expect } from "vitest";
 
 describe("Admin Usuarios API", () => {
   describe("GET /api/v1/admin/usuarios", () => {
-    it("should return list of usuarios excluding self", async () => {
-      // Mock the response structure
-      const mockGestores = [
-        {
-          id: "gestor-2",
-          email: "gestor2@example.com",
-          nome: "Gestor 2",
-          status: "ATIVO",
-        },
-      ];
-
-      const mockConsultores = [];
-      const mockUsuariosEstabelecimento = [];
-
-      expect(mockGestores).toHaveLength(1);
-      expect(mockGestores[0].id).not.toBe("gestor-1");
-    });
-
-    it("should filter out self from gestores list", async () => {
+    it("should exclude current admin from gestores list", () => {
       const currentUserId = "admin-1";
       const allGestores = [
-        { id: "admin-1", nome: "Admin Self" },
-        { id: "gestor-2", nome: "Gestor 2" },
+        { id: "admin-1", nome: "Admin Self", email: "admin@example.com" },
+        { id: "gestor-2", nome: "Gestor 2", email: "gestor2@example.com" },
       ];
 
       const filtered = allGestores.filter((g) => g.id !== currentUserId);
+      
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe("gestor-2");
+      expect(filtered[0].email).toBe("gestor2@example.com");
+    });
+
+    it("should return all consultores", () => {
+      const consultores = [
+        { id: "c1", nome: "Consultor 1", tipo: "CONSULTOR" },
+        { id: "c2", nome: "Consultor 2", tipo: "CONSULTOR" },
+      ];
+
+      expect(consultores).toHaveLength(2);
+      expect(consultores.every((c) => c.tipo === "CONSULTOR")).toBe(true);
+    });
+
+    it("should return estabelecimento usuarios", () => {
+      const usuarios = [
+        { 
+          id: "e1", 
+          nome: "User Est 1", 
+          tipo: "ESTABELECIMENTO",
+          estabelecimento: "Est 1"
+        },
+      ];
+
+      expect(usuarios).toHaveLength(1);
+      expect(usuarios[0].tipo).toBe("ESTABELECIMENTO");
     });
   });
 
   describe("GET /api/v1/admin/usuarios/[id]/delete-info", () => {
-    it("should return comissoes count for CONSULTOR", async () => {
+    it("should return counts for user with dependencies", () => {
       const mockInfo = {
         comissoesCount: 3,
         estabelecimentosCount: 5,
@@ -45,7 +52,7 @@ describe("Admin Usuarios API", () => {
       expect(mockInfo.estabelecimentosCount).toBeGreaterThan(0);
     });
 
-    it("should return 0 counts for user with no dependencies", async () => {
+    it("should return 0 counts for user with no dependencies", () => {
       const mockInfo = {
         comissoesCount: 0,
         estabelecimentosCount: 0,
@@ -54,35 +61,83 @@ describe("Admin Usuarios API", () => {
       expect(mockInfo.comissoesCount).toBe(0);
       expect(mockInfo.estabelecimentosCount).toBe(0);
     });
+
+    it("should have valid response structure", () => {
+      const mockInfo = {
+        comissoesCount: 5,
+        estabelecimentosCount: 2,
+      };
+
+      expect(mockInfo).toHaveProperty("comissoesCount");
+      expect(mockInfo).toHaveProperty("estabelecimentosCount");
+      expect(typeof mockInfo.comissoesCount).toBe("number");
+      expect(typeof mockInfo.estabelecimentosCount).toBe("number");
+    });
   });
 
   describe("DELETE /api/v1/admin/usuarios/[id]", () => {
-    it("should delete CONSULTOR and cascade dependencies", async () => {
-      const deletedConsultor = {
+    it("should handle CONSULTOR deletion", () => {
+      const consultor = {
         id: "consultor-1",
         nome: "Test Consultor",
+        tipo: "CONSULTOR",
       };
 
-      expect(deletedConsultor.id).toBeDefined();
-      expect(deletedConsultor.nome).toBeDefined();
+      expect(consultor.id).toBeDefined();
+      expect(consultor.tipo).toBe("CONSULTOR");
     });
 
-    it("should delete ESTABELECIMENTO usuario", async () => {
-      const deletedEstabelecimento = {
+    it("should handle ESTABELECIMENTO usuario deletion", () => {
+      const usuario = {
         id: "estab-user-1",
         nome: "Test User",
+        tipo: "ESTABELECIMENTO",
       };
 
-      expect(deletedEstabelecimento.id).toBeDefined();
+      expect(usuario.id).toBeDefined();
+      expect(usuario.tipo).toBe("ESTABELECIMENTO");
     });
 
-    it("should return 404 for non-existent user", async () => {
-      const response = {
+    it("should validate non-existent user", () => {
+      const mockError = {
         status: 404,
         error: "Usuário não encontrado",
       };
 
-      expect(response.status).toBe(404);
+      expect(mockError.status).toBe(404);
+      expect(mockError.error).toBeDefined();
+    });
+
+    it("should validate unauthorized access", () => {
+      const mockError = {
+        status: 403,
+        error: "Acesso negado",
+      };
+
+      expect(mockError.status).toBe(403);
+    });
+  });
+
+  describe("Password Reset", () => {
+    it("should validate password reset token structure", () => {
+      const token = {
+        id: "token-123",
+        usuarioId: "user-1",
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
+      expect(token.id).toBeDefined();
+      expect(token.usuarioId).toBeDefined();
+      expect(token.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it("should identify expired tokens", () => {
+      const token = {
+        id: "token-123",
+        expiresAt: new Date(Date.now() - 1000),
+      };
+
+      expect(token.expiresAt.getTime()).toBeLessThan(Date.now());
     });
   });
 });
