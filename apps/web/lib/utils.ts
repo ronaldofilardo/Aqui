@@ -2,7 +2,9 @@ export function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function getBaseUrl(req?: { nextUrl?: { protocol: string; host: string } }): string {
+export function getBaseUrl(req?: {
+  nextUrl?: { protocol: string; host: string };
+}): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");
   }
