@@ -22,25 +22,33 @@
 ### .env.local (Desenvolvimento Local)
 
 ```bash
-DATABASE_URL="postgresql://postgres:123456@localhost:5432/asa_db"
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/asa_db"
 NODE_ENV="development"
+```
+
+**Exemplo para DEV (substituir USER e PASSWORD com seus valores locais):**
+```bash
+DATABASE_URL="postgresql://postgres:your_local_password@localhost:5432/asa_db"
 ```
 
 ⚠️ **NUNCA adicione:**
 
 - `NODE_ENV=production` em `.env.local`
 - `ALLOW_PROD_DB_LOCAL=true`
+- Credenciais de produção em arquivos
 
 Isso causará erro 405 em rotas PATCH do App Router.
 
 ### .env.production (Vercel - Production)
 
 ```bash
-DATABASE_URL="postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL=[CONFIGURE_VIA_VERCEL_DASHBOARD_ONLY]
 NODE_ENV="production"
 ```
 
-⚠️ **Configure APENAS no Vercel Dashboard → Environment Variables**
+⚠️ **Configure APENAS no Vercel Dashboard → Project Settings → Environment Variables**
+
+**NUNCA coloque connection strings de produção em arquivos ou repositório.**
 
 ---
 
@@ -57,10 +65,14 @@ Esperado: Tabelas públicas listadas (usuários, consultores, etc.)
 ### 2. Production - Conectar ao neondb
 
 ```bash
-psql "postgresql://neondb_owner:npg_DFWCYc1JnuX8@ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require" -c "\dt"
+# Use as credenciais configuradas em Vercel Environment Variables
+# Nunca coloque a connection string aqui
+psql "postgresql://USER:PASSWORD@neondb-host/neondb?sslmode=require" -c "\dt"
 ```
 
 Esperado: Schema e tabelas sincronizados
+
+⚠️ **As credenciais reais estão configuradas apenas no Vercel Dashboard.**
 
 ---
 
@@ -109,17 +121,19 @@ Use Neon Dashboard → Project Settings → Branches para gerenciar.
 
 ### Local (asa_db)
 
-- Usuário: `postgres`
-- Senha: `123456` (dev only)
+- Usuário: `postgres` (ou seu usuário PostgreSQL local)
+- Senha: Configure em `.env.local` (dev only)
 - Host: `localhost:5432`
+- **⚠️ Nunca comita .env.local no repositório**
 
 ### Production (neondb)
 
 - Usuário: `neondb_owner`
-- Senha: (armazenada em Vercel Environment Variables)
-- Host: `ep-jolly-frost-acq5opbk-pooler.sa-east-1.aws.neon.tech`
+- Senha: ✅ **Armazenada APENAS em Vercel Environment Variables**
+- Host: Configurado em Vercel
 - SSL: `require`
 - Channel Binding: `require`
+- **⚠️ NUNCA copie ou comita credentials de produção**
 
 ---
 
