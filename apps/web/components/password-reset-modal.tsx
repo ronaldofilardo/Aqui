@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { getAbsoluteLink } from "@/lib/url";
 
 interface PasswordResetModalProps {
   open: boolean;
@@ -73,7 +74,7 @@ export function PasswordResetModal({
     if (!resetLink) return;
 
     try {
-      const fullLink = `${window.location.origin}${resetLink}`;
+      const fullLink = getAbsoluteLink(resetLink);
       await navigator.clipboard.writeText(fullLink);
       setCopied(true);
       toast.success("Link copiado para área de transferência!");
@@ -119,7 +120,7 @@ export function PasswordResetModal({
                 <div className="flex gap-2">
                   <Input
                     readOnly
-                    value={`${window.location.origin}${resetLink}`}
+                    value={getAbsoluteLink(resetLink)}
                     className="text-xs bg-white"
                   />
                   <Button

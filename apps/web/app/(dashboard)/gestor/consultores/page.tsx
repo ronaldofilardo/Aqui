@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import React from "react";
 import Link from "next/link";
 import { validarCPF } from "@asa/shared";
+import { getAbsoluteLink } from "@/lib/url";
 
 interface Consultor {
   id: string;
@@ -39,6 +40,9 @@ export default function ConsultoresPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [generatedLink, setGeneratedLink] = useState<string>("");
+  const absoluteGeneratedLink = generatedLink
+    ? getAbsoluteLink(generatedLink)
+    : "";
   const [validation, setValidation] = useState<
     Record<string, "valid" | "invalid" | "">
   >({});
@@ -240,15 +244,13 @@ export default function ConsultoresPage() {
             <input
               type="text"
               readOnly
-              value={`${window.location.origin}${generatedLink}`}
+              value={absoluteGeneratedLink}
               className="flex-1 px-3 py-2 text-sm border rounded-lg bg-white border-blue-300 text-blue-900"
             />
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard.writeText(
-                  `${window.location.origin}${generatedLink}`,
-                );
+                navigator.clipboard.writeText(absoluteGeneratedLink);
                 alert("Link copiado!");
               }}
               className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
