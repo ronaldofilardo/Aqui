@@ -1,8 +1,10 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@asa/database";
 import { requireGestor, ok, badRequest, notFound } from "@/lib/api-helpers";
 import { atualizarConsultorSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
+import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function GET(
   _req: NextRequest,
@@ -85,4 +87,68 @@ export async function PATCH(
   });
 
   return ok({ success: true });
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { session, error } = await requireGestor();
+  if (error) return error;
+
+  const { id } = await params;
+
+  const consultor = await prisma.consultor.findUnique({
+    where: { id },
+    include: { usuario: true },
+  });
+
+  if (!consultor) return notFound("Consultor não encontrado");
+
+  if (!consultor.usuario.email) {
+    return badRequest("Consultor não possui email cadastrado");
+  }
+
+  try {
+    const token = generateResetToken();
+    const tokenHash = hashToken(token);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await prisma.passwordResetToken.deleteMany({
+      where: { usuarioId: consultor.usuarioId },
+    });
+
+    await prisma.passwordResetToken.create({
+      data: {
+        usuarioId: consultor.usuarioId,
+        token: tokenHash,
+        expiresAt,
+      },
+    });
+
+    const baseUrl = getBaseUrl(req);
+    const link = `${baseUrl}/acesso/${token}`;
+
+    await criarAuditLog({
+      usuarioId: session!.user.id,
+      acao: "REENVIAR_LINK_CONSULTOR",
+      entidade: "consultor",
+      entidadeId: consultor.id,
+      detalhes: { email: consultor.usuario.email },
+    });
+
+    return ok({
+      success: true,
+      email: consultor.usuario.email,
+      link,
+    });
+  } catch (err) {
+    console.error("[reenviar-link-consultor] Erro:", err);
+    return NextResponse.json(
+      { error: "Erro ao gerar link de acesso" },
+      { status: 500 },
+    );
+  }
 }

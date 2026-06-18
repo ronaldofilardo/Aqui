@@ -40,8 +40,13 @@ export default function ConsultoresPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [generatedLink, setGeneratedLink] = useState<string>("");
+  const [reenviandoId, setReenviandoId] = useState<string | null>(null);
+  const [reenviadoLink, setReenviadoLink] = useState<string>("");
   const absoluteGeneratedLink = generatedLink
     ? getAbsoluteLink(generatedLink)
+    : "";
+  const absoluteReenviadoLink = reenviadoLink
+    ? getAbsoluteLink(reenviadoLink)
     : "";
   const [validation, setValidation] = useState<
     Record<string, "valid" | "invalid" | "">
@@ -165,6 +170,26 @@ export default function ConsultoresPage() {
     loadConsultores();
   }
 
+  async function reenviarLinkAcesso(id: string) {
+    setReenviandoId(id);
+    setReenviadoLink("");
+
+    const res = await fetch(`/api/v1/gestor/consultores/${id}`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setReenviadoLink(data.link || "");
+      setMsg("✓ Link de acesso reenviado com sucesso!");
+    } else {
+      const err = await res.json();
+      setMsg(err.error || "Erro ao reenviar link");
+    }
+
+    setReenviandoId(null);
+  }
+
   const handleFormChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -261,6 +286,36 @@ export default function ConsultoresPage() {
           <p className="text-xs text-blue-700 mt-2">
             Compartilhe este link com o consultor para que ele possa fazer seu
             primeiro acesso e criar sua senha.
+          </p>
+        </div>
+      )}
+
+      {reenviadoLink && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm font-medium text-green-900 mb-2">
+            Novo link de acesso gerado:
+          </p>
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              readOnly
+              value={absoluteReenviadoLink}
+              className="flex-1 px-3 py-2 text-sm border rounded-lg bg-white border-green-300 text-green-900"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(absoluteReenviadoLink);
+                alert("Link copiado!");
+              }}
+              className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Copiar
+            </button>
+          </div>
+          <p className="text-xs text-green-700 mt-2">
+            Este link substitui o anterior. Compartilhe com o consultor para
+            acesso à plataforma.
           </p>
         </div>
       )}
@@ -442,6 +497,14 @@ export default function ConsultoresPage() {
                       >
                         Estabelecimentos
                       </Link>
+                      <button
+                        onClick={() => reenviarLinkAcesso(c.id)}
+                        disabled={reenviandoId === c.id}
+                        className="text-xs text-green-700 hover:text-green-800 font-medium disabled:opacity-50"
+                        title="Reenviar link de acesso"
+                      >
+                        {reenviandoId === c.id ? "Enviando..." : "Reenviar acesso"}
+                      </button>
                       <button
                         onClick={() => toggleStatus(c.id, c.usuario.status)}
                         className="text-xs text-primary-600 hover:text-primary-800 font-medium"
