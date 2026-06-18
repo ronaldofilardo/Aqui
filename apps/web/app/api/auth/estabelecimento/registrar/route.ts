@@ -5,6 +5,7 @@ import { badRequest } from "@/lib/api-helpers";
 import { validateInviteToken } from "@/lib/invite-token";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   // Rate limiting: 5 registrations per minute per IP
@@ -103,13 +104,15 @@ export async function POST(req: NextRequest) {
       return { ...user, token };
     });
 
+    const baseUrl = getBaseUrl(req);
+
     return NextResponse.json(
       {
         success: true,
         id: usuario.id,
         email: usuario.email,
         nome: usuario.nome,
-        link: `/reset-senha?token=${usuario.token}&type=USUARIO_ESTABELECIMENTO`,
+        link: `${baseUrl}/reset-senha?token=${usuario.token}&type=USUARIO_ESTABELECIMENTO`,
       },
       { status: 201 },
     );
