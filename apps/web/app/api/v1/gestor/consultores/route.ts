@@ -5,6 +5,7 @@ import { requireGestor, ok, created, badRequest } from "@/lib/api-helpers";
 import { criarConsultorSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { getBaseUrl } from "@/lib/utils";
 
 export async function GET() {
   const { session, error } = await requireGestor();
@@ -127,11 +128,13 @@ export async function POST(req: NextRequest) {
     detalhes: { nome, email },
   });
 
+  const baseUrl = getBaseUrl(request);
+
   return created({
     id: result.consultor.id,
     usuarioId: result.usuario.id,
     nome,
     email,
-    link: `/acesso/${result.token}`,
+    link: `${baseUrl}/acesso/${result.token}`,
   });
 }
