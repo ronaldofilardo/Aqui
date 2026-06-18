@@ -499,9 +499,9 @@ export default function ConsultoresPage() {
                       </Link>
                       <button
                         onClick={() => reenviarLinkAcesso(c.id)}
-                        disabled={reenviandoId === c.id}
-                        className="text-xs text-green-700 hover:text-green-800 font-medium disabled:opacity-50"
-                        title="Reenviar link de acesso"
+                        disabled={reenviandoId === c.id || !c.usuario.email}
+                        className="text-xs text-green-700 hover:text-green-900 font-medium px-2.5 py-1.5 rounded-md hover:bg-green-50 active:scale-95 active:bg-green-100 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-green-700"
+                        title={c.usuario.email ? "Reenviar link de acesso" : "Consultor sem email cadastrado"}
                       >
                         {reenviandoId === c.id ? "Enviando..." : "Reenviar acesso"}
                       </button>
