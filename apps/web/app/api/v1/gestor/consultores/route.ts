@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     detalhes: { nome, email },
   });
 
-  const baseUrl = getBaseUrl(request);
+  const baseUrl = getBaseUrl(req);
 
   return created({
     id: result.consultor.id,

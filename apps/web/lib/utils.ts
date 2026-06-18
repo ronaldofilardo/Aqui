@@ -26,7 +26,7 @@ export function getBaseUrl(req?: {
 
   // Ensure no trailing slash and no protocol duplication
   baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
-  
+
   // Safety check: if URL looks malformed (contains protocol twice), extract the first one
   if ((baseUrl.match(/https?:\/\//g) || []).length > 1) {
     // Extract first complete URL
