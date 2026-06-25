@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@asa/database";
+import { TipoAcesso } from "@/types/next-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
@@ -24,16 +25,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const email = (credentials.email as string).toLowerCase().trim();
 
-          // Tenta autenticar como usuário do sistema (Admin/Gestor/Consultor)
           const user = await prisma.usuario.findUnique({
             where: { email },
-            include: { consultor: true },
+            include: {
+              consultor: true,
+              gestorPf: true,
+              parceiro: true,
+            },
           });
 
           if (user) {
-            console.log(`[auth] Found usuario: ${email}, status: ${user.status}, tipo: ${user.tipo}`);
-            
-            // Permitir ATIVO ou sem status definido (para compatibilidade)
+            console.log(
+              `[auth] Found usuario: ${email}, status: ${user.status}, tipo: ${user.tipo}`
+            );
+
             if (user.status !== "ATIVO" && user.status !== undefined) {
               console.log(`[auth] Status check failed: ${user.status}`);
               return null;
@@ -41,25 +46,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             const senhaValida = await compare(
               credentials.senha as string,
-              user.senhaHash,
+              user.senhaHash
             );
-            
+
             if (senhaValida) {
               console.log(`[auth] ✓ Senha válida para ${email}`);
               return {
                 id: user.id,
                 name: user.nome,
                 email: user.email,
-                tipo: user.tipo as "ADMIN" | "GESTOR" | "CONSULTOR",
+                tipo: user.tipo as TipoAcesso,
                 consultorId: user.consultor?.id || null,
                 estabelecimentoId: null,
+                gestorPfId: user.gestorPf?.id || null,
+                parceiroId: user.parceiro?.id || null,
               };
             } else {
               console.log(`[auth] ✗ Senha inválida para ${email}`);
             }
           }
 
-          // Tenta autenticar como usuário de estabelecimento
           const usuarioEstab = await prisma.usuarioEstabelecimento.findUnique({
             where: { email },
             include: {
@@ -68,9 +74,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (usuarioEstab) {
-            console.log(`[auth] Found usuarioEstab: ${email}, ativo: ${usuarioEstab.ativo}`);
-            
-            // Permitir ativo=true ou sem status definido (para compatibilidade)
+            console.log(
+              `[auth] Found usuarioEstab: ${email}, ativo: ${usuarioEstab.ativo}`
+            );
+
             if (usuarioEstab.ativo === false) {
               console.log(`[auth] UsuarioEstab inactive`);
               return null;
@@ -78,18 +85,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             const senhaValida = await compare(
               credentials.senha as string,
-              usuarioEstab.senhaHash,
+              usuarioEstab.senhaHash
             );
-            
+
             if (senhaValida) {
-              console.log(`[auth] ✓ Senha válida para estabelecimento ${email}`);
+              console.log(
+                `[auth] ✓ Senha válida para estabelecimento ${email}`
+              );
               return {
                 id: usuarioEstab.id,
                 name: usuarioEstab.nome,
                 email: usuarioEstab.email,
-                tipo: "ESTABELECIMENTO" as const,
+                tipo: "ESTABELECIMENTO" as TipoAcesso,
                 consultorId: null,
                 estabelecimentoId: usuarioEstab.estabelecimentoId,
+                gestorPfId: null,
+                parceiroId: null,
               };
             } else {
               console.log(`[auth] ✗ Senha inválida para estabelecimento ${email}`);
@@ -112,6 +123,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.tipo = (user as any).tipo;
         token.consultorId = (user as any).consultorId;
         token.estabelecimentoId = (user as any).estabelecimentoId;
+        token.gestorPfId = (user as any).gestorPfId;
+        token.parceiroId = (user as any).parceiroId;
       }
       return token;
     },
@@ -121,6 +134,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).tipo = token.tipo;
         (session.user as any).consultorId = token.consultorId;
         (session.user as any).estabelecimentoId = token.estabelecimentoId;
+        (session.user as any).gestorPfId = token.gestorPfId;
+        (session.user as any).parceiroId = token.parceiroId;
       }
       return session;
     },

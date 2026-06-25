@@ -257,3 +257,82 @@ export type AtualizarConsultaInput = z.infer<typeof atualizarConsultaSchema>;
 export type ProcessarPagamentosInput = z.infer<
   typeof processarPagamentosSchema
 >;
+
+export const indicarClienteSchema = z.object({
+  cpfParceiro: z
+    .string()
+    .refine((val) => validarCPF(val), { message: "CPF do Parceiro inválido" }),
+  cpfIndicado: z
+    .string()
+    .refine((val) => validarCPF(val), { message: "CPF do Indicado inválido" }),
+  nomeIndicado: z
+    .string()
+    .min(3, "Nome do indicado deve ter no mínimo 3 caracteres"),
+  telefoneIndicado: z.string().optional(),
+});
+
+export const criarGestorPFSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
+  percentualComissaoDefault: z.number().min(0).max(100).optional(),
+  percentualComissaoMax: z.number().min(0).max(100).optional(),
+});
+
+export const criarParceiroSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
+  pixChave: z.string().optional(),
+  telefone: z.string().optional(),
+  percentualComissao: z.union([z.string(), z.number()]).refine(
+    (val) => {
+      const num = typeof val === "string" ? parseFloat(val) : val;
+      return num >= 0 && num <= 100;
+    },
+    { message: "Deve estar entre 0 e 100" }
+  ).optional(),
+});
+
+export const atualizarParceiroSchema = z.object({
+  id: z.string().uuid("ID inválido"),
+  nome: z.string().min(3).optional(),
+  pixChave: z.string().optional(),
+  percentualComissao: z.union([z.string(), z.number()]).refine(
+    (val) => {
+      const num = typeof val === "string" ? parseFloat(val) : val;
+      return num >= 0 && num <= 100;
+    },
+    { message: "Deve estar entre 0 e 100" }
+  ).optional(),
+  status: z.enum(["ATIVO", "DESLIGADO"]).optional(),
+});
+
+export const desligarParceiroSchema = z.object({
+  confirmar: z.literal(true),
+});
+
+export const atualizarGestorPFSchema = z.object({
+  nome: z.string().min(3).optional(),
+  percentualComissaoDefault: z.number().min(0).max(100).optional(),
+  percentualComissaoMax: z.number().min(0).max(100).optional(),
+});
+
+export const cadastrarIndicadoSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
+  telefone: z.string().optional(),
+});
+
+export const processarPlanilhaSchema = z.object({
+  mesReferencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato: YYYY-MM"),
+});
+
+export type IndicarClienteInput = z.infer<typeof indicarClienteSchema>;
+export type CriarGestorPFInput = z.infer<typeof criarGestorPFSchema>;
+export type CriarParceiroInput = z.infer<typeof criarParceiroSchema>;
+export type AtualizarParceiroInput = z.infer<typeof atualizarParceiroSchema>;
+export type DesligarParceiroInput = z.infer<typeof desligarParceiroSchema>;
+export type AtualizarGestorPFInput = z.infer<typeof atualizarGestorPFSchema>;
+export type CadastrarIndicadoInput = z.infer<typeof cadastrarIndicadoSchema>;
+export type ProcessarPlanilhaInput = z.infer<typeof processarPlanilhaSchema>;

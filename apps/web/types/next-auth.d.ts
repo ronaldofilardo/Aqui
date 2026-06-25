@@ -1,12 +1,20 @@
 import "next-auth";
 
-export type TipoAcesso = "ADMIN" | "GESTOR" | "CONSULTOR" | "ESTABELECIMENTO";
+export type TipoAcesso =
+  | "ADMIN"
+  | "GESTOR"
+  | "GESTOR_PF"
+  | "PARCEIRO"
+  | "CONSULTOR"
+  | "ESTABELECIMENTO";
 
 declare module "next-auth" {
   interface User {
     tipo: TipoAcesso;
     consultorId: string | null;
     estabelecimentoId: string | null;
+    gestorPfId: string | null;
+    parceiroId: string | null;
   }
   interface Session {
     user: {
@@ -16,6 +24,8 @@ declare module "next-auth" {
       tipo: TipoAcesso;
       consultorId: string | null;
       estabelecimentoId: string | null;
+      gestorPfId: string | null;
+      parceiroId: string | null;
     };
   }
 }
@@ -26,5 +36,7 @@ declare module "next-auth/jwt" {
     tipo: TipoAcesso;
     consultorId: string | null;
     estabelecimentoId: string | null;
+    gestorPfId: string | null;
+    parceiroId: string | null;
   }
 }

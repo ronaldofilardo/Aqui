@@ -116,7 +116,6 @@ pnpm build
   - 20260428130000_add_gestor_consultor_relation
   - 20260429020100_cd_c_apps_asa...
   - 20260430140928_enable_rls
-  - 20260501000000_remove_asaas_integration
   - 20260507_add_senha_temporaria
   - 20260507032151_add_password_reset_token
 

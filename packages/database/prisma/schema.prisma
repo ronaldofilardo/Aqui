@@ -11,6 +11,8 @@ enum TipoUsuario {
   ADMIN
   GESTOR
   CONSULTOR
+  GESTOR_PF
+  PARCEIRO
 }
 
 enum TipoAcessoEstabelecimento {
@@ -71,6 +73,8 @@ model Usuario {
   auditLogs              AuditLog[]
   gestoresConsultores    GestorConsultor[] @relation("gestor_atribuicoes")
   passwordResetTokens    PasswordResetToken[]
+  gestorPf               GestorPF?
+  parceiro               Parceiro?
 
   @@map("usuarios")
 }
@@ -255,4 +259,200 @@ model PasswordResetToken {
   @@index([usuarioEstabelecimentoId])
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+enum StatusParceiro {
+  ATIVO
+  DESLIGADO
+}
+
+enum StatusIndicado {
+  ATIVO
+  DESVINCULADO
+}
+
+enum StatusUpload {
+  PROCESSANDO
+  CONCLUIDO
+  ERRO
+}
+
+enum StatusComissao {
+  PENDENTE
+  CALCULADA
+  PAGA
+}
+
+enum StatusProcedimento {
+  PENDENTE
+  CALCULADA
+  PAGA
+}
+
+model GestorPF {
+  id                          String   @id @default(uuid()) @db.Uuid
+  usuarioId                   String   @unique @map("usuario_id") @db.Uuid
+  usuario                     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome                        String   @db.VarChar(255)
+  cpf                         String   @unique @db.VarChar(14)
+
+  percentualComissaoDefault   Decimal  @default(5.00) @map("percentual_comissao_default") @db.Decimal(5, 2)
+  percentualComissaoMax        Decimal  @default(100.00) @map("percentual_comissao_max") @db.Decimal(5, 2)
+
+  parceiros                   Parceiro[]
+  uploads                     UploadPlanilhaPF[]
+
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  @@map("gestores_pf")
+}
+
+model Parceiro {
+  id                  String   @id @default(uuid()) @db.Uuid
+  usuarioId           String   @unique @map("usuario_id") @db.Uuid
+  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  nome                String   @db.VarChar(255)
+  cpf                 String   @unique @db.VarChar(14)
+  pixChave            String?  @map("pix_chave") @db.VarChar(100)
+
+  percentualComissao Decimal  @map("percentual_comissao") @db.Decimal(5, 2)
+
+  status              StatusParceiro @default(ATIVO)
+
+  gestorPfId          String   @map("gestor_pf_id") @db.Uuid
+  gestorPf            GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  indicacoes          Indicado[]
+  procedimentos      ProcedimentoPF[]
+  comissoes           ComissaoParceiro[]
+  primeiraAcss        PrimeiraAcss[]
+
+  desligadoEm         DateTime? @map("desligado_em")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([gestorPfId])
+  @@map("parceiros")
+}
+
+model Indicado {
+  id             String   @id @default(uuid()) @db.Uuid
+  nome           String   @db.VarChar(255)
+  cpf            String   @db.VarChar(14)
+  telefone       String?  @db.VarChar(20)
+
+  status         StatusIndicado @default(ATIVO)
+
+  parceiroId     String   @map("parceiro_id") @db.Uuid
+  parceiro       Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  procedimentos  ProcedimentoPF[]
+
+  desvinculadoEm DateTime? @map("desvinculado_em")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([cpf])
+  @@index([cpf])
+  @@index([parceiroId])
+  @@map("indicados")
+}
+
+model UploadPlanilhaPF {
+  id            String   @id @default(uuid()) @db.Uuid
+  gestorPfId    String   @map("gestor_pf_id") @db.Uuid
+  gestorPf      GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  nomeArquivo   String   @db.VarChar(255)
+  mesReferencia String   @map("mes_referencia")
+
+  status        StatusUpload @default(PROCESSANDO)
+
+  totalRows     Int      @default(0) @map("total_rows")
+  processedRows Int      @default(0) @map("processed_rows")
+  rejectedRows  Int      @default(0) @map("rejected_rows")
+  orphanedRows  Int      @default(0) @map("orphaned_rows")
+
+  procedimentos ProcedimentoPF[]
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([gestorPfId])
+  @@index([mesReferencia])
+  @@map("uploads_planilha_pf")
+}
+
+model ProcedimentoPF {
+  id               String   @id @default(uuid()) @db.Uuid
+
+  dataReferencia   DateTime @map("data_referencia")
+  dataPagamento    DateTime @map("data_pagamento")
+  formaPagamento   String   @map("forma_pagamento") @db.VarChar(50)
+  totalPago        Decimal  @map("total_pago") @db.Decimal(10, 2)
+  paciente         String   @db.VarChar(255)
+  procedimento     String   @db.VarChar(255)
+  cpf              String   @db.VarChar(14)
+  tipoProcedimento String   @map("tipo_procedimento") @db.VarChar(50)
+  unidade          String   @db.VarChar(100)
+
+  indicadoId       String?  @map("indicado_id") @db.Uuid
+  indicado         Indicado? @relation(fields: [indicadoId], references: [id])
+
+  parceiroId       String?  @map("parceiro_id") @db.Uuid
+  parceiro         Parceiro? @relation(fields: [parceiroId], references: [id])
+
+  uploadId         String   @map("upload_id") @db.Uuid
+  upload           UploadPlanilhaPF @relation(fields: [uploadId], references: [id])
+
+  valorComissao    Decimal  @map("valor_comissao") @db.Decimal(10, 2) @default(0)
+  statusComissao   StatusProcedimento @default(PENDENTE) @map("status_comissao")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([dataReferencia, cpf, procedimento, unidade])
+  @@index([cpf])
+  @@index([indicadoId])
+  @@index([parceiroId])
+  @@index([uploadId])
+  @@map("procedimentos_pf")
+}
+
+model ComissaoParceiro {
+  id             String   @id @default(uuid()) @db.Uuid
+  parceiroId     String   @map("parceiro_id") @db.Uuid
+  parceiro       Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  mesReferencia  String   @map("mes_referencia")
+  valorTotal     Decimal  @map("valor_total") @db.Decimal(12, 2) @default(0)
+
+  status         StatusComissao @default(PENDENTE)
+  dataPagamento  DateTime? @map("data_pagamento")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([parceiroId, mesReferencia])
+  @@index([parceiroId])
+  @@map("comissoes_parceiros")
+}
+
+model PrimeiraAcss {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique
+  parceiroId String   @map("parceiro_id") @db.Uuid
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("primeira_acss")
 }

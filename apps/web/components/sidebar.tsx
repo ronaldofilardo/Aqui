@@ -17,8 +17,9 @@ const adminNav: NavItem[] = [
 const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
-  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
   { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
+  { label: "Produção", href: "/gestor/producao", icon: "📋" },
+  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
   { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
 
@@ -31,6 +32,21 @@ const consultorNav: NavItem[] = [
   { label: "Comissões", href: "/consultor/comissoes", icon: "💰" },
   { label: "Produtividade", href: "/consultor/produtividade", icon: "📈" },
   { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
+];
+
+const gestorpFNav: NavItem[] = [
+  { label: "Dashboard", href: "/gestor-pf/dashboard", icon: "📊" },
+  { label: "Parceiros", href: "/gestor-pf/parceiros", icon: "👥" },
+  { label: "Upload Planilha", href: "/gestor-pf/uploads", icon: "📥" },
+  { label: "Produção", href: "/gestor-pf/producao", icon: "📋" },
+  { label: "Comissões", href: "/gestor-pf/comissoes", icon: "💰" },
+  { label: "Configurações", href: "/gestor-pf/configuracoes", icon: "⚙️" },
+];
+
+const parceiroNav: NavItem[] = [
+  { label: "Cadastrar Cliente", href: "/parceiro/indicados", icon: "👥" },
+  { label: "Minhas Comissões", href: "/parceiro/comissoes", icon: "💰" },
+  { label: "Dados Pessoais", href: "/parceiro/dados-pessoais", icon: "👤" },
 ];
 
 const estabelecimentoNav: NavItem[] = [
@@ -46,6 +62,8 @@ const estabelecimentoNav: NavItem[] = [
 function getTipoLabel(tipo: string | undefined) {
   if (tipo === "ADMIN") return "Administrador";
   if (tipo === "GESTOR") return "Gestor";
+  if (tipo === "GESTOR_PF") return "Gestor PF";
+  if (tipo === "PARCEIRO") return "Parceiro";
   if (tipo === "CONSULTOR") return "Consultor";
   if (tipo === "ESTABELECIMENTO") return "Estabelecimento";
   return "";
@@ -59,6 +77,8 @@ export function Sidebar() {
   let navItems: NavItem[];
   if (tipo === "ADMIN") navItems = adminNav;
   else if (tipo === "GESTOR") navItems = gestorNav;
+  else if (tipo === "GESTOR_PF") navItems = gestorpFNav;
+  else if (tipo === "PARCEIRO") navItems = parceiroNav;
   else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;
   else navItems = consultorNav;
 

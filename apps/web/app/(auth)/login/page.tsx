@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [senhaError, setSenhaError] = useState("");
+  const [showIndicarModal, setShowIndicarModal] = useState(false);
+  const [indicarForm, setIndicarForm] = useState({
+    cpfParceiro: "",
+    cpfIndicado: "",
+    nomeIndicado: "",
+    telefoneIndicado: "",
+  });
+  const [indicarLoading, setIndicarLoading] = useState(false);
   const router = useRouter();
 
   function validateForm(): boolean {
@@ -59,7 +68,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Fetch session to determine redirect
     const res = await fetch("/api/auth/session");
     const session = await res.json();
     const tipo = session?.user?.tipo;
@@ -68,11 +76,62 @@ export default function LoginPage() {
       router.push("/admin/usuarios");
     } else if (tipo === "GESTOR") {
       router.push("/gestor/dashboard");
+    } else if (tipo === "GESTOR_PF") {
+      router.push("/gestor-pf/dashboard");
+    } else if (tipo === "PARCEIRO") {
+      router.push("/parceiro/indicados");
     } else if (tipo === "ESTABELECIMENTO") {
       router.push("/estabelecimento/dashboard");
     } else {
       router.push("/consultor/estabelecimentos");
     }
+  }
+
+  async function handleIndicar(e: React.FormEvent) {
+    e.preventDefault();
+    setIndicarLoading(true);
+
+    try {
+      const res = await fetch("/api/v1/public/indicar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(indicarForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Erro ao indicar cliente");
+        return;
+      }
+
+      toast.success("Cliente indicado com sucesso!");
+      setShowIndicarModal(false);
+      setIndicarForm({
+        cpfParceiro: "",
+        cpfIndicado: "",
+        nomeIndicado: "",
+        telefoneIndicado: "",
+      });
+    } catch (e) {
+      toast.error("Erro ao indicar cliente");
+    } finally {
+      setIndicarLoading(false);
+    }
+  }
+
+  function formatCpf(value: string): string {
+    const v = value.replace(/\D/g, "");
+    if (v.length > 9) {
+      return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+    }
+    if (v.length > 6) {
+      return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+    }
+    if (v.length > 3) {
+      return `${v.slice(0, 3)}.${v.slice(3)}`;
+    }
+    return v;
   }
 
   return (
@@ -205,11 +264,144 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => setShowIndicarModal(true)}
+              className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-700 active:scale-95 transition-smooth focus-ring shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+            >
+              <span>👥</span>
+              Indicar Cliente
+            </button>
+            <p className="text-center text-xs text-gray-400 mt-2">
+              Funcionários indicam clientes para receber comissões
+            </p>
+          </div>
+
           <p className="text-center text-xs text-gray-400 mt-8">
             Acesso Saúde Aqui © {new Date().getFullYear()}
           </p>
         </div>
       </div>
+
+      {/* Modal Indicar Cliente */}
+      {showIndicarModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                Indicar Cliente
+              </h2>
+              <button
+                onClick={() => setShowIndicarModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Vincule um cliente ao seu CPF para receber comissões sobre os
+              procedimentos realizados.
+            </p>
+
+            <form onSubmit={handleIndicar} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CPF do Parceiro (Meu)
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={14}
+                  value={indicarForm.cpfParceiro}
+                  onChange={(e) =>
+                    setIndicarForm({
+                      ...indicarForm,
+                      cpfParceiro: formatCpf(e.target.value),
+                    })
+                  }
+                  placeholder="000.000.000-00"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Cliente
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={indicarForm.nomeIndicado}
+                  onChange={(e) =>
+                    setIndicarForm({
+                      ...indicarForm,
+                      nomeIndicado: e.target.value,
+                    })
+                  }
+                  placeholder="Nome completo do cliente"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CPF do Cliente
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={14}
+                  value={indicarForm.cpfIndicado}
+                  onChange={(e) =>
+                    setIndicarForm({
+                      ...indicarForm,
+                      cpfIndicado: formatCpf(e.target.value),
+                    })
+                  }
+                  placeholder="000.000.000-00"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={indicarForm.telefoneIndicado}
+                  onChange={(e) =>
+                    setIndicarForm({
+                      ...indicarForm,
+                      telefoneIndicado: e.target.value,
+                    })
+                  }
+                  placeholder="(00) 00000-0000"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIndicarModal(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={indicarLoading}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  {indicarLoading ? "Salvando..." : "Indicar Cliente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

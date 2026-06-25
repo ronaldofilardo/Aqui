@@ -119,3 +119,55 @@ export async function requireEstabelecimento() {
     return { session: null, error: forbidden() };
   return { session, error: null };
 }
+
+export async function requireGestorPF() {
+  const session = await getSession();
+  if (!session?.user) return { session: null, error: unauthorized() };
+  if (session.user.tipo !== "GESTOR_PF")
+    return { session: null, error: forbidden() };
+  return { session, error: null };
+}
+
+export async function requireParceiro() {
+  const session = await getSession();
+  if (!session?.user) return { session: null, error: unauthorized() };
+  if (session.user.tipo !== "PARCEIRO")
+    return { session: null, error: forbidden() };
+  return { session, error: null };
+}
+
+export async function requireGestorPFWithScope() {
+  const session = await getSession();
+  if (!session?.user)
+    return { session: null, gestorPfId: null, error: unauthorized() };
+  if (session.user.tipo !== "GESTOR_PF")
+    return { session: null, gestorPfId: null, error: forbidden() };
+
+  const gestorPf = await prisma.gestorPF.findUnique({
+    where: { usuarioId: session.user.id },
+    select: { id: true },
+  });
+
+  if (!gestorPf)
+    return { session: null, gestorPfId: null, error: forbidden() };
+
+  return { session, gestorPfId: gestorPf.id, error: null };
+}
+
+export async function requireParceiroWithScope() {
+  const session = await getSession();
+  if (!session?.user)
+    return { session: null, parceiroId: null, error: unauthorized() };
+  if (session.user.tipo !== "PARCEIRO")
+    return { session: null, parceiroId: null, error: forbidden() };
+
+  const parceiro = await prisma.parceiro.findUnique({
+    where: { usuarioId: session.user.id },
+    select: { id: true, status: true },
+  });
+
+  if (!parceiro)
+    return { session: null, parceiroId: null, error: forbidden() };
+
+  return { session, parceiroId: parceiro.id, error: null };
+}

@@ -12,10 +12,9 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
     const body = await request.json();
-    const { payAllCommissions, deleteEstabelecimentos } = body;
+    const { deleteEstabelecimentos } = body;
 
     if (type === "CONSULTOR") {
-      // Find the usuario associated with this consultor
       const consultor = await prisma.consultor.findUnique({
         where: { id: params.id },
         select: { usuarioId: true, id: true },
@@ -28,26 +27,81 @@ export async function DELETE(
         );
       }
 
-      // If payAllCommissions is true, mark all pending commissions as paid
-      if (payAllCommissions) {
-        // This is a placeholder - implement commission payment logic as needed
-        // For now, we'll just delete the commissions
+      const usuarioId = consultor.usuarioId;
+
+      const estabelecimentoIds: string[] = [];
+      if (deleteEstabelecimentos) {
+        const estabs = await prisma.estabelecimento.findMany({
+          where: { consultorId: params.id },
+          select: { id: true },
+        });
+        estabelecimentoIds.push(...estabs.map((e) => e.id));
       }
 
-      // Delete estabelecimentos if requested
-      if (deleteEstabelecimentos) {
-        await prisma.estabelecimento.deleteMany({
-          where: { consultorId: params.id },
+      if (usuarioId) {
+        const cuponsConfig = await prisma.cupomConfig.findMany({
+          where: { criadoPor: usuarioId },
+          select: { id: true },
+        });
+        const cupomConfigIds = cuponsConfig.map((cc) => cc.id);
+
+        if (cupomConfigIds.length > 0) {
+          const cuponsImportados = await prisma.cupomImportado.findMany({
+            where: { cupomConfigId: { in: cupomConfigIds } },
+            select: { id: true },
+          });
+          const cupomImportadoIds = cuponsImportados.map((ci) => ci.id);
+
+          if (cupomImportadoIds.length > 0) {
+            await prisma.consulta.deleteMany({
+              where: { cupomImportadoId: { in: cupomImportadoIds } },
+            });
+          }
+
+          await prisma.cupomImportado.deleteMany({
+            where: { cupomConfigId: { in: cupomConfigIds } },
+          });
+        }
+
+        await prisma.cupomConfig.deleteMany({
+          where: { criadoPor: usuarioId },
         });
       }
 
-      // Delete consultor and associated usuario
+      if (estabelecimentoIds.length > 0) {
+        const allCupomImportados = await prisma.cupomImportado.findMany({
+          where: {
+            cupomConfig: { estabelecimentoId: { in: estabelecimentoIds } },
+          },
+          select: { id: true },
+        });
+        const allCupomImportadoIds = allCupomImportados.map((ci) => ci.id);
+
+        if (allCupomImportadoIds.length > 0) {
+          await prisma.consulta.deleteMany({
+            where: { cupomImportadoId: { in: allCupomImportadoIds } },
+          });
+        }
+
+        await prisma.usuarioEstabelecimento.deleteMany({
+          where: { estabelecimentoId: { in: estabelecimentoIds } },
+        });
+
+        await prisma.documento.deleteMany({
+          where: { estabelecimentoId: { in: estabelecimentoIds } },
+        });
+
+        await prisma.estabelecimento.deleteMany({
+          where: { id: { in: estabelecimentoIds } },
+        });
+      }
+
       await prisma.consultor.delete({
         where: { id: params.id },
       });
 
       await prisma.usuario.delete({
-        where: { id: consultor.usuarioId },
+        where: { id: usuarioId },
       });
 
       return NextResponse.json({
@@ -55,7 +109,6 @@ export async function DELETE(
         message: "Consultor deletado com sucesso",
       });
     } else if (type === "ESTABELECIMENTO") {
-      // Delete usuarioEstabelecimento
       const usuario = await prisma.usuarioEstabelecimento.findUnique({
         where: { id: params.id },
         select: { id: true },
