@@ -73,9 +73,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const tipo = (session?.user as any)?.tipo;
+  const papel = (session?.user as any)?.papel;
 
   let navItems: NavItem[];
   if (tipo === "ADMIN") navItems = adminNav;
+  else if (tipo === "GESTOR" && papel === "GESTOR_PF") navItems = gestorpFNav;
   else if (tipo === "GESTOR") navItems = gestorNav;
   else if (tipo === "GESTOR_PF") navItems = gestorpFNav;
   else if (tipo === "PARCEIRO") navItems = parceiroNav;

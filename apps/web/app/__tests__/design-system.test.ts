@@ -21,10 +21,16 @@ interface NavItem {
   icon: string;
 }
 
+const adminNav: NavItem[] = [
+  { label: "Usuários", href: "/admin/usuarios", icon: "👤" },
+];
+
 const gestorNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor/dashboard", icon: "📊" },
   { label: "Consultores", href: "/gestor/consultores", icon: "👥" },
   { label: "Importar Cupons", href: "/gestor/importar-cupons", icon: "📥" },
+  { label: "Produção", href: "/gestor/producao", icon: "📋" },
+  { label: "Comissões", href: "/gestor/comissoes", icon: "💰" },
   { label: "Auditoria", href: "/gestor/auditoria", icon: "🔍" },
 ];
 
@@ -36,8 +42,32 @@ const consultorNav: NavItem[] = [
   },
   { label: "Comissões", href: "/consultor/comissoes", icon: "💰" },
   { label: "Produtividade", href: "/consultor/produtividade", icon: "📈" },
-  { label: "Extrato", href: "/consultor/extrato", icon: "📄" },
   { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
+];
+
+const gestorpFNav: NavItem[] = [
+  { label: "Dashboard", href: "/gestor-pf/dashboard", icon: "📊" },
+  { label: "Parceiros", href: "/gestor-pf/parceiros", icon: "👥" },
+  { label: "Upload Planilha", href: "/gestor-pf/uploads", icon: "📥" },
+  { label: "Produção", href: "/gestor-pf/producao", icon: "📋" },
+  { label: "Comissões", href: "/gestor-pf/comissoes", icon: "💰" },
+  { label: "Configurações", href: "/gestor-pf/configuracoes", icon: "⚙️" },
+];
+
+const parceiroNav: NavItem[] = [
+  { label: "Cadastrar Cliente", href: "/parceiro/indicados", icon: "👥" },
+  { label: "Minhas Comissões", href: "/parceiro/comissoes", icon: "💰" },
+  { label: "Dados Pessoais", href: "/parceiro/dados-pessoais", icon: "👤" },
+];
+
+const estabelecimentoNav: NavItem[] = [
+  { label: "Dashboard", href: "/estabelecimento/dashboard", icon: "📊" },
+  {
+    label: "Produtividade",
+    href: "/estabelecimento/produtividade",
+    icon: "📈",
+  },
+  { label: "Comissões", href: "/estabelecimento/comissoes", icon: "💰" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -57,8 +87,8 @@ function generateInitials(name: string | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 describe("Sidebar — Navegação do Gestor", () => {
-  it("deve ter 4 itens de navegação", () => {
-    expect(gestorNav).toHaveLength(4);
+  it("deve ter 6 itens de navegação", () => {
+    expect(gestorNav).toHaveLength(6);
   });
 
   it("todos os itens devem ter href, label e icon", () => {
@@ -69,7 +99,7 @@ describe("Sidebar — Navegação do Gestor", () => {
     });
   });
 
-  it("hrefs do gestor devem começar com /gestor/", () => {
+  it("hrefs do gestor PJ devem começar com /gestor/", () => {
     gestorNav.forEach((item) => {
       expect(item.href.startsWith("/gestor/")).toBe(true);
     });
@@ -80,9 +110,41 @@ describe("Sidebar — Navegação do Gestor", () => {
   });
 });
 
+describe("Sidebar — Navegação do Gestor PF", () => {
+  it("deve ter 6 itens de navegação", () => {
+    expect(gestorpFNav).toHaveLength(6);
+  });
+
+  it("todos os itens devem ter href, label e icon", () => {
+    gestorpFNav.forEach((item) => {
+      expect(item.href).toBeTruthy();
+      expect(item.label).toBeTruthy();
+      expect(item.icon).toBeTruthy();
+    });
+  });
+
+  it("hrefs do gestor PF devem começar com /gestor-pf/", () => {
+    gestorpFNav.forEach((item) => {
+      expect(item.href.startsWith("/gestor-pf/")).toBe(true);
+    });
+  });
+
+  it("deve conter rota de parceiros (diferente do PJ)", () => {
+    expect(
+      gestorpFNav.some((i) => i.href === "/gestor-pf/parceiros"),
+    ).toBe(true);
+  });
+
+  it("não deve conter rotas de /gestor/", () => {
+    gestorpFNav.forEach((item) => {
+      expect(item.href.startsWith("/gestor/")).toBe(false);
+    });
+  });
+});
+
 describe("Sidebar — Navegação do Consultor", () => {
-  it("deve ter 5 itens de navegação", () => {
-    expect(consultorNav).toHaveLength(5);
+  it("deve ter 4 itens de navegação", () => {
+    expect(consultorNav).toHaveLength(4);
   });
 
   it("todos os itens devem ter href, label e icon", () => {
@@ -106,23 +168,38 @@ describe("Sidebar — Navegação do Consultor", () => {
   });
 });
 
-describe("Sidebar — Seleção de nav por tipo de usuário", () => {
-  it("deve retornar gestorNav para tipo GESTOR", () => {
-    const tipo = "GESTOR";
-    const nav = tipo === "GESTOR" ? gestorNav : consultorNav;
-    expect(nav).toBe(gestorNav);
+describe("Sidebar — Seleção de nav por tipo e papel de usuário", () => {
+  function selectNav(
+    tipo: string | undefined,
+    papel: string | null | undefined,
+  ): NavItem[] {
+    if (tipo === "ADMIN") return adminNav;
+    if (tipo === "GESTOR" && papel === "GESTOR_PF") return gestorpFNav;
+    if (tipo === "GESTOR") return gestorNav;
+    if (tipo === "GESTOR_PF") return gestorpFNav;
+    if (tipo === "PARCEIRO") return parceiroNav;
+    if (tipo === "ESTABELECIMENTO") return estabelecimentoNav;
+    return consultorNav;
+  }
+
+  it("deve retornar gestorPJNav para GESTOR com papel GESTOR_PJ", () => {
+    expect(selectNav("GESTOR", "GESTOR_PJ")).toBe(gestorNav);
   });
 
-  it("deve retornar consultorNav para tipo CONSULTOR", () => {
-    const tipo: string = "CONSULTOR";
-    const nav = tipo === "GESTOR" ? gestorNav : consultorNav;
-    expect(nav).toBe(consultorNav);
+  it("deve retornar gestorPFNav para GESTOR com papel GESTOR_PF", () => {
+    expect(selectNav("GESTOR", "GESTOR_PF")).toBe(gestorpFNav);
+  });
+
+  it("deve retornar gestorPFNav para tipo GESTOR_PF (legacy)", () => {
+    expect(selectNav("GESTOR_PF", null)).toBe(gestorpFNav);
+  });
+
+  it("deve retornar gestorPJNav para GESTOR sem papel definido", () => {
+    expect(selectNav("GESTOR", null)).toBe(gestorNav);
   });
 
   it("deve retornar consultorNav para tipo indefinido", () => {
-    const tipo: string | undefined = undefined;
-    const nav = tipo === "GESTOR" ? gestorNav : consultorNav;
-    expect(nav).toBe(consultorNav);
+    expect(selectNav(undefined, undefined)).toBe(consultorNav);
   });
 });
 
@@ -194,20 +271,6 @@ describe("Design System — Mensagens de autenticação", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Navegação do Estabelecimento (adicionada nesta sessão)
-// ---------------------------------------------------------------------------
-
-const estabelecimentoNav: NavItem[] = [
-  { label: "Dashboard", href: "/estabelecimento/dashboard", icon: "📊" },
-  {
-    label: "Produtividade",
-    href: "/estabelecimento/produtividade",
-    icon: "📈",
-  },
-  { label: "Comissões", href: "/estabelecimento/comissoes", icon: "💰" },
-];
-
 describe("Sidebar — Navegação do Estabelecimento", () => {
   it("deve ter 3 itens de navegação", () => {
     expect(estabelecimentoNav).toHaveLength(3);
@@ -241,21 +304,28 @@ describe("Sidebar — Navegação do Estabelecimento", () => {
 });
 
 describe("Sidebar — Seleção de nav para ESTABELECIMENTO", () => {
-  function selectNav(tipo: string | undefined): NavItem[] {
+  function selectNav(
+    tipo: string | undefined,
+    papel: string | null | undefined,
+  ): NavItem[] {
+    if (tipo === "ADMIN") return adminNav;
+    if (tipo === "GESTOR" && papel === "GESTOR_PF") return gestorpFNav;
     if (tipo === "GESTOR") return gestorNav;
+    if (tipo === "GESTOR_PF") return gestorpFNav;
+    if (tipo === "PARCEIRO") return parceiroNav;
     if (tipo === "ESTABELECIMENTO") return estabelecimentoNav;
     return consultorNav;
   }
 
   it("deve retornar estabelecimentoNav para tipo ESTABELECIMENTO", () => {
-    expect(selectNav("ESTABELECIMENTO")).toBe(estabelecimentoNav);
+    expect(selectNav("ESTABELECIMENTO", null)).toBe(estabelecimentoNav);
   });
 
   it("não deve retornar nav do consultor para ESTABELECIMENTO", () => {
-    expect(selectNav("ESTABELECIMENTO")).not.toBe(consultorNav);
+    expect(selectNav("ESTABELECIMENTO", null)).not.toBe(consultorNav);
   });
 
   it("não deve retornar nav do gestor para ESTABELECIMENTO", () => {
-    expect(selectNav("ESTABELECIMENTO")).not.toBe(gestorNav);
+    expect(selectNav("ESTABELECIMENTO", null)).not.toBe(gestorNav);
   });
 });
