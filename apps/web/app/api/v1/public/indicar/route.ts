@@ -9,9 +9,7 @@ export async function POST(req: NextRequest) {
     const parsed = indicarClienteSchema.safeParse(body);
 
     if (!parsed.success) {
-      return badRequest(
-        parsed.error.errors.map((e) => e.message).join(", ")
-      );
+      return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
     }
 
     const { cpfParceiro, cpfIndicado, nomeIndicado, telefoneIndicado } =
@@ -35,7 +33,18 @@ export async function POST(req: NextRequest) {
 
     if (parceiro.status === "DESLIGADO") {
       return badRequest(
-        "Este parceiro está desligado e não pode mais indicar clientes"
+        "Este parceiro está desligado e não pode mais indicar clientes",
+      );
+    }
+
+    // Validar se CPF não é um parceiro existente
+    const cpfEhParceiro = await prisma.parceiro.findUnique({
+      where: { cpf: cpfIndicadoClean },
+    });
+
+    if (cpfEhParceiro) {
+      return badRequest(
+        "Este CPF já é um parceiro no sistema e não pode ser cadastrado como cliente.",
       );
     }
 
@@ -45,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     if (indicadoExistente) {
       return badRequest(
-        "Este CPF já está vinculado a um parceiro. Cada cliente pode ser indicado por apenas um parceiro."
+        "Este CPF já está vinculado a um parceiro. Cada cliente pode ser indicado por apenas um parceiro.",
       );
     }
 

@@ -10,7 +10,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000002',
   'Administrador',
   'admin@asa.com',
-  '$2a$12$R9h7cIPz0gi.URNNX3kh2OPST9/PgBkPbklmCHEqP2oKmnk6CqK.2',
+  '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
   'ADMIN',
   '(11) 99999-0000',
   'ATIVO',
@@ -18,6 +18,6 @@ VALUES (
   NOW()
 )
 ON CONFLICT (email) DO UPDATE SET 
-  senha_hash = '$2a$12$R9h7cIPz0gi.URNNX3kh2OPST9/PgBkPbklmCHEqP2oKmnk6CqK.2',
+  senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
   tipo = 'ADMIN',
   atualizado_em = NOW();

@@ -31,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               consultor: true,
               gestorPf: true,
               parceiro: true,
+              comercial: true,
             },
           });
 
@@ -56,10 +57,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 name: user.nome,
                 email: user.email,
                 tipo: user.tipo as TipoAcesso,
-                consultorId: user.consultor?.id || null,
+                papel: user.papel ?? null,
+                consultorId: user.consultor?.id ?? null,
                 estabelecimentoId: null,
-                gestorPfId: user.gestorPf?.id || null,
-                parceiroId: user.parceiro?.id || null,
+                gestorPfId: user.gestorPf?.id ?? null,
+                parceiroId: user.parceiro?.id ?? null,
+                comercialId: user.comercial?.id ?? null,
               };
             } else {
               console.log(`[auth] ✗ Senha inválida para ${email}`);
@@ -97,10 +100,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 name: usuarioEstab.nome,
                 email: usuarioEstab.email,
                 tipo: "ESTABELECIMENTO" as TipoAcesso,
+                papel: null,
                 consultorId: null,
                 estabelecimentoId: usuarioEstab.estabelecimentoId,
                 gestorPfId: null,
                 parceiroId: null,
+                comercialId: null,
               };
             } else {
               console.log(`[auth] ✗ Senha inválida para estabelecimento ${email}`);
@@ -119,12 +124,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        if (user.id) token.id = user.id;
         token.tipo = (user as any).tipo;
+        token.papel = (user as any).papel;
         token.consultorId = (user as any).consultorId;
         token.estabelecimentoId = (user as any).estabelecimentoId;
         token.gestorPfId = (user as any).gestorPfId;
         token.parceiroId = (user as any).parceiroId;
+        token.comercialId = (user as any).comercialId;
       }
       return token;
     },
@@ -132,10 +139,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).tipo = token.tipo;
+        (session.user as any).papel = token.papel;
         (session.user as any).consultorId = token.consultorId;
         (session.user as any).estabelecimentoId = token.estabelecimentoId;
         (session.user as any).gestorPfId = token.gestorPfId;
         (session.user as any).parceiroId = token.parceiroId;
+        (session.user as any).comercialId = token.comercialId;
       }
       return session;
     },

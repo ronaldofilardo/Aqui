@@ -1,0 +1,124 @@
+import { NextRequest } from "next/server";
+import { requireGestorPFWithScope, badRequest, ok } from "@/lib/api-helpers";
+import { prisma } from "@asa/database";
+import { z } from "zod";
+
+export const dynamic = "force-dynamic";
+
+const FilterSchema = z.object({
+  status: z
+    .enum([
+      "SOLICITADO",
+      "EM_ANALISE",
+      "APROVADO",
+      "REJEITADO",
+      "ENTREGUE",
+      "CANCELADO",
+    ])
+    .optional(),
+  cicloPontosId: z.string().uuid().optional(),
+  parceiroId: z.string().uuid().optional(),
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const { session, gestorPfId, error } = await requireGestorPFWithScope();
+    if (error) return error;
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const cicloPontosId = searchParams.get("cicloPontosId");
+    const parceiroId = searchParams.get("parceiroId");
+
+    const validation = FilterSchema.safeParse({
+      status: status || undefined,
+      cicloPontosId: cicloPontosId || undefined,
+      parceiroId: parceiroId || undefined,
+    });
+
+    if (!validation.success) {
+      return badRequest(validation.error.message);
+    }
+
+    // Buscar ciclos do gestor
+    const ciclos = await prisma.cicloPontos.findMany({
+      where: { gestorPfId },
+      select: { id: true },
+    });
+
+    const cicloIds = ciclos.map((c) => c.id);
+
+    const where: any = {
+      cicloPontosId: { in: cicloIds },
+    };
+
+    if (validation.data.status) {
+      where.status = validation.data.status;
+    }
+
+    if (validation.data.cicloPontosId) {
+      where.cicloPontosId = validation.data.cicloPontosId;
+    }
+
+    if (validation.data.parceiroId) {
+      where.parceiroId = validation.data.parceiroId;
+    }
+
+    const resgates = await prisma.solicitacaoResgate.findMany({
+      where,
+      include: {
+        parceiro: {
+          select: {
+            id: true,
+            nome: true,
+            cpf: true,
+          },
+        },
+        premio: {
+          select: {
+            id: true,
+            nome: true,
+            custoPontos: true,
+          },
+        },
+        cicloPontos: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+      },
+      orderBy: { solicitadoEm: "desc" },
+    });
+
+    return ok({
+      resgates: resgates.map((r) => ({
+        id: r.id,
+        parceiro: {
+          id: r.parceiro.id,
+          nome: r.parceiro.nome,
+          cpf: r.parceiro.cpf,
+        },
+        premio: {
+          id: r.premio.id,
+          nome: r.premio.nome,
+          custoPontos: r.premio.custoPontos,
+        },
+        cicloPontos: {
+          id: r.cicloPontos.id,
+          nome: r.cicloPontos.nome,
+        },
+        pontosDebitados: r.pontosDebitados,
+        status: r.status,
+        solicitadoEm: r.solicitadoEm.toISOString(),
+        processadoEm: r.processadoEm?.toISOString(),
+        entregueEm: r.entregueEm?.toISOString(),
+        canceladoEm: r.canceladoEm?.toISOString(),
+        observacao: r.observacao,
+      })),
+    });
+  } catch (err) {
+    console.error("Erro ao buscar resgates:", err);
+    return badRequest("Erro ao buscar resgates");
+  }
+}

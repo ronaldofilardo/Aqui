@@ -285,26 +285,32 @@ export const criarParceiroSchema = z.object({
   cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
   pixChave: z.string().optional(),
   telefone: z.string().optional(),
-  percentualComissao: z.union([z.string(), z.number()]).refine(
-    (val) => {
-      const num = typeof val === "string" ? parseFloat(val) : val;
-      return num >= 0 && num <= 100;
-    },
-    { message: "Deve estar entre 0 e 100" }
-  ).optional(),
+  percentualComissao: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === "string" ? parseFloat(val) : val;
+        return num >= 0 && num <= 100;
+      },
+      { message: "Deve estar entre 0 e 100" },
+    )
+    .optional(),
 });
 
 export const atualizarParceiroSchema = z.object({
   id: z.string().uuid("ID inválido"),
   nome: z.string().min(3).optional(),
   pixChave: z.string().optional(),
-  percentualComissao: z.union([z.string(), z.number()]).refine(
-    (val) => {
-      const num = typeof val === "string" ? parseFloat(val) : val;
-      return num >= 0 && num <= 100;
-    },
-    { message: "Deve estar entre 0 e 100" }
-  ).optional(),
+  percentualComissao: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === "string" ? parseFloat(val) : val;
+        return num >= 0 && num <= 100;
+      },
+      { message: "Deve estar entre 0 e 100" },
+    )
+    .optional(),
   status: z.enum(["ATIVO", "DESLIGADO"]).optional(),
 });
 
@@ -328,6 +334,65 @@ export const processarPlanilhaSchema = z.object({
   mesReferencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato: YYYY-MM"),
 });
 
+export const criarComercialSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
+  telefone: z.string().optional(),
+  percentualComissao: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === "string" ? parseFloat(val) : val;
+        return num >= 0 && num <= 100;
+      },
+      { message: "Deve estar entre 0 e 100" },
+    )
+    .optional(),
+  funcao: z.enum([
+    "GERENTE_CIRE",
+    "SUPERVISOR_ATIVO",
+    "SUPERVISOR_RECEPTIVO",
+    "SUPERVISOR_FRANQUIA",
+    "SUPERVISOR_ATENDIMENTO",
+    "GERENTE_ATENDIMENTO",
+    "SUPERVISOR_COMERCIAL",
+  ]).optional(),
+});
+
+export const atualizarComercialSchema = z.object({
+  nome: z.string().min(3).optional(),
+  telefone: z.string().optional(),
+  percentualComissao: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === "string" ? parseFloat(val) : val;
+        return num >= 0 && num <= 100;
+      },
+      { message: "Deve estar entre 0 e 100" },
+    )
+    .optional(),
+  status: z.enum(["ATIVO", "INATIVO"]).optional(),
+});
+
+export const upsertMetaComercialSchema = z.object({
+  mesReferencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato: YYYY-MM"),
+  valorMeta: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === "string" ? parseFloat(val) : val;
+        return num >= 0;
+      },
+      { message: "Valor da meta deve ser >= 0" },
+    ),
+});
+
+export const preferenciaCicloParceiroSchema = z.object({
+  periodicidade: z.enum(["SEMESTRAL", "ANUAL"]),
+});
+
 export type IndicarClienteInput = z.infer<typeof indicarClienteSchema>;
 export type CriarGestorPFInput = z.infer<typeof criarGestorPFSchema>;
 export type CriarParceiroInput = z.infer<typeof criarParceiroSchema>;
@@ -336,3 +401,9 @@ export type DesligarParceiroInput = z.infer<typeof desligarParceiroSchema>;
 export type AtualizarGestorPFInput = z.infer<typeof atualizarGestorPFSchema>;
 export type CadastrarIndicadoInput = z.infer<typeof cadastrarIndicadoSchema>;
 export type ProcessarPlanilhaInput = z.infer<typeof processarPlanilhaSchema>;
+export type CriarComercialInput = z.infer<typeof criarComercialSchema>;
+export type AtualizarComercialInput = z.infer<typeof atualizarComercialSchema>;
+export type UpsertMetaComercialInput = z.infer<typeof upsertMetaComercialSchema>;
+export type PreferenciaCicloParceiroInput = z.infer<
+  typeof preferenciaCicloParceiroSchema
+>;

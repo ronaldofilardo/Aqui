@@ -50,7 +50,10 @@ export async function requireGestorWithScope() {
   const session = await getSession();
   if (!session?.user)
     return { session: null, consultorIds: [], error: unauthorized() };
-  if (session.user.tipo !== "GESTOR")
+  const isGestorPJ =
+    session.user.tipo === "GESTOR" &&
+    session.user.papel === "GESTOR_PJ";
+  if (!isGestorPJ)
     return { session: null, consultorIds: [], error: forbidden() };
 
   const gestoresConsultores = await prisma.gestorConsultor.findMany({
@@ -71,7 +74,10 @@ export async function requireGestorWithUserScope() {
       usuarioIds: [],
       error: unauthorized(),
     };
-  if (session.user.tipo !== "GESTOR")
+  const isGestorPJ =
+    session.user.tipo === "GESTOR" &&
+    session.user.papel === "GESTOR_PJ";
+  if (!isGestorPJ)
     return {
       session: null,
       consultorIds: [],
@@ -123,8 +129,10 @@ export async function requireEstabelecimento() {
 export async function requireGestorPF() {
   const session = await getSession();
   if (!session?.user) return { session: null, error: unauthorized() };
-  if (session.user.tipo !== "GESTOR_PF")
-    return { session: null, error: forbidden() };
+  const isGestorPF =
+    session.user.tipo === "GESTOR_PF" ||
+    (session.user.tipo === "GESTOR" && session.user.papel === "GESTOR_PF");
+  if (!isGestorPF) return { session: null, error: forbidden() };
   return { session, error: null };
 }
 
@@ -138,18 +146,24 @@ export async function requireParceiro() {
 
 export async function requireGestorPFWithScope() {
   const session = await getSession();
-  if (!session?.user)
+  if (!session?.user) {
     return { session: null, gestorPfId: null, error: unauthorized() };
-  if (session.user.tipo !== "GESTOR_PF")
+  }
+  const isGestorPF =
+    session.user.tipo === "GESTOR_PF" ||
+    (session.user.tipo === "GESTOR" && session.user.papel === "GESTOR_PF");
+  if (!isGestorPF) {
     return { session: null, gestorPfId: null, error: forbidden() };
+  }
 
   const gestorPf = await prisma.gestorPF.findUnique({
     where: { usuarioId: session.user.id },
     select: { id: true },
   });
 
-  if (!gestorPf)
+  if (!gestorPf) {
     return { session: null, gestorPfId: null, error: forbidden() };
+  }
 
   return { session, gestorPfId: gestorPf.id, error: null };
 }
@@ -170,4 +184,27 @@ export async function requireParceiroWithScope() {
     return { session: null, parceiroId: null, error: forbidden() };
 
   return { session, parceiroId: parceiro.id, error: null };
+}
+
+export async function requireComercialWithScope() {
+  const session = await getSession();
+  if (!session?.user)
+    return { session: null, comercialId: null, error: unauthorized() };
+  if (session.user.tipo !== "COMERCIAL")
+    return { session: null, comercialId: null, error: forbidden() };
+
+  const comercial = await prisma.comercial.findUnique({
+    where: { usuarioId: session.user.id },
+    select: { id: true, status: true, gestorPfId: true },
+  });
+
+  if (!comercial)
+    return { session: null, comercialId: null, error: forbidden() };
+
+  return {
+    session,
+    comercialId: comercial.id,
+    gestorPfId: comercial.gestorPfId,
+    error: null,
+  };
 }

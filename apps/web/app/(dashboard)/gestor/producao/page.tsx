@@ -116,7 +116,7 @@ export default function GestorProducao() {
     }
   }
 
-  const filteredCupons = data?.cupons.filter((c) => {
+  const filteredCupons = (data?.cupons ?? []).filter((c) => {
     if (filterSearch) {
       const search = filterSearch.toLowerCase();
       return (

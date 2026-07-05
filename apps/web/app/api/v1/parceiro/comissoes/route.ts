@@ -55,5 +55,7 @@ export async function GET(req: NextRequest) {
       totalProcedimentos: procedimentos.length,
     },
     historico: comissoesPorMes,
+    aviso:
+      "Dados legados anteriores à migração para o sistema de pontos. Novos pagamentos geram pontos — não comissões.",
   });
 }

@@ -70,12 +70,10 @@ describe("API de Comissões - Gestor", () => {
   });
 
   afterAll(async () => {
-    // Limpeza
-    const gestor = await prisma.usuario.findUnique({ where: { id: gestorId } });
-    if (gestor) {
-      await prisma.gestorConsultor.deleteMany({ where: { gestorId } });
-      await prisma.usuario.delete({ where: { id: gestorId } });
-    }
+    await prisma.estabelecimento.deleteMany({ where: { id: estabelecimentoId } }).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({ where: { gestorId } }).catch(() => {});
+    await prisma.consultor.deleteMany({ where: { id: consultorId } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { id: gestorId } }).catch(() => {});
   });
 
   describe("Cálculo de Comissões", () => {

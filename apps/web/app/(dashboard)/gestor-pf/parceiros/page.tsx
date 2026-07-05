@@ -41,6 +41,9 @@ export default function GestorPFParceiros() {
     percentualComissao: "",
   });
   const [saving, setSaving] = useState(false);
+  const [cpfValidation, setCpfValidation] = useState<"valid" | "invalid" | "">(
+    "",
+  );
 
   useEffect(() => {
     fetchParceiros();
@@ -71,7 +74,27 @@ export default function GestorPFParceiros() {
       telefone: "",
       percentualComissao: "",
     });
+    setCpfValidation("");
     setShowModal(true);
+  }
+
+  async function validateCpfRealTime(cpf: string) {
+    if (cpf.length < 11) {
+      setCpfValidation("");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/v1/gestor-pf/parceiros/check-cpf?cpf=${encodeURIComponent(cpf)}`,
+      );
+      const data = await res.json();
+      setCpfValidation(data.valid ? "valid" : "invalid");
+      if (!data.valid) {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      setCpfValidation("invalid");
+    }
   }
 
   function openEdit(p: Parceiro) {
@@ -117,9 +140,7 @@ export default function GestorPFParceiros() {
 
       if (!editParceiro && data.link) {
         await navigator.clipboard.writeText(data.link);
-        toast.success(
-          "Parceiro criado! Link copiado para clipboard."
-        );
+        toast.success("Parceiro criado! Link copiado para clipboard.");
       } else {
         toast.success("Parceiro atualizado com sucesso");
       }
@@ -136,7 +157,7 @@ export default function GestorPFParceiros() {
   async function handleDesligar(p: Parceiro) {
     if (
       !confirm(
-        `Desligar ${p.nome}? Os vínculos com clientes serão desfeitos e as comissões cessarão.`
+        `Desligar ${p.nome}? Os vínculos com clientes serão desfeitos e as comissões cessarão.`,
       )
     ) {
       return;
@@ -205,7 +226,7 @@ export default function GestorPFParceiros() {
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="card animate-pulse">
+            <div key={`skeleton-${i}`} className="card animate-pulse">
               <div className="h-4 w-48 bg-gray-200 rounded mb-2"></div>
               <div className="h-3 w-32 bg-gray-100 rounded"></div>
             </div>
@@ -329,8 +350,13 @@ export default function GestorPFParceiros() {
                             </thead>
                             <tbody>
                               {p.indicacoes.map((i) => (
-                                <tr key={i.id} className="border-b last:border-b-0">
-                                  <td className="p-2 text-gray-900">{i.nome}</td>
+                                <tr
+                                  key={i.id}
+                                  className="border-b last:border-b-0"
+                                >
+                                  <td className="p-2 text-gray-900">
+                                    {i.nome}
+                                  </td>
                                   <td className="p-2 text-gray-600">
                                     {formatCpf(i.cpf)}
                                   </td>
@@ -345,7 +371,9 @@ export default function GestorPFParceiros() {
                                           : "bg-red-100 text-red-800"
                                       }`}
                                     >
-                                      {i.status === "ATIVO" ? "Ativo" : "Desvinculado"}
+                                      {i.status === "ATIVO"
+                                        ? "Ativo"
+                                        : "Desvinculado"}
                                     </span>
                                   </td>
                                   <td className="p-2 text-gray-500">
@@ -361,7 +389,10 @@ export default function GestorPFParceiros() {
                   )}
                   {expandedIds.has(p.id) && p.indicacoes.length === 0 && (
                     <tr key={`${p.id}-empty`} className="bg-gray-50">
-                      <td colSpan={8} className="p-3 text-center text-gray-500 text-sm">
+                      <td
+                        colSpan={8}
+                        className="p-3 text-center text-gray-500 text-sm"
+                      >
                         Nenhum cliente indicado ainda
                       </td>
                     </tr>
@@ -388,9 +419,7 @@ export default function GestorPFParceiros() {
                   type="text"
                   required
                   value={form.nome}
-                  onChange={(e) =>
-                    setForm({ ...form, nome: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
                 />
               </div>
@@ -402,9 +431,7 @@ export default function GestorPFParceiros() {
                   type="email"
                   required
                   value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
                 />
               </div>
@@ -429,39 +456,37 @@ export default function GestorPFParceiros() {
                             ? `${masked.slice(0, 3)}.${masked.slice(3)}`
                             : masked;
                     setForm({ ...form, cpf: f });
+
+                    // Validate CPF in real-time (only for new partners)
+                    if (!editParceiro && masked.length === 11) {
+                      clearTimeout((window as any).cpfTimeout);
+                      (window as any).cpfTimeout = setTimeout(() => {
+                        validateCpfRealTime(f);
+                      }, 500);
+                    } else if (!editParceiro) {
+                      setCpfValidation("");
+                    }
                   }}
                   placeholder="000.000.000-00"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus-ring ${
+                    !editParceiro && cpfValidation === "invalid"
+                      ? "border-red-500"
+                      : !editParceiro && cpfValidation === "valid"
+                        ? "border-green-500"
+                        : ""
+                  }`}
+                  disabled={!!editParceiro}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  % Comissão
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={form.percentualComissao}
-                  onChange={(e) =>
-                    setForm({ ...form, percentualComissao: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Chave PIX
-                </label>
-                <input
-                  type="text"
-                  value={form.pixChave}
-                  onChange={(e) =>
-                    setForm({ ...form, pixChave: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
-                />
+                {!editParceiro && cpfValidation === "invalid" && (
+                  <p className="text-xs text-red-600 mt-1">
+                    CPF inválido ou não disponível
+                  </p>
+                )}
+                {!editParceiro && cpfValidation === "valid" && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ CPF disponível
+                  </p>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button
@@ -473,10 +498,20 @@ export default function GestorPFParceiros() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+                  disabled={
+                    saving ||
+                    (!editParceiro &&
+                      (cpfValidation === "invalid" ||
+                        !form.cpf ||
+                        cpfValidation !== "valid"))
+                  }
+                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? "Salvando..." : editParceiro ? "Atualizar" : "Criar"}
+                  {saving
+                    ? "Salvando..."
+                    : editParceiro
+                      ? "Atualizar"
+                      : "Criar"}
                 </button>
               </div>
             </form>

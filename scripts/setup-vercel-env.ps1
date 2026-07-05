@@ -41,10 +41,6 @@ $envVars = @(
     @{
         key = "AUTH_SECRET"
         value = $NextAuthSecret
-    },
-    @{
-        key = "ASAAS_SANDBOX"
-        value = "false"
     }
 )
 

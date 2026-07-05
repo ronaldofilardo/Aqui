@@ -4,6 +4,7 @@ import { hash } from "bcryptjs";
 import {
   badRequest,
   created,
+  getSession,
   notFound,
   ok,
   forbidden,
@@ -44,7 +45,8 @@ export async function GET(req: NextRequest) {
     cpf: p.cpf,
     email: p.usuario.email,
     pixChave: p.pixChave,
-    percentualComissao: p.percentualComissao,
+    percentualComissao: p.percentualComissao, // legado
+    periodicidadeCicloEscolhida: p.periodicidadeCicloEscolhida,
     status: p.status,
     totalIndicados: p._count.indicacoes,
     desligadoEm: p.desligadoEm,
@@ -70,27 +72,12 @@ export async function POST(req: NextRequest) {
   const parsed = criarParceiroSchema.safeParse(body);
 
   if (!parsed.success) {
-    return badRequest(
-      parsed.error.errors.map((e) => e.message).join(", ")
-    );
+    return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
   }
 
-  const {
-    nome,
-    email,
-    cpf,
-    pixChave,
-    telefone,
-    percentualComissao,
-  } = parsed.data;
+  const { nome, email, cpf, pixChave, telefone } = parsed.data;
 
   const cpfClean = cpf.replace(/\D/g, "");
-  const percentualComissaoNum =
-    percentualComissao !== undefined
-      ? typeof percentualComissao === "string"
-        ? parseFloat(percentualComissao)
-        : percentualComissao
-      : undefined;
 
   const existsUsuario = await prisma.usuario.findUnique({
     where: { email },
@@ -103,7 +90,17 @@ export async function POST(req: NextRequest) {
     where: { cpf: cpfClean },
   });
   if (existsCpf) {
-    return badRequest("CPF já cadastrado");
+    return badRequest("CPF já cadastrado como parceiro");
+  }
+
+  // Validar se CPF não é um cliente (indicado) existente
+  const cpfEhCliente = await prisma.indicado.findUnique({
+    where: { cpf: cpfClean },
+  });
+  if (cpfEhCliente) {
+    return badRequest(
+      "Este CPF já é um cliente no sistema e não pode ser cadastrado como parceiro.",
+    );
   }
 
   const gestorPf = await prisma.gestorPF.findUnique({
@@ -137,8 +134,8 @@ export async function POST(req: NextRequest) {
         nome,
         cpf: cpfClean,
         pixChave,
-        percentualComissao:
-          percentualComissaoNum ?? gestorPf.percentualComissaoDefault,
+        // Campo legado: percentualComissao fica null após a migração para pontos.
+        percentualComissao: null,
         status: "ATIVO",
         gestorPfId,
       },
@@ -183,23 +180,13 @@ export async function PUT(req: NextRequest) {
   const parsed = atualizarParceiroSchema.safeParse(body);
 
   if (!parsed.success) {
-    return badRequest(
-      parsed.error.errors.map((e) => e.message).join(", ")
-    );
+    return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
   }
 
   const { id, ...parsedData } = parsed.data;
 
   if (!id) {
     return badRequest("ID do parceiro é obrigatório");
-  }
-
-  const dataToUpdate: any = { ...parsedData };
-  if (dataToUpdate.percentualComissao !== undefined) {
-    dataToUpdate.percentualComissao =
-      typeof dataToUpdate.percentualComissao === "string"
-        ? parseFloat(dataToUpdate.percentualComissao)
-        : dataToUpdate.percentualComissao;
   }
 
   const parceiro = await prisma.parceiro.findFirst({
@@ -210,9 +197,11 @@ export async function PUT(req: NextRequest) {
     return notFound("Parceiro não encontrado");
   }
 
+  // percentualComissao é campo legado: aceita para preservar dados antigos
+  // durante a migração, mas novas parcerias devem ter null.
   const updated = await prisma.parceiro.update({
     where: { id },
-    data: dataToUpdate,
+    data: parsedData,
   });
 
   await criarAuditLog({
@@ -220,7 +209,7 @@ export async function PUT(req: NextRequest) {
     acao: "ATUALIZAR_PARCEIRO",
     entidade: "parceiro",
     entidadeId: id,
-    detalhes: dataToUpdate,
+    detalhes: parsedData,
   });
 
   return ok(updated);

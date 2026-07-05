@@ -20,6 +20,9 @@ export default function LoginPage() {
     telefoneIndicado: "",
   });
   const [indicarLoading, setIndicarLoading] = useState(false);
+  const [indicadoCpfValidation, setIndicadoCpfValidation] = useState<
+    "valid" | "invalid" | ""
+  >("");
   const router = useRouter();
 
   function validateForm(): boolean {
@@ -71,9 +74,12 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/session");
     const session = await res.json();
     const tipo = session?.user?.tipo;
+    const papel = session?.user?.papel;
 
     if (tipo === "ADMIN") {
       router.push("/admin/usuarios");
+    } else if (tipo === "GESTOR" && papel === "GESTOR_PF") {
+      router.push("/gestor-pf/dashboard");
     } else if (tipo === "GESTOR") {
       router.push("/gestor/dashboard");
     } else if (tipo === "GESTOR_PF") {
@@ -132,6 +138,25 @@ export default function LoginPage() {
       return `${v.slice(0, 3)}.${v.slice(3)}`;
     }
     return v;
+  }
+
+  async function validateIndicadoCpfRealTime(cpf: string) {
+    if (cpf.length < 11) {
+      setIndicadoCpfValidation("");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/v1/public/validar-cpf?cpf=${encodeURIComponent(cpf)}`,
+      );
+      const data = await res.json();
+      setIndicadoCpfValidation(data.valid ? "valid" : "invalid");
+      if (!data.valid) {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      setIndicadoCpfValidation("invalid");
+    }
   }
 
   return (
@@ -353,15 +378,40 @@ export default function LoginPage() {
                   required
                   maxLength={14}
                   value={indicarForm.cpfIndicado}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const formatted = formatCpf(e.target.value);
                     setIndicarForm({
                       ...indicarForm,
-                      cpfIndicado: formatCpf(e.target.value),
-                    })
-                  }
+                      cpfIndicado: formatted,
+                    });
+
+                    // Validate CPF in real-time
+                    if (formatted.replace(/\D/g, "").length === 11) {
+                      clearTimeout((window as any).cpfTimeout);
+                      (window as any).cpfTimeout = setTimeout(() => {
+                        validateIndicadoCpfRealTime(formatted);
+                      }, 500);
+                    } else {
+                      setIndicadoCpfValidation("");
+                    }
+                  }}
                   placeholder="000.000.000-00"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus-ring ${
+                    indicadoCpfValidation === "invalid"
+                      ? "border-red-500"
+                      : indicadoCpfValidation === "valid"
+                        ? "border-green-500"
+                        : ""
+                  }`}
                 />
+                {indicadoCpfValidation === "invalid" && (
+                  <p className="text-xs text-red-600 mt-1">CPF indisponível</p>
+                )}
+                {indicadoCpfValidation === "valid" && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ CPF disponível
+                  </p>
+                )}
               </div>
 
               <div>
@@ -385,15 +435,23 @@ export default function LoginPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowIndicarModal(false)}
+                  onClick={() => {
+                    setShowIndicarModal(false);
+                    setIndicadoCpfValidation("");
+                  }}
                   className="flex-1 px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={indicarLoading}
-                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                  disabled={
+                    indicarLoading ||
+                    indicadoCpfValidation === "invalid" ||
+                    !indicarForm.cpfIndicado ||
+                    indicadoCpfValidation !== "valid"
+                  }
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {indicarLoading ? "Salvando..." : "Indicar Cliente"}
                 </button>

@@ -29,8 +29,7 @@ $envVars = @(
     # To configure: https://vercel.com/dashboard → Project Settings → Environment Variables
     @{ key = "NEXTAUTH_SECRET"; value = $NextAuthSecret },
     @{ key = "NEXTAUTH_URL"; value = "https://seu-dominio.vercel.app" },
-    @{ key = "AUTH_SECRET"; value = $NextAuthSecret },
-    @{ key = "ASAAS_SANDBOX"; value = "false" }
+    @{ key = "AUTH_SECRET"; value = $NextAuthSecret }
 )
 
 Write-Host "[SETUP] Configurando variaveis de ambiente no Vercel..."

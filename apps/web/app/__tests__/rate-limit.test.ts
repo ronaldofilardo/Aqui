@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
+function setNodeEnv(value: string) {
+  // Node 22+ marca process.env como readonly; usar string-index bypassa o check.
+  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+}
+
 describe("Rate Limiting (In-Memory)", () => {
   beforeEach(() => {
     // Reset in-memory store before each test
@@ -9,8 +14,7 @@ describe("Rate Limiting (In-Memory)", () => {
 
   describe("checkRateLimit - Token Bucket", () => {
     it("deve retornar true quando NODE_ENV !== 'production'", () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
 
       const result = checkRateLimit("test-key", {
         max: 5,
@@ -19,11 +23,11 @@ describe("Rate Limiting (In-Memory)", () => {
 
       expect(result).toBe(true);
 
-      process.env.NODE_ENV = originalEnv;
+      setNodeEnv("test");
     });
 
     it("deve permitir até max requisições dentro da janela", () => {
-      process.env.NODE_ENV = "production";
+      setNodeEnv("production");
 
       for (let i = 0; i < 5; i++) {
         const result = checkRateLimit("test-key-2", {
@@ -33,11 +37,11 @@ describe("Rate Limiting (In-Memory)", () => {
         expect(result).toBe(true);
       }
 
-      process.env.NODE_ENV = "development";
+      setNodeEnv("test");
     });
 
     it("deve bloquear requisição quando limite é atingido", () => {
-      process.env.NODE_ENV = "production";
+      setNodeEnv("production");
 
       for (let i = 0; i < 5; i++) {
         checkRateLimit("test-key-3", { max: 5, windowMs: 60_000 });
@@ -50,11 +54,11 @@ describe("Rate Limiting (In-Memory)", () => {
 
       expect(result).toBe(false);
 
-      process.env.NODE_ENV = "development";
+      setNodeEnv("test");
     });
 
     it("deve usar chaves diferentes para cada cliente", () => {
-      process.env.NODE_ENV = "production";
+      setNodeEnv("production");
 
       for (let i = 0; i < 5; i++) {
         checkRateLimit("client-a", { max: 5, windowMs: 60_000 });
@@ -68,7 +72,7 @@ describe("Rate Limiting (In-Memory)", () => {
 
       expect(result).toBe(true);
 
-      process.env.NODE_ENV = "development";
+      setNodeEnv("test");
     });
   });
 

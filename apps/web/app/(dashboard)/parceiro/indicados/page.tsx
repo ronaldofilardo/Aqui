@@ -26,6 +26,9 @@ export default function ParceiroIndicados() {
     telefone: "",
   });
   const [saving, setSaving] = useState(false);
+  const [cpfValidation, setCpfValidation] = useState<"valid" | "invalid" | "">(
+    "",
+  );
 
   useEffect(() => {
     fetchIndicados();
@@ -48,7 +51,27 @@ export default function ParceiroIndicados() {
 
   function openCreate() {
     setForm({ nome: "", cpf: "", telefone: "" });
+    setCpfValidation("");
     setShowModal(true);
+  }
+
+  async function validateCpfRealTime(cpf: string) {
+    if (cpf.length < 11) {
+      setCpfValidation("");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/v1/parceiro/indicados/check-cpf?cpf=${encodeURIComponent(cpf)}`,
+      );
+      const data = await res.json();
+      setCpfValidation(data.valid ? "valid" : "invalid");
+      if (!data.valid) {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      setCpfValidation("invalid");
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -120,9 +143,7 @@ export default function ParceiroIndicados() {
       ) : indicados.length === 0 ? (
         <div className="card text-center py-12">
           <div className="text-gray-300 text-5xl mb-4">👥</div>
-          <p className="text-gray-500 mb-4">
-            Nenhum cliente cadastrado ainda
-          </p>
+          <p className="text-gray-500 mb-4">Nenhum cliente cadastrado ainda</p>
           <button
             onClick={openCreate}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium"
@@ -137,9 +158,7 @@ export default function ParceiroIndicados() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="font-semibold text-gray-900">{i.nome}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatCpf(i.cpf)}
-                  </p>
+                  <p className="text-xs text-gray-500">{formatCpf(i.cpf)}</p>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -152,9 +171,7 @@ export default function ParceiroIndicados() {
                 </span>
               </div>
               {i.telefone && (
-                <p className="text-xs text-gray-500 mb-2">
-                  📞 {i.telefone}
-                </p>
+                <p className="text-xs text-gray-500 mb-2">📞 {i.telefone}</p>
               )}
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-xs text-gray-500">
@@ -184,9 +201,7 @@ export default function ParceiroIndicados() {
                   type="text"
                   required
                   value={form.nome}
-                  onChange={(e) =>
-                    setForm({ ...form, nome: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
                   placeholder="Nome do cliente"
                 />
@@ -211,10 +226,36 @@ export default function ParceiroIndicados() {
                             ? `${v.slice(0, 3)}.${v.slice(3)}`
                             : v;
                     setForm({ ...form, cpf: masked });
+
+                    // Validate CPF in real-time
+                    if (v.length === 11) {
+                      clearTimeout((window as any).cpfTimeout);
+                      (window as any).cpfTimeout = setTimeout(() => {
+                        validateCpfRealTime(masked);
+                      }, 500);
+                    } else {
+                      setCpfValidation("");
+                    }
                   }}
                   placeholder="000.000.000-00"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus-ring ${
+                    cpfValidation === "invalid"
+                      ? "border-red-500"
+                      : cpfValidation === "valid"
+                        ? "border-green-500"
+                        : ""
+                  }`}
                 />
+                {cpfValidation === "invalid" && (
+                  <p className="text-xs text-red-600 mt-1">
+                    CPF inválido ou não disponível
+                  </p>
+                )}
+                {cpfValidation === "valid" && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ CPF disponível
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -240,8 +281,13 @@ export default function ParceiroIndicados() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+                  disabled={
+                    saving ||
+                    cpfValidation === "invalid" ||
+                    !form.cpf ||
+                    cpfValidation !== "valid"
+                  }
+                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? "Salvando..." : "Cadastrar"}
                 </button>

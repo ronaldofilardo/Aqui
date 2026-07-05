@@ -4,24 +4,15 @@ import { prisma } from "@asa/database";
 describe("GestorConsultor - Hierarchy & Authorization", () => {
   let gestorId: string;
   let consultorId: string;
-  let usuarioGestorId: string;
-  let usuarioConsultorId: string;
 
   beforeAll(async () => {
-    // Criar usuários de teste
-    usuarioGestorId = "00000000-0000-0000-0000-000000000001";
-    usuarioConsultorId = "00000000-0000-0000-0000-000000000002";
+    await prisma.estabelecimento.deleteMany({}).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
+    await prisma.consultor.deleteMany({}).catch(() => {});
+    await prisma.usuario.deleteMany({}).catch(() => {});
 
-    // Limpar dados de teste anteriores (respeitar FK constraints)
-    await prisma.gestorConsultor.deleteMany({});
-    await prisma.estabelecimento.deleteMany({});
-    await prisma.consultor.deleteMany({});
-    await prisma.usuario.deleteMany({});
-
-    // Criar usuário gestor
     const gestor = await prisma.usuario.create({
       data: {
-        id: usuarioGestorId,
         nome: "Gestor Teste",
         email: `gestor-test-${Date.now()}@test.com`,
         senhaHash: "hash123",
@@ -30,10 +21,8 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
     });
     gestorId = gestor.id;
 
-    // Criar usuário consultor
     const usuario = await prisma.usuario.create({
       data: {
-        id: usuarioConsultorId,
         nome: "Consultor Teste",
         email: `consultor-test-${Date.now()}@test.com`,
         senhaHash: "hash123",
@@ -41,22 +30,20 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
       },
     });
 
-    // Criar consultor
     const consultor = await prisma.consultor.create({
       data: {
         usuarioId: usuario.id,
-        cpf: "12345678901",
+        cpf: `${Date.now()}00001`.slice(0, 11),
       },
     });
     consultorId = consultor.id;
   });
 
   afterAll(async () => {
-    // Limpar dados de teste (respeitar FK constraints)
-    await prisma.gestorConsultor.deleteMany({});
-    await prisma.estabelecimento.deleteMany({});
-    await prisma.consultor.deleteMany({});
-    await prisma.usuario.deleteMany({});
+    await prisma.estabelecimento.deleteMany({}).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
+    await prisma.consultor.deleteMany({}).catch(() => {});
+    await prisma.usuario.deleteMany({}).catch(() => {});
   });
 
   describe("Create GestorConsultor Relationship", () => {

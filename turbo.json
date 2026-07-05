@@ -5,8 +5,7 @@
     "DATABASE_URL",
     "NEXTAUTH_SECRET",
     "NEXTAUTH_URL",
-    "AUTH_SECRET",
-    "ASAAS_SANDBOX"
+    "AUTH_SECRET"
   ],
   "tasks": {
     "build": {

@@ -7,12 +7,606 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Usuario {
+  id                  String               @id @default(uuid()) @db.Uuid
+  nome                String               @db.VarChar(255)
+  email               String               @unique @db.VarChar(255)
+  senhaHash           String               @map("senha_hash") @db.VarChar(255)
+  tipo                TipoUsuario
+  telefone            String?              @db.VarChar(20)
+  status              StatusUsuario        @default(ATIVO)
+  criadoEm            DateTime             @default(now()) @map("criado_em")
+  atualizadoEm        DateTime             @default(now()) @updatedAt @map("atualizado_em")
+  senhaTemporaria     Boolean              @default(true) @map("senha_temporaria")
+  papel               PapelGestor?
+  auditLogs           AuditLog[]
+  comercial           Comercial?
+  consultor           Consultor?
+  cupomConfig         CupomConfig[]
+  gestoresConsultores GestorConsultor[]    @relation("gestor_atribuicoes")
+  gestorPf            GestorPF?
+  parceiro            Parceiro?
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("usuarios")
+}
+
+model Consultor {
+  id                  String            @id @default(uuid()) @db.Uuid
+  usuarioId           String            @unique @map("usuario_id") @db.Uuid
+  pixChave            String?           @map("pix_chave") @db.VarChar(100)
+  pixTipo             TipoPix?          @map("pix_tipo")
+  bancoNome           String?           @map("banco_nome") @db.VarChar(100)
+  agencia             String?           @db.VarChar(10)
+  conta               String?           @db.VarChar(20)
+  totalConsultas      Int               @default(0) @map("total_consultas")
+  criadoEm            DateTime          @default(now()) @map("criado_em")
+  cpf                 String?           @unique @db.VarChar(14)
+  usuario             Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  estabelecimentos    Estabelecimento[]
+  gestoresAtribuicoes GestorConsultor[] @relation("consultores_atribuidos")
+
+  @@map("consultores")
+}
+
+model Estabelecimento {
+  id              String                   @id @default(uuid()) @db.Uuid
+  consultorId     String                   @map("consultor_id") @db.Uuid
+  nomeFantasia    String                   @map("nome_fantasia") @db.VarChar(255)
+  razaoSocial     String?                  @map("razao_social") @db.VarChar(255)
+  cnpj            String?                  @db.VarChar(20)
+  endereco        String?
+  cidade          String?                  @db.VarChar(100)
+  estado          String?                  @db.VarChar(2)
+  telefone        String?                  @db.VarChar(20)
+  email           String?                  @db.VarChar(255)
+  responsavelNome String?                  @map("responsavel_nome") @db.VarChar(255)
+  responsavelCpf  String?                  @map("responsavel_cpf") @db.VarChar(14)
+  status          StatusUsuario            @default(ATIVO)
+  criadoEm        DateTime                 @default(now()) @map("criado_em")
+  pixChave        String?                  @map("pix_chave") @db.VarChar(100)
+  bancoNome       String?                  @map("banco_nome") @db.VarChar(100)
+  agencia         String?                  @db.VarChar(10)
+  conta           String?                  @db.VarChar(20)
+  pixTipo         TipoPix?                 @map("pix_tipo")
+  cupomConfig     CupomConfig?
+  documentos      Documento[]
+  consultor       Consultor                @relation(fields: [consultorId], references: [id], onDelete: Cascade)
+  usuarios        UsuarioEstabelecimento[]
+
+  @@map("estabelecimentos")
+}
+
+model Documento {
+  id                String          @id @default(uuid()) @db.Uuid
+  estabelecimentoId String          @map("estabelecimento_id") @db.Uuid
+  tipo              TipoDocumento
+  urlArquivo        String          @map("url_arquivo")
+  nomeOriginal      String?         @map("nome_original") @db.VarChar(255)
+  tamanhoBytes      Int?            @map("tamanho_bytes")
+  mimetype          String?         @db.VarChar(100)
+  criadoEm          DateTime        @default(now()) @map("criado_em")
+  estabelecimento   Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  @@map("documentos")
+}
+
+model CupomConfig {
+  id                String           @id @default(uuid()) @db.Uuid
+  estabelecimentoId String           @unique @map("estabelecimento_id") @db.Uuid
+  codigoCupom       String           @unique @map("codigo_cupom") @db.VarChar(50)
+  descricao         String?          @db.VarChar(255)
+  status            StatusCupom      @default(ATIVO)
+  criadoEm          DateTime         @default(now()) @map("criado_em")
+  criadoPor         String           @map("criado_por") @db.Uuid
+  criadoPorUsuario  Usuario          @relation(fields: [criadoPor], references: [id])
+  estabelecimento   Estabelecimento  @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+  cuponsImportados  CupomImportado[]
+
+  @@map("cupons_config")
+}
+
+model CupomImportado {
+  id                 String               @id @default(uuid()) @db.Uuid
+  cupomConfigId      String               @map("cupom_config_id") @db.Uuid
+  pacienteNome       String               @map("paciente_nome") @db.VarChar(255)
+  pacienteCpf        String?              @map("paciente_cpf") @db.VarChar(14)
+  campanha           String               @default("Acesso Saude Aqui") @db.VarChar(100)
+  servico            String               @default("Cupom") @db.VarChar(50)
+  precoOriginal      Decimal              @map("preco_original") @db.Decimal(10, 2)
+  descontoPercentual Decimal              @default(10.00) @map("desconto_percentual") @db.Decimal(5, 2)
+  precoFinal         Decimal              @map("preco_final") @db.Decimal(10, 2)
+  status             StatusCupomImportado @default(DISPONIVEL)
+  consultaId         String?              @map("consulta_id") @db.Uuid
+  usadoEm            DateTime?            @map("usado_em")
+  mesReferencia      Int                  @map("mes_referencia")
+  anoReferencia      Int                  @map("ano_referencia")
+  criadoEm           DateTime             @default(now()) @map("criado_em")
+  consulta           Consulta?
+  cupomConfig        CupomConfig          @relation(fields: [cupomConfigId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("cupons_importados")
+}
+
+model Consulta {
+  id               String         @id @default(uuid()) @db.Uuid
+  cupomImportadoId String         @unique @map("cupom_importado_id") @db.Uuid
+  dataAgendamento  DateTime?      @map("data_agendamento")
+  dataRealizacao   DateTime?      @map("data_realizacao")
+  status           StatusConsulta
+  valorPago        Decimal?       @map("valor_pago") @db.Decimal(10, 2)
+  criadoEm         DateTime       @default(now()) @map("criado_em")
+  cupomImportado   CupomImportado @relation(fields: [cupomImportadoId], references: [id])
+
+  @@map("consultas")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  usuarioId  String?  @map("usuario_id") @db.Uuid
+  acao       String   @db.VarChar(100)
+  entidade   String   @db.VarChar(100)
+  entidadeId String?  @map("entidade_id") @db.Uuid
+  detalhes   Json?
+  criadoEm   DateTime @default(now()) @map("criado_em")
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model UsuarioEstabelecimento {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  estabelecimentoId   String                    @map("estabelecimento_id") @db.Uuid
+  nome                String                    @db.VarChar(255)
+  email               String                    @unique @db.VarChar(255)
+  senhaHash           String                    @map("senha_hash") @db.VarChar(255)
+  tipo                TipoAcessoEstabelecimento @default(PROPRIETARIO)
+  ativo               Boolean                   @default(true)
+  criadoEm            DateTime                  @default(now()) @map("criado_em")
+  atualizadoEm        DateTime                  @default(now()) @updatedAt @map("atualizado_em")
+  senhaTemporaria     Boolean                   @default(true) @map("senha_temporaria")
+  passwordResetTokens PasswordResetToken[]
+  estabelecimento     Estabelecimento           @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
+
+  @@index([estabelecimentoId])
+  @@map("usuarios_estabelecimentos")
+}
+
+model GestorConsultor {
+  id          String    @id @default(uuid()) @db.Uuid
+  gestorId    String    @map("gestor_id") @db.Uuid
+  consultorId String    @map("consultor_id") @db.Uuid
+  atribuidoEm DateTime  @default(now()) @map("atribuido_em")
+  consultor   Consultor @relation("consultores_atribuidos", fields: [consultorId], references: [id], onDelete: Cascade)
+  gestor      Usuario   @relation("gestor_atribuicoes", fields: [gestorId], references: [id], onDelete: Cascade)
+
+  @@unique([gestorId, consultorId])
+  @@index([gestorId])
+  @@index([consultorId])
+  @@map("gestores_consultores")
+}
+
+model PasswordResetToken {
+  id                       String                  @id @default(uuid()) @db.Uuid
+  usuarioId                String?                 @map("usuario_id") @db.Uuid
+  usuarioEstabelecimentoId String?                 @map("usuario_estabelecimento_id") @db.Uuid
+  token                    String                  @unique @db.VarChar(255)
+  expiresAt                DateTime                @map("expires_at")
+  criadoEm                 DateTime                @default(now()) @map("criado_em")
+  usuarioEstabelecimento   UsuarioEstabelecimento? @relation(fields: [usuarioEstabelecimentoId], references: [id], onDelete: Cascade)
+  usuario                  Usuario?                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([usuarioEstabelecimentoId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model GestorPF {
+  id                        String               @id @default(uuid()) @db.Uuid
+  usuarioId                 String               @unique @map("usuario_id") @db.Uuid
+  nome                      String               @db.VarChar(255)
+  cpf                       String               @unique @db.VarChar(14)
+  percentualComissaoDefault Decimal              @default(5.00) @map("percentual_comissao_default") @db.Decimal(5, 2)
+  percentualComissaoMax     Decimal              @default(100.00) @map("percentual_comissao_max") @db.Decimal(5, 2)
+  createdAt                 DateTime             @default(now()) @map("created_at")
+  updatedAt                 DateTime             @updatedAt @map("updated_at")
+  ciclosPontos              CicloPontos[]
+  comerciais                Comercial[]
+  configuracoesPontos       ConfiguracaoPontos[]
+  usuario                   Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  parceiros                 Parceiro[]
+  premios                   Premio[]
+  regraComercial            RegraComercial?
+  regraGestor               RegraGestor?
+  uploads                   UploadPlanilhaPF[]
+
+  @@map("gestores_pf")
+}
+
+model Comercial {
+  id                 String              @id @default(uuid()) @db.Uuid
+  usuarioId          String              @unique @map("usuario_id") @db.Uuid
+  nome               String              @db.VarChar(255)
+  cpf                String              @unique @db.VarChar(14)
+  gestorPfId         String              @map("gestor_pf_id") @db.Uuid
+  percentualComissao Decimal             @default(0) @map("percentual_comissao") @db.Decimal(5, 2)
+  status             StatusUsuario       @default(ATIVO)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  funcao             FuncaoComercial?
+  gestorPf           GestorPF            @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  usuario            Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  comissoes          ComissaoComercial[]
+  metas              MetaComercial[]
+  procedimentos      ProcedimentoPF[]
+
+  @@index([gestorPfId])
+  @@map("comerciais")
+}
+
+model MetaComercial {
+  id            String    @id @default(uuid()) @db.Uuid
+  comercialId   String    @map("comercial_id") @db.Uuid
+  mesReferencia String    @map("mes_referencia")
+  valorMeta     Decimal   @default(0) @map("valor_meta") @db.Decimal(12, 2)
+  valorAtingido Decimal   @default(0) @map("valor_atingido") @db.Decimal(12, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  comercial     Comercial @relation(fields: [comercialId], references: [id], onDelete: Cascade)
+
+  @@unique([comercialId, mesReferencia])
+  @@index([comercialId])
+  @@map("metas_comerciais")
+}
+
+model ComissaoComercial {
+  id            String         @id @default(uuid()) @db.Uuid
+  comercialId   String         @map("comercial_id") @db.Uuid
+  mesReferencia String         @map("mes_referencia")
+  valorVendas   Decimal        @default(0) @map("valor_vendas") @db.Decimal(12, 2)
+  valorComissao Decimal        @default(0) @map("valor_comissao") @db.Decimal(12, 2)
+  status        StatusComissao @default(CALCULADA)
+  dataPagamento DateTime?      @map("data_pagamento")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  comercial     Comercial      @relation(fields: [comercialId], references: [id], onDelete: Cascade)
+
+  @@unique([comercialId, mesReferencia])
+  @@index([comercialId])
+  @@map("comissoes_comerciais")
+}
+
+model RegraComercial {
+  id                String   @id @default(uuid()) @db.Uuid
+  gestorPfId        String   @unique @map("gestor_pf_id") @db.Uuid
+  cartaoAcessoSaude Decimal  @default(0) @map("cartao_acesso_saude") @db.Decimal(5, 2)
+  cireAtivo         Decimal  @default(0) @map("cire_ativo") @db.Decimal(5, 2)
+  cireReceptivo     Decimal  @default(0) @map("cire_receptivo") @db.Decimal(5, 2)
+  franchisingAcesso Decimal  @default(0) @map("franchising_acesso") @db.Decimal(5, 2)
+  franchisingCartao Decimal  @default(0) @map("franchising_cartao") @db.Decimal(5, 2)
+  unidade           Decimal  @default(0) @map("unidade") @db.Decimal(5, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  gestorPf          GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  @@index([gestorPfId])
+  @@map("regras_comerciais")
+}
+
+model RegraGestor {
+  id                    String   @id @default(uuid()) @db.Uuid
+  gestorPfId            String   @unique @map("gestor_pf_id") @db.Uuid
+  gerenteCire           Decimal  @default(0) @map("gerente_cire") @db.Decimal(5, 2)
+  supervisorAtivo       Decimal  @default(0) @map("supervisor_ativo") @db.Decimal(5, 2)
+  supervisorReceptivo   Decimal  @default(0) @map("supervisor_receptivo") @db.Decimal(5, 2)
+  supervisorFranquia    Decimal  @default(0) @map("supervisor_franquia") @db.Decimal(5, 2)
+  supervisorAtendimento Decimal  @default(0) @map("supervisor_atendimento") @db.Decimal(5, 2)
+  gerenteAtendimento    Decimal  @default(0) @map("gerente_atendimento") @db.Decimal(5, 2)
+  supervisorComercial   Decimal  @default(0) @map("supervisor_comercial") @db.Decimal(5, 2)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  gestorPf              GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  @@index([gestorPfId])
+  @@map("regras_gestores")
+}
+
+model Parceiro {
+  id                          String               @id @default(uuid()) @db.Uuid
+  usuarioId                   String               @unique @map("usuario_id") @db.Uuid
+  nome                        String               @db.VarChar(255)
+  cpf                         String               @unique @db.VarChar(14)
+  pixChave                    String?              @map("pix_chave") @db.VarChar(100)
+  percentualComissao          Decimal?             @map("percentual_comissao") @db.Decimal(5, 2)
+  status                      StatusParceiro       @default(ATIVO)
+  gestorPfId                  String               @map("gestor_pf_id") @db.Uuid
+  desligadoEm                 DateTime?            @map("desligado_em")
+  createdAt                   DateTime             @default(now()) @map("created_at")
+  updatedAt                   DateTime             @updatedAt @map("updated_at")
+  periodicidadeCicloEscolhida PeriodicidadeCiclo?  @map("periodicidade_ciclo_escolhida")
+  comissoes                   ComissaoParceiro[]
+  indicacoes                  Indicado[]
+  movimentacoesPontos         MovimentacaoPontos[]
+  gestorPf                    GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  usuario                     Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  primeiraAcss                PrimeiraAcss[]
+  procedimentos               ProcedimentoPF[]
+  rankingPosicoes             RankingPosicao[]
+  solicitacoesResgate         SolicitacaoResgate[]
+
+  @@index([gestorPfId])
+  @@map("parceiros")
+}
+
+model Indicado {
+  id             String           @id @default(uuid()) @db.Uuid
+  nome           String           @db.VarChar(255)
+  cpf            String           @unique @db.VarChar(14)
+  telefone       String?          @db.VarChar(20)
+  status         StatusIndicado   @default(ATIVO)
+  parceiroId     String           @map("parceiro_id") @db.Uuid
+  desvinculadoEm DateTime?        @map("desvinculado_em")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  parceiro       Parceiro         @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+  procedimentos  ProcedimentoPF[]
+
+  @@index([cpf])
+  @@index([parceiroId])
+  @@map("indicados")
+}
+
+model UploadPlanilhaPF {
+  id            String           @id @default(uuid()) @db.Uuid
+  gestorPfId    String           @map("gestor_pf_id") @db.Uuid
+  nomeArquivo   String           @db.VarChar(255)
+  mesReferencia String           @map("mes_referencia")
+  status        StatusUpload     @default(PROCESSANDO)
+  totalRows     Int              @default(0) @map("total_rows")
+  processedRows Int              @default(0) @map("processed_rows")
+  rejectedRows  Int              @default(0) @map("rejected_rows")
+  orphanedRows  Int              @default(0) @map("orphaned_rows")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  procedimentos ProcedimentoPF[]
+  gestorPf      GestorPF         @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  @@index([gestorPfId])
+  @@index([mesReferencia])
+  @@map("uploads_planilha_pf")
+}
+
+model ProcedimentoPF {
+  id               String             @id @default(uuid()) @db.Uuid
+  dataReferencia   DateTime           @map("data_referencia")
+  dataPagamento    DateTime           @map("data_pagamento")
+  formaPagamento   String             @map("forma_pagamento") @db.VarChar(50)
+  totalPago        Decimal            @map("total_pago") @db.Decimal(10, 2)
+  paciente         String             @db.VarChar(255)
+  procedimento     String             @db.VarChar(255)
+  cpf              String             @db.VarChar(14)
+  tipoProcedimento String             @map("tipo_procedimento") @db.VarChar(50)
+  unidade          String             @db.VarChar(100)
+  indicadoId       String?            @map("indicado_id") @db.Uuid
+  parceiroId       String?            @map("parceiro_id") @db.Uuid
+  uploadId         String             @map("upload_id") @db.Uuid
+  valorComissao    Decimal            @default(0) @map("valor_comissao") @db.Decimal(10, 2)
+  statusComissao   StatusProcedimento @default(PENDENTE) @map("status_comissao")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  comercialId      String?            @map("comercial_id") @db.Uuid
+  comercial        Comercial?         @relation(fields: [comercialId], references: [id])
+  indicado         Indicado?          @relation(fields: [indicadoId], references: [id])
+  parceiro         Parceiro?          @relation(fields: [parceiroId], references: [id])
+  upload           UploadPlanilhaPF   @relation(fields: [uploadId], references: [id])
+
+  @@unique([dataReferencia, cpf, procedimento, unidade])
+  @@index([cpf])
+  @@index([indicadoId])
+  @@index([parceiroId])
+  @@index([comercialId])
+  @@index([uploadId])
+  @@map("procedimentos_pf")
+}
+
+model ComissaoParceiro {
+  id            String         @id @default(uuid()) @db.Uuid
+  parceiroId    String         @map("parceiro_id") @db.Uuid
+  mesReferencia String         @map("mes_referencia")
+  valorTotal    Decimal        @default(0) @map("valor_total") @db.Decimal(12, 2)
+  status        StatusComissao @default(PENDENTE)
+  dataPagamento DateTime?      @map("data_pagamento")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  parceiro      Parceiro       @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@unique([parceiroId, mesReferencia])
+  @@index([parceiroId])
+  @@map("comissoes_parceiros")
+}
+
+model PrimeiraAcss {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique
+  parceiroId String   @map("parceiro_id") @db.Uuid
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("primeira_acss")
+}
+
+model BaseClientesAcessoSaude {
+  cpf String @id @db.VarChar(11)
+
+  @@map("base_clientes_acesso_saude")
+}
+
+model ConfiguracaoPontos {
+  id                 String             @id @default(uuid()) @db.Uuid
+  gestorPfId         String             @map("gestor_pf_id") @db.Uuid
+  valorPorPonto      Decimal            @map("valor_por_ponto") @db.Decimal(10, 2)
+  tipoArredondamento TipoArredondamento @default(PADRAO) @map("tipo_arredondamento")
+  vigenteDesde       DateTime           @map("vigente_desde")
+  vigenteAte         DateTime?          @map("vigente_ate")
+  criadoPor          String?            @map("criado_por") @db.Uuid
+  criadoEm           DateTime           @default(now()) @map("criado_em")
+  atualizadoEm       DateTime           @updatedAt @map("atualizado_em")
+  gestorPf           GestorPF           @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+
+  @@index([gestorPfId])
+  @@index([vigenteDesde])
+  @@map("configuracoes_pontos")
+}
+
+model CicloPontos {
+  id                    String               @id @default(uuid()) @db.Uuid
+  gestorPfId            String               @map("gestor_pf_id") @db.Uuid
+  nome                  String               @db.VarChar(255)
+  inicioAcumuloEm       DateTime             @map("inicio_acumulo_em")
+  fimAcumuloEm          DateTime             @map("fim_acumulo_em")
+  fimResgateEm          DateTime             @map("fim_resgate_em")
+  status                StatusCicloPontos    @default(EM_ANDAMENTO)
+  processadoExpiracaoEm DateTime?            @map("processado_expiracao_em")
+  criadoEm              DateTime             @default(now()) @map("criado_em")
+  atualizadoEm          DateTime             @updatedAt @map("atualizado_em")
+  periodicidade         PeriodicidadeCiclo   @default(ANUAL) @map("periodicidade")
+  gestorPf              GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  movimentacoes         MovimentacaoPontos[]
+  rankingSnapshots      RankingSnapshot[]
+  solicitacoesResgate   SolicitacaoResgate[]
+
+  @@index([gestorPfId, status])
+  @@index([gestorPfId])
+  @@index([status])
+  @@map("ciclos_pontos")
+}
+
+model MovimentacaoPontos {
+  id                             String                   @id @default(uuid()) @db.Uuid
+  parceiroId                     String                   @map("parceiro_id") @db.Uuid
+  cicloPontosId                  String                   @map("ciclo_pontos_id") @db.Uuid
+  tipo                           TipoMovimentacaoPontos
+  origem                         OrigemMovimentacaoPontos
+  quantidade                     Int
+  referenciaProcedimentoId       String?                  @map("referencia_procedimento_id") @db.Uuid
+  referenciaSolicitacaoResgateId String?                  @map("referencia_solicitacao_resgate_id") @db.Uuid
+  configuracaoPontosId           String?                  @map("configuracao_pontos_id") @db.Uuid
+  observacao                     String?
+  criadoPor                      String?                  @map("criado_por") @db.Uuid
+  criadoEm                       DateTime                 @default(now()) @map("criado_em")
+  cicloPontos                    CicloPontos              @relation(fields: [cicloPontosId], references: [id], onDelete: Cascade)
+  parceiro                       Parceiro                 @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([parceiroId])
+  @@index([cicloPontosId])
+  @@index([origem])
+  @@index([referenciaProcedimentoId])
+  @@index([referenciaSolicitacaoResgateId])
+  @@map("movimentacoes_pontos")
+}
+
+model RankingSnapshot {
+  id            String           @id @default(uuid()) @db.Uuid
+  cicloPontosId String           @map("ciclo_pontos_id") @db.Uuid
+  referenciaMes String           @map("referencia_mes") @db.VarChar(7)
+  geradoEm      DateTime         @default(now()) @map("gerado_em")
+  posicoes      RankingPosicao[]
+  cicloPontos   CicloPontos      @relation(fields: [cicloPontosId], references: [id], onDelete: Cascade)
+
+  @@unique([cicloPontosId, referenciaMes])
+  @@index([cicloPontosId])
+  @@map("ranking_snapshots")
+}
+
+model RankingPosicao {
+  id                String          @id @default(uuid()) @db.Uuid
+  rankingSnapshotId String          @map("ranking_snapshot_id") @db.Uuid
+  parceiroId        String          @map("parceiro_id") @db.Uuid
+  posicao           Int
+  pontosAcumulados  Int             @map("pontos_acumulados")
+  parceiro          Parceiro        @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+  rankingSnapshot   RankingSnapshot @relation(fields: [rankingSnapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([rankingSnapshotId, parceiroId])
+  @@index([rankingSnapshotId])
+  @@index([parceiroId])
+  @@map("ranking_posicoes")
+}
+
+model Premio {
+  id           String               @id @default(uuid()) @db.Uuid
+  gestorPfId   String               @map("gestor_pf_id") @db.Uuid
+  nome         String               @db.VarChar(255)
+  descricao    String
+  custoPontos  Int                  @map("custo_pontos")
+  ativo        Boolean              @default(true)
+  imagemUrl    String?              @map("imagem_url")
+  criadoEm     DateTime             @default(now()) @map("criado_em")
+  atualizadoEm DateTime             @updatedAt @map("atualizado_em")
+  gestorPf     GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  solicitacoes SolicitacaoResgate[]
+
+  @@index([gestorPfId])
+  @@index([ativo])
+  @@map("premios")
+}
+
+model SolicitacaoResgate {
+  id              String                   @id @default(uuid()) @db.Uuid
+  parceiroId      String                   @map("parceiro_id") @db.Uuid
+  premioId        String                   @map("premio_id") @db.Uuid
+  cicloPontosId   String                   @map("ciclo_pontos_id") @db.Uuid
+  pontosDebitados Int                      @map("pontos_debitados")
+  status          StatusSolicitacaoResgate @default(SOLICITADO)
+  solicitadoEm    DateTime                 @default(now()) @map("solicitado_em")
+  processadoPor   String?                  @map("processado_por") @db.Uuid
+  processadoEm    DateTime?                @map("processado_em")
+  entregueEm      DateTime?                @map("entregue_em")
+  canceladoEm     DateTime?                @map("cancelado_em")
+  observacao      String?
+  cicloPontos     CicloPontos              @relation(fields: [cicloPontosId], references: [id])
+  parceiro        Parceiro                 @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+  premio          Premio                   @relation(fields: [premioId], references: [id])
+
+  @@index([parceiroId])
+  @@index([premioId])
+  @@index([cicloPontosId])
+  @@index([status])
+  @@map("solicitacoes_resgate")
+}
+
 enum TipoUsuario {
-  ADMIN
   GESTOR
   CONSULTOR
+  ADMIN
   GESTOR_PF
   PARCEIRO
+  COMERCIAL
+}
+
+enum PeriodicidadeCiclo {
+  SEMESTRAL
+  ANUAL
+}
+
+enum FuncaoComercial {
+  GERENTE_CIRE
+  SUPERVISOR_ATIVO
+  SUPERVISOR_RECEPTIVO
+  SUPERVISOR_FRANQUIA
+  SUPERVISOR_ATENDIMENTO
+  GERENTE_ATENDIMENTO
+  SUPERVISOR_COMERCIAL
+}
+
+enum PapelGestor {
+  GESTOR_PF
+  GESTOR_PJ
 }
 
 enum TipoAcessoEstabelecimento {
@@ -56,211 +650,6 @@ enum StatusConsulta {
   NAO_COMPARECEU
 }
 
-model Usuario {
-  id           String        @id @default(uuid()) @db.Uuid
-  nome         String        @db.VarChar(255)
-  email        String        @unique @db.VarChar(255)
-  senhaHash    String        @map("senha_hash") @db.VarChar(255)
-  tipo         TipoUsuario
-  telefone     String?       @db.VarChar(20)
-  status       StatusUsuario @default(ATIVO)
-  senhaTemporaria Boolean    @default(true) @map("senha_temporaria")
-  criadoEm     DateTime      @default(now()) @map("criado_em")
-  atualizadoEm DateTime      @default(now()) @updatedAt @map("atualizado_em")
-
-  consultor              Consultor?
-  cupomConfig            CupomConfig[]
-  auditLogs              AuditLog[]
-  gestoresConsultores    GestorConsultor[] @relation("gestor_atribuicoes")
-  passwordResetTokens    PasswordResetToken[]
-  gestorPf               GestorPF?
-  parceiro               Parceiro?
-
-  @@map("usuarios")
-}
-
-model Consultor {
-  id             String   @id @default(uuid()) @db.Uuid
-  usuarioId      String   @unique @map("usuario_id") @db.Uuid
-  cpf            String?  @unique @db.VarChar(14)
-  pixChave       String?  @map("pix_chave") @db.VarChar(100)
-  pixTipo        TipoPix? @map("pix_tipo")
-  bancoNome      String?  @map("banco_nome") @db.VarChar(100)
-  agencia        String?  @db.VarChar(10)
-  conta          String?  @db.VarChar(20)
-  totalConsultas Int      @default(0) @map("total_consultas")
-  criadoEm       DateTime @default(now()) @map("criado_em")
-
-  usuario                Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  estabelecimentos       Estabelecimento[]
-  gestoresAtribuicoes    GestorConsultor[] @relation("consultores_atribuidos")
-
-  @@map("consultores")
-}
-
-model Estabelecimento {
-  id              String        @id @default(uuid()) @db.Uuid
-  consultorId     String        @map("consultor_id") @db.Uuid
-  nomeFantasia    String        @map("nome_fantasia") @db.VarChar(255)
-  razaoSocial     String?       @map("razao_social") @db.VarChar(255)
-  cnpj            String?       @db.VarChar(20)
-  endereco        String?       @db.Text
-  cidade          String?       @db.VarChar(100)
-  estado          String?       @db.VarChar(2)
-  telefone        String?       @db.VarChar(20)
-  email           String?       @db.VarChar(255)
-  responsavelNome String?       @map("responsavel_nome") @db.VarChar(255)
-  responsavelCpf  String?       @map("responsavel_cpf") @db.VarChar(14)
-  pixChave        String?       @map("pix_chave") @db.VarChar(100)
-  pixTipo         TipoPix?      @map("pix_tipo")
-  bancoNome       String?       @map("banco_nome") @db.VarChar(100)
-  agencia         String?       @db.VarChar(10)
-  conta           String?       @db.VarChar(20)
-  status          StatusUsuario @default(ATIVO)
-  criadoEm        DateTime      @default(now()) @map("criado_em")
-
-  consultor   Consultor    @relation(fields: [consultorId], references: [id], onDelete: Cascade)
-  documentos  Documento[]
-  cupomConfig CupomConfig?
-  usuarios    UsuarioEstabelecimento[]
-
-  @@map("estabelecimentos")
-}
-
-model Documento {
-  id                String        @id @default(uuid()) @db.Uuid
-  estabelecimentoId String        @map("estabelecimento_id") @db.Uuid
-  tipo              TipoDocumento
-  urlArquivo        String        @map("url_arquivo") @db.Text
-  nomeOriginal      String?       @map("nome_original") @db.VarChar(255)
-  tamanhoBytes      Int?          @map("tamanho_bytes")
-  mimetype          String?       @db.VarChar(100)
-  criadoEm          DateTime      @default(now()) @map("criado_em")
-
-  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
-
-  @@map("documentos")
-}
-
-model CupomConfig {
-  id                String      @id @default(uuid()) @db.Uuid
-  estabelecimentoId String      @unique @map("estabelecimento_id") @db.Uuid
-  codigoCupom       String      @unique @map("codigo_cupom") @db.VarChar(50)
-  descricao         String?     @db.VarChar(255)
-  status            StatusCupom @default(ATIVO)
-  criadoEm          DateTime    @default(now()) @map("criado_em")
-  criadoPor         String      @map("criado_por") @db.Uuid
-
-  estabelecimento  Estabelecimento  @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
-  criadoPorUsuario Usuario          @relation(fields: [criadoPor], references: [id])
-  cuponsImportados CupomImportado[]
-
-  @@map("cupons_config")
-}
-
-model CupomImportado {
-  id                 String               @id @default(uuid()) @db.Uuid
-  cupomConfigId      String               @map("cupom_config_id") @db.Uuid
-  pacienteNome       String               @map("paciente_nome") @db.VarChar(255)
-  pacienteCpf        String?              @map("paciente_cpf") @db.VarChar(14)
-  campanha           String               @default("Acesso Saude Aqui") @db.VarChar(100)
-  servico            String               @default("Cupom") @db.VarChar(50)
-  precoOriginal      Decimal              @map("preco_original") @db.Decimal(10, 2)
-  descontoPercentual Decimal              @default(10.00) @map("desconto_percentual") @db.Decimal(5, 2)
-  precoFinal         Decimal              @map("preco_final") @db.Decimal(10, 2)
-  status             StatusCupomImportado @default(DISPONIVEL)
-  consultaId         String?              @map("consulta_id") @db.Uuid
-  usadoEm            DateTime?            @map("usado_em")
-  mesReferencia      Int                  @map("mes_referencia")
-  anoReferencia      Int                  @map("ano_referencia")
-  criadoEm           DateTime             @default(now()) @map("criado_em")
-
-  cupomConfig CupomConfig @relation(fields: [cupomConfigId], references: [id], onDelete: Cascade)
-  consulta    Consulta?
-
-  @@index([status])
-  @@map("cupons_importados")
-}
-
-model Consulta {
-  id               String         @id @default(uuid()) @db.Uuid
-  cupomImportadoId String         @unique @map("cupom_importado_id") @db.Uuid
-  dataAgendamento  DateTime?      @map("data_agendamento")
-  dataRealizacao   DateTime?      @map("data_realizacao")
-  status           StatusConsulta
-  valorPago        Decimal?       @map("valor_pago") @db.Decimal(10, 2)
-  criadoEm         DateTime       @default(now()) @map("criado_em")
-
-  cupomImportado CupomImportado @relation(fields: [cupomImportadoId], references: [id])
-
-  @@map("consultas")
-}
-
-model AuditLog {
-  id         String   @id @default(uuid()) @db.Uuid
-  usuarioId  String?  @map("usuario_id") @db.Uuid
-  acao       String   @db.VarChar(100)
-  entidade   String   @db.VarChar(100)
-  entidadeId String?  @map("entidade_id") @db.Uuid
-  detalhes   Json?
-  criadoEm   DateTime @default(now()) @map("criado_em")
-
-  usuario Usuario? @relation(fields: [usuarioId], references: [id])
-
-  @@map("audit_logs")
-}
-
-model UsuarioEstabelecimento {
-  id                String                      @id @default(uuid()) @db.Uuid
-  estabelecimentoId String                      @map("estabelecimento_id") @db.Uuid
-  nome              String                      @db.VarChar(255)
-  email             String                      @unique @db.VarChar(255)
-  senhaHash         String                      @map("senha_hash") @db.VarChar(255)
-  tipo              TipoAcessoEstabelecimento   @default(PROPRIETARIO)
-  ativo             Boolean                     @default(true)
-  senhaTemporaria   Boolean                     @default(true) @map("senha_temporaria")
-  criadoEm          DateTime                    @default(now()) @map("criado_em")
-  atualizadoEm      DateTime                    @default(now()) @updatedAt @map("atualizado_em")
-
-  estabelecimento   Estabelecimento             @relation(fields: [estabelecimentoId], references: [id], onDelete: Cascade)
-  passwordResetTokens PasswordResetToken[]
-
-  @@index([estabelecimentoId])
-  @@map("usuarios_estabelecimentos")
-}
-
-model GestorConsultor {
-  id           String   @id @default(uuid()) @db.Uuid
-  gestorId     String   @map("gestor_id") @db.Uuid
-  consultorId  String   @map("consultor_id") @db.Uuid
-  atribuidoEm  DateTime @default(now()) @map("atribuido_em")
-
-  gestor       Usuario   @relation("gestor_atribuicoes", fields: [gestorId], references: [id], onDelete: Cascade)
-  consultor    Consultor @relation("consultores_atribuidos", fields: [consultorId], references: [id], onDelete: Cascade)
-
-  @@unique([gestorId, consultorId])
-  @@index([gestorId])
-  @@index([consultorId])
-  @@map("gestores_consultores")
-}
-
-model PasswordResetToken {
-  id                        String   @id @default(uuid()) @db.Uuid
-  usuarioId                 String?  @map("usuario_id") @db.Uuid
-  usuarioEstabelecimentoId  String?  @map("usuario_estabelecimento_id") @db.Uuid
-  token                     String   @unique @db.VarChar(255)
-  expiresAt                 DateTime @map("expires_at")
-  criadoEm                  DateTime @default(now()) @map("criado_em")
-
-  usuario                   Usuario?                  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  usuarioEstabelecimento    UsuarioEstabelecimento?   @relation(fields: [usuarioEstabelecimentoId], references: [id], onDelete: Cascade)
-
-  @@index([usuarioId])
-  @@index([usuarioEstabelecimentoId])
-  @@index([expiresAt])
-  @@map("password_reset_tokens")
-}
-
 enum StatusParceiro {
   ATIVO
   DESLIGADO
@@ -289,170 +678,37 @@ enum StatusProcedimento {
   PAGA
 }
 
-model GestorPF {
-  id                          String   @id @default(uuid()) @db.Uuid
-  usuarioId                   String   @unique @map("usuario_id") @db.Uuid
-  usuario                     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  nome                        String   @db.VarChar(255)
-  cpf                         String   @unique @db.VarChar(14)
-
-  percentualComissaoDefault   Decimal  @default(5.00) @map("percentual_comissao_default") @db.Decimal(5, 2)
-  percentualComissaoMax        Decimal  @default(100.00) @map("percentual_comissao_max") @db.Decimal(5, 2)
-
-  parceiros                   Parceiro[]
-  uploads                     UploadPlanilhaPF[]
-
-  createdAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                   DateTime @updatedAt @map("updated_at")
-
-  @@map("gestores_pf")
+enum TipoMovimentacaoPontos {
+  CREDITO
+  DEBITO
+  ESTORNO
 }
 
-model Parceiro {
-  id                  String   @id @default(uuid()) @db.Uuid
-  usuarioId           String   @unique @map("usuario_id") @db.Uuid
-  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
-  nome                String   @db.VarChar(255)
-  cpf                 String   @unique @db.VarChar(14)
-  pixChave            String?  @map("pix_chave") @db.VarChar(100)
-
-  percentualComissao Decimal  @map("percentual_comissao") @db.Decimal(5, 2)
-
-  status              StatusParceiro @default(ATIVO)
-
-  gestorPfId          String   @map("gestor_pf_id") @db.Uuid
-  gestorPf            GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
-
-  indicacoes          Indicado[]
-  procedimentos      ProcedimentoPF[]
-  comissoes           ComissaoParceiro[]
-  primeiraAcss        PrimeiraAcss[]
-
-  desligadoEm         DateTime? @map("desligado_em")
-
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  @@index([gestorPfId])
-  @@map("parceiros")
+enum OrigemMovimentacaoPontos {
+  PRODUCAO_IMPORTADA
+  RESGATE
+  ESTORNO_RESGATE
+  EXPIRACAO
+  AJUSTE_MANUAL
 }
 
-model Indicado {
-  id             String   @id @default(uuid()) @db.Uuid
-  nome           String   @db.VarChar(255)
-  cpf            String   @db.VarChar(14)
-  telefone       String?  @db.VarChar(20)
-
-  status         StatusIndicado @default(ATIVO)
-
-  parceiroId     String   @map("parceiro_id") @db.Uuid
-  parceiro       Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-
-  procedimentos  ProcedimentoPF[]
-
-  desvinculadoEm DateTime? @map("desvinculado_em")
-
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@unique([cpf])
-  @@index([cpf])
-  @@index([parceiroId])
-  @@map("indicados")
+enum StatusCicloPontos {
+  EM_ANDAMENTO
+  RESGATE_ABERTO
+  ENCERRADO
 }
 
-model UploadPlanilhaPF {
-  id            String   @id @default(uuid()) @db.Uuid
-  gestorPfId    String   @map("gestor_pf_id") @db.Uuid
-  gestorPf      GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
-
-  nomeArquivo   String   @db.VarChar(255)
-  mesReferencia String   @map("mes_referencia")
-
-  status        StatusUpload @default(PROCESSANDO)
-
-  totalRows     Int      @default(0) @map("total_rows")
-  processedRows Int      @default(0) @map("processed_rows")
-  rejectedRows  Int      @default(0) @map("rejected_rows")
-  orphanedRows  Int      @default(0) @map("orphaned_rows")
-
-  procedimentos ProcedimentoPF[]
-
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([gestorPfId])
-  @@index([mesReferencia])
-  @@map("uploads_planilha_pf")
+enum TipoArredondamento {
+  PISO
+  TETO
+  PADRAO
 }
 
-model ProcedimentoPF {
-  id               String   @id @default(uuid()) @db.Uuid
-
-  dataReferencia   DateTime @map("data_referencia")
-  dataPagamento    DateTime @map("data_pagamento")
-  formaPagamento   String   @map("forma_pagamento") @db.VarChar(50)
-  totalPago        Decimal  @map("total_pago") @db.Decimal(10, 2)
-  paciente         String   @db.VarChar(255)
-  procedimento     String   @db.VarChar(255)
-  cpf              String   @db.VarChar(14)
-  tipoProcedimento String   @map("tipo_procedimento") @db.VarChar(50)
-  unidade          String   @db.VarChar(100)
-
-  indicadoId       String?  @map("indicado_id") @db.Uuid
-  indicado         Indicado? @relation(fields: [indicadoId], references: [id])
-
-  parceiroId       String?  @map("parceiro_id") @db.Uuid
-  parceiro         Parceiro? @relation(fields: [parceiroId], references: [id])
-
-  uploadId         String   @map("upload_id") @db.Uuid
-  upload           UploadPlanilhaPF @relation(fields: [uploadId], references: [id])
-
-  valorComissao    Decimal  @map("valor_comissao") @db.Decimal(10, 2) @default(0)
-  statusComissao   StatusProcedimento @default(PENDENTE) @map("status_comissao")
-
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@unique([dataReferencia, cpf, procedimento, unidade])
-  @@index([cpf])
-  @@index([indicadoId])
-  @@index([parceiroId])
-  @@index([uploadId])
-  @@map("procedimentos_pf")
-}
-
-model ComissaoParceiro {
-  id             String   @id @default(uuid()) @db.Uuid
-  parceiroId     String   @map("parceiro_id") @db.Uuid
-  parceiro       Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-
-  mesReferencia  String   @map("mes_referencia")
-  valorTotal     Decimal  @map("valor_total") @db.Decimal(12, 2) @default(0)
-
-  status         StatusComissao @default(PENDENTE)
-  dataPagamento  DateTime? @map("data_pagamento")
-
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@unique([parceiroId, mesReferencia])
-  @@index([parceiroId])
-  @@map("comissoes_parceiros")
-}
-
-model PrimeiraAcss {
-  id         String   @id @default(uuid()) @db.Uuid
-  token      String   @unique
-  parceiroId String   @map("parceiro_id") @db.Uuid
-  expiresAt  DateTime
-  revoked    Boolean  @default(false)
-
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@map("primeira_acss")
+enum StatusSolicitacaoResgate {
+  SOLICITADO
+  EM_ANALISE
+  APROVADO
+  REJEITADO
+  ENTREGUE
+  CANCELADO
 }

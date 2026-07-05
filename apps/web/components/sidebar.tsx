@@ -8,6 +8,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: string;
+  subItems?: { label: string; href: string }[];
 }
 
 const adminNav: NavItem[] = [
@@ -37,16 +38,30 @@ const consultorNav: NavItem[] = [
 const gestorpFNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor-pf/dashboard", icon: "📊" },
   { label: "Parceiros", href: "/gestor-pf/parceiros", icon: "👥" },
+  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
   { label: "Upload Planilha", href: "/gestor-pf/uploads", icon: "📥" },
-  { label: "Produção", href: "/gestor-pf/producao", icon: "📋" },
-  { label: "Comissões", href: "/gestor-pf/comissoes", icon: "💰" },
+  { 
+    label: "Produção", 
+    href: "/gestor-pf/producao", 
+    icon: "📋",
+    subItems: [
+      { label: "Procedimentos", href: "/gestor-pf/producao/procedimentos" },
+      { label: "Relatórios", href: "/gestor-pf/producao/relatorios" },
+      { label: "Pagamentos", href: "/gestor-pf/producao/pagamentos" },
+    ]
+  },
   { label: "Configurações", href: "/gestor-pf/configuracoes", icon: "⚙️" },
 ];
 
 const parceiroNav: NavItem[] = [
   { label: "Cadastrar Cliente", href: "/parceiro/indicados", icon: "👥" },
-  { label: "Minhas Comissões", href: "/parceiro/comissoes", icon: "💰" },
   { label: "Dados Pessoais", href: "/parceiro/dados-pessoais", icon: "👤" },
+];
+
+const comercialNav: NavItem[] = [
+  { label: "Minha Comissão", href: "/comercial/minha-comissao", icon: "💰" },
+  { label: "Minhas Metas", href: "/comercial/minhas-metas", icon: "🎯" },
+  { label: "Dados Pessoais", href: "/comercial/dados-pessoais", icon: "👤" },
 ];
 
 const estabelecimentoNav: NavItem[] = [
@@ -66,6 +81,7 @@ function getTipoLabel(tipo: string | undefined) {
   if (tipo === "PARCEIRO") return "Parceiro";
   if (tipo === "CONSULTOR") return "Consultor";
   if (tipo === "ESTABELECIMENTO") return "Estabelecimento";
+  if (tipo === "COMERCIAL") return "Comercial";
   return "";
 }
 
@@ -81,6 +97,7 @@ export function Sidebar() {
   else if (tipo === "GESTOR") navItems = gestorNav;
   else if (tipo === "GESTOR_PF") navItems = gestorpFNav;
   else if (tipo === "PARCEIRO") navItems = parceiroNav;
+  else if (tipo === "COMERCIAL") navItems = comercialNav;
   else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;
   else navItems = consultorNav;
 
@@ -115,19 +132,42 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname.startsWith(item.href);
+          const hasSubItems = item.subItems && item.subItems.length > 0;
+          
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-smooth focus-ring ${
-                active
-                  ? "bg-white text-primary-700 shadow-sm"
-                  : "text-white hover:bg-primary-500 hover:text-white hover:shadow-sm"
-              }`}
-            >
-              <span className="text-base leading-none">{item.icon}</span>
-              {item.label}
-            </Link>
+            <div key={item.href}>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-smooth focus-ring ${
+                  active && !hasSubItems
+                    ? "bg-white text-primary-700 shadow-sm"
+                    : "text-white hover:bg-primary-500 hover:text-white hover:shadow-sm"
+                }`}
+              >
+                <span className="text-base leading-none">{item.icon}</span>
+                {item.label}
+              </Link>
+              {hasSubItems && (
+                <div className="ml-8 mt-1 space-y-0.5">
+                  {item.subItems!.map((subItem) => {
+                    const subActive = pathname === subItem.href;
+                    return (
+                      <Link
+                        key={subItem.href}
+                        href={subItem.href}
+                        className={`block px-3 py-2 rounded-lg text-xs font-medium transition-smooth ${
+                          subActive
+                            ? "bg-white text-primary-700 shadow-sm"
+                            : "text-white hover:bg-primary-500 hover:text-white"
+                        }`}
+                      >
+                        {subItem.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

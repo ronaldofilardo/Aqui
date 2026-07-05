@@ -70,7 +70,10 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  return ok(result);
+  return ok({
+    dados: result,
+    aviso: "Dados legados - Comissões de parceiro congeladas. Para novas comissões, utilize o módulo de Comerciais.",
+  });
 }
 
 export async function PUT(req: NextRequest) {
@@ -81,7 +84,7 @@ export async function PUT(req: NextRequest) {
   const { parceiroId, mesReferencia, status } = body;
 
   if (!parceiroId || !mesReferencia) {
-    return badRequest("parceiroId e mesReferencia são obrigatórios");
+    return badRequest("parceiroId e mesReferencia s├úo obrigat├│rios");
   }
 
   const parceiro = await prisma.parceiro.findFirst({
@@ -89,7 +92,7 @@ export async function PUT(req: NextRequest) {
   });
 
   if (!parceiro) {
-    return notFound("Parceiro não encontrado");
+    return notFound("Parceiro n├úo encontrado");
   }
 
   if (status === "PAGA") {
@@ -144,7 +147,7 @@ export async function POST(req: NextRequest) {
   const { mesReferencia } = body;
 
   if (!mesReferencia || !/^\d{4}-\d{2}$/.test(mesReferencia)) {
-    return badRequest("mesReferencia é obrigatório (formato: YYYY-MM)");
+    return badRequest("mesReferencia ├® obrigat├│rio (formato: YYYY-MM)");
   }
 
   const [ano, mes] = mesReferencia.split("-").map(Number);
@@ -222,7 +225,7 @@ export async function POST(req: NextRequest) {
   });
 
   return ok({
-    message: `Comissões de ${mesReferencia} agregadas para ${results.length} parceiros`,
+    message: `Comiss├Áes de ${mesReferencia} agregadas para ${results.length} parceiros`,
     comissoes: results,
   });
 }

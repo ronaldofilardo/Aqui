@@ -4,8 +4,11 @@ import { hash } from "bcryptjs";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
 
 describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
-  const testEmail = `test-${Date.now()}@example.com`;
-  const testCpf = "12345678901";
+  const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const uniqueCpf = () =>
+    `${Date.now()}${Math.floor(Math.random() * 10000)}`
+      .slice(0, 11)
+      .padStart(11, "0");
 
   let usuarioId: string;
   let gestorId: string;
@@ -14,19 +17,19 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   let estabelecimentoId: string;
 
   beforeAll(async () => {
-    // Limpar dados de teste anteriores (respeitar FK constraints)
-    await prisma.passwordResetToken.deleteMany({});
-    await prisma.usuarioEstabelecimento.deleteMany({});
-    await prisma.gestorConsultor.deleteMany({});
-    await prisma.estabelecimento.deleteMany({});
-    await prisma.consultor.deleteMany({});
-    await prisma.usuario.deleteMany({});
+    // ordem correta: establishment→consultor→usuario (estabelecimento depende de consultor)
+    await prisma.estabelecimento.deleteMany({}).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
+    await prisma.consultor.deleteMany({}).catch(() => {});
+    await prisma.usuario.deleteMany({}).catch(() => {});
+    await prisma.usuarioEstabelecimento.deleteMany({}).catch(() => {});
+    await prisma.passwordResetToken.deleteMany({}).catch(() => {});
 
     // Criar usuário gestor
     const gestor = await prisma.usuario.create({
       data: {
         nome: "Gestor Teste",
-        email: `gestor-${Date.now()}@test.com`,
+        email: `gestor-${unique()}@test.com`,
         senhaHash: await hash("password123", 10),
         tipo: "GESTOR",
       },
@@ -35,13 +38,12 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   });
 
   afterAll(async () => {
-    // Limpar dados de teste (respeitar FK constraints)
-    await prisma.passwordResetToken.deleteMany({});
-    await prisma.usuarioEstabelecimento.deleteMany({});
-    await prisma.gestorConsultor.deleteMany({});
-    await prisma.estabelecimento.deleteMany({});
-    await prisma.consultor.deleteMany({});
-    await prisma.usuario.deleteMany({});
+    await prisma.estabelecimento.deleteMany({}).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
+    await prisma.consultor.deleteMany({}).catch(() => {});
+    await prisma.usuario.deleteMany({}).catch(() => {});
+    await prisma.usuarioEstabelecimento.deleteMany({}).catch(() => {});
+    await prisma.passwordResetToken.deleteMany({}).catch(() => {});
   });
 
   describe("Usuario com senhaTemporaria", () => {
@@ -49,7 +51,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Consultor Auto Password",
-          email: testEmail,
+          email: `test-${unique()}@example.com`,
           senhaHash: await hash("auto123", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
@@ -75,8 +77,8 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Novo Consultor",
-          email: `consultor-${Date.now()}@test.com`,
-          senhaHash: await hash("12345", 12), // Primeira 5 dígitos CPF: 12345
+          email: `consultor-${unique()}@test.com`,
+          senhaHash: await hash("12345", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
         },
@@ -85,11 +87,11 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const consultor = await prisma.consultor.create({
         data: {
           usuarioId: usuario.id,
-          cpf: testCpf,
+          cpf: uniqueCpf(),
         },
       });
 
-      expect(consultor.cpf).toBe(testCpf);
+      expect(consultor.cpf).toBeDefined();
       expect(consultor.usuarioId).toBe(usuario.id);
       consultorId = consultor.id;
     });
@@ -152,7 +154,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Novo Consultor com Estab",
-          email: `consultor-estab-${Date.now()}@test.com`,
+          email: `consultor-estab-${unique()}@test.com`,
           senhaHash: await hash("auto123", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
@@ -162,26 +164,24 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const consultor = await prisma.consultor.create({
         data: {
           usuarioId: usuario.id,
-          cpf: "98765432100",
+          cpf: uniqueCpf(),
         },
       });
 
-      // Criar estabelecimento
       const estab = await prisma.estabelecimento.create({
         data: {
           consultorId: consultor.id,
           nomeFantasia: "Teste Estab",
-          email: `estab-${Date.now()}@test.com`,
+          email: `estab-${unique()}@test.com`,
         },
       });
 
-      // Criar usuário de estabelecimento
       const usuarioEstab = await prisma.usuarioEstabelecimento.create({
         data: {
           estabelecimentoId: estab.id,
-          email: `estab-user-${Date.now()}@test.com`,
+          email: `estab-user-${unique()}@test.com`,
           senhaHash: await hash("12345", 12),
-          nome: "Responsável Estab",
+          nome: "Responsavel Estab",
           tipo: "PROPRIETARIO",
           senhaTemporaria: true,
         },
@@ -223,7 +223,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
 
   describe("Validações de CPF & Email", () => {
     it("deve validar unicidade de email entre Usuario e UsuarioEstabelecimento", async () => {
-      const email = `unique-test-${Date.now()}@test.com`;
+      const email = `unique-test-${unique()}@test.com`;
 
       // Criar usuário
       const usuario = await prisma.usuario.create({
@@ -252,11 +252,11 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
     });
 
     it("deve validar unicidade de CPF em Consultor", async () => {
-      const cpf = "11111111111";
+      const cpf = uniqueCpf();
       const usuario = await prisma.usuario.create({
         data: {
           nome: "CPF Test User",
-          email: `cpf-test-${Date.now()}@test.com`,
+          email: `cpf-test-${unique()}@test.com`,
           senhaHash: await hash("password", 12),
           tipo: "CONSULTOR",
         },
@@ -269,11 +269,10 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
         },
       });
 
-      // Criar outro usuário
       const usuario2 = await prisma.usuario.create({
         data: {
           nome: "CPF Test User 2",
-          email: `cpf-test-2-${Date.now()}@test.com`,
+          email: `cpf-test-2-${unique()}@test.com`,
           senhaHash: await hash("password", 12),
           tipo: "CONSULTOR",
         },

@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { badRequest, created, ok, notFound, requireParceiroWithScope } from "@/lib/api-helpers";
+import {
+  badRequest,
+  created,
+  ok,
+  notFound,
+  requireParceiroWithScope,
+} from "@/lib/api-helpers";
 import { cadastrarIndicadoSchema } from "@asa/shared";
 import { criarAuditLog } from "@/lib/audit";
 
@@ -44,9 +50,7 @@ export async function POST(req: NextRequest) {
   const parsed = cadastrarIndicadoSchema.safeParse(body);
 
   if (!parsed.success) {
-    return badRequest(
-      parsed.error.errors.map((e) => e.message).join(", ")
-    );
+    return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
   }
 
   const { nome, cpf, telefone } = parsed.data;
@@ -65,13 +69,24 @@ export async function POST(req: NextRequest) {
     return badRequest("Parceiro desligado não pode cadastrar novos indicados");
   }
 
+  // Validar se CPF não é um parceiro existente
+  const cpfEhParceiro = await prisma.parceiro.findUnique({
+    where: { cpf: cpfClean },
+  });
+
+  if (cpfEhParceiro) {
+    return badRequest(
+      "Este CPF já é um parceiro no sistema e não pode ser cadastrado como cliente.",
+    );
+  }
+
   const existente = await prisma.indicado.findUnique({
     where: { cpf: cpfClean },
   });
 
   if (existente) {
     return badRequest(
-      "Este CPF já está vinculado a um parceiro. Cada cliente pode ser indicado por apenas um parceiro."
+      "Este CPF já está vinculado a um parceiro. Cada cliente pode ser indicado por apenas um parceiro.",
     );
   }
 

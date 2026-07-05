@@ -77,7 +77,7 @@ export default function ComissoesPage() {
     );
   }
 
-  const filtered = data.data.filter((item) =>
+  const filtered = (data?.data ?? []).filter((item) =>
     statusFilter === "ALL" ? true : item.status === statusFilter
   );
 

@@ -10,7 +10,7 @@
     "prisma": "prisma"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0"
+    "@prisma/client": "^6.19.2"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

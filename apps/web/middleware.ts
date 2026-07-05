@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // ---------------------------------------------------------------------------
 // Security: Enforce HTTPS in production
@@ -42,9 +43,71 @@ function buildCorsHeaders(origin: string): Record<string, string> {
 }
 
 // ---------------------------------------------------------------------------
+// Route access control by papel (PF vs PJ)
+// ---------------------------------------------------------------------------
+type SessionUser = {
+  tipo?: string;
+  papel?: string | null;
+};
+
+const ROUTE_RULES: Array<{
+  prefix: string;
+  allowedTipos: string[];
+  allowedPapeis?: Array<string | null>;
+}> = [
+  { prefix: "/admin", allowedTipos: ["ADMIN"] },
+  { prefix: "/gestor-pf", allowedTipos: ["GESTOR"], allowedPapeis: ["GESTOR_PF"] },
+  { prefix: "/gestor", allowedTipos: ["GESTOR"], allowedPapeis: ["GESTOR_PJ"] },
+  { prefix: "/parceiro", allowedTipos: ["PARCEIRO"] },
+  { prefix: "/comercial", allowedTipos: ["COMERCIAL"] },
+  { prefix: "/consultor", allowedTipos: ["CONSULTOR"] },
+  {
+    prefix: "/estabelecimento",
+    allowedTipos: ["ESTABELECIMENTO"],
+  },
+];
+
+function dashboardForPapel(user: SessionUser): string {
+  if (user.tipo === "ADMIN") return "/admin/usuarios";
+  if (user.tipo === "GESTOR" && user.papel === "GESTOR_PF") {
+    return "/gestor-pf/dashboard";
+  }
+  if (user.tipo === "GESTOR") return "/gestor/dashboard";
+  if (user.tipo === "GESTOR_PF") return "/gestor-pf/dashboard";
+  if (user.tipo === "PARCEIRO") return "/parceiro/indicados";
+  if (user.tipo === "COMERCIAL") return "/comercial/minha-comissao";
+  if (user.tipo === "ESTABELECIMENTO") return "/estabelecimento/dashboard";
+  if (user.tipo === "CONSULTOR") return "/consultor/estabelecimentos";
+  return "/login";
+}
+
+function authorizeByPapel(
+  req: NextRequest,
+  user: SessionUser,
+): NextResponse | null {
+  const { pathname } = req.nextUrl;
+
+  const rule = ROUTE_RULES.find((r) => pathname.startsWith(r.prefix));
+  if (!rule) return null;
+
+  const isAuthorized =
+    !!user.tipo &&
+    rule.allowedTipos.includes(user.tipo) &&
+    (rule.allowedPapeis === undefined ||
+      rule.allowedPapeis.includes(user.papel ?? null));
+
+  if (isAuthorized) return null;
+
+  const url = req.nextUrl.clone();
+  url.pathname = dashboardForPapel(user);
+  url.searchParams.set("error", "permission_denied");
+  return NextResponse.redirect(url);
+}
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Enforce HTTPS in production
@@ -60,7 +123,6 @@ export function middleware(req: NextRequest) {
     const allowedOrigin = getAllowedOrigin();
     const requestOrigin = req.headers.get("origin") ?? "";
 
-    // Preflight
     if (req.method === "OPTIONS") {
       return new NextResponse(null, {
         status: 204,
@@ -68,8 +130,6 @@ export function middleware(req: NextRequest) {
       });
     }
 
-    // Block cross-origin requests from unknown origins (only when an origin
-    // header is present — same-origin server-to-server calls have no origin).
     if (
       requestOrigin &&
       allowedOrigin &&
@@ -81,6 +141,33 @@ export function middleware(req: NextRequest) {
         { status: 403 },
       );
     }
+  }
+
+  // ------ Role authorization -------------------------------------------------
+  const protectedPrefixes = ROUTE_RULES.map((r) => r.prefix);
+  if (
+    protectedPrefixes.some((p) => pathname.startsWith(p)) &&
+    !pathname.startsWith("/api/")
+  ) {
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    const user: SessionUser = {
+      tipo: token.tipo as string | undefined,
+      papel: (token as any).papel ?? null,
+    };
+
+    const deny = authorizeByPapel(req, user);
+    if (deny) return deny;
   }
 
   return NextResponse.next();

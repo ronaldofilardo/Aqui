@@ -135,7 +135,9 @@ export default function GestorPFConfiguracoes() {
                 className="w-full px-3 py-2 border rounded-lg text-sm focus-ring"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Este valor será usado automaticamente ao criar novos parceiros
+                Valor legado: usado como padrão se você ainda possui parceiros
+                antigos comissionados por percentual. Após a migração para
+                pontos, novos parceiros têm este campo vazio.
               </p>
             </div>
 
@@ -167,6 +169,23 @@ export default function GestorPFConfiguracoes() {
               {saving ? "Salvando..." : "Salvar Configurações"}
             </button>
           </form>
+        </div>
+
+        <div className="card lg:col-span-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            Equipe de Vendas / Comercial
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Cadastre e configure sua equipe Comercial (Cargo de gestão interna
+            do Gestor PF), defina o percentual individual de cada um e cadastre
+            metas mensais em R$.
+          </p>
+          <a
+            href="/gestor-pf/configuracoes/comissoes-gestao"
+            className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700"
+          >
+            💼 Abrir Comissões Gestão
+          </a>
         </div>
       </div>
     </div>

@@ -124,8 +124,8 @@ describe("Security Hardening Tests", () => {
 
   describe("CORS Security", () => {
     it("origin inválido deve ser bloqueado com 403", () => {
-      const allowedOrigin = "https://asaqui.vercel.app";
-      const requestOrigin = "https://malicious-site.com";
+      const allowedOrigin: string = "https://asaqui.vercel.app";
+      const requestOrigin: string = "https://malicious-site.com";
 
       const isAllowed = requestOrigin === allowedOrigin;
       expect(isAllowed).toBe(false);
