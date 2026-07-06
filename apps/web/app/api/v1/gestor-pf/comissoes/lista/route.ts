@@ -17,10 +17,21 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status") || "TODOS";
   const mes = searchParams.get("mes");
 
+  // Busca os IDs dos comerciais deste gestor para filtrar as comissões
+  const comerciaisDoGestor = await prisma.comercial.findMany({
+    where: { gestorPfId },
+    select: { id: true },
+  });
+  
+  const comercialIds = comerciaisDoGestor.map(c => c.id);
+
+  // Se não houver comerciais, retorna array vazio
+  if (comercialIds.length === 0) {
+    return ok([]);
+  }
+
   const where: any = {
-    comercial: {
-      gestorPfId,
-    },
+    comercialId: { in: comercialIds },
   };
 
   if (status !== "TODOS") {

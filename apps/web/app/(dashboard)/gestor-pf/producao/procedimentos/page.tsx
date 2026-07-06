@@ -24,6 +24,7 @@ interface Procedimento {
   statusComissao: string;
   parceiro: { id: string; nome: string; cpf: string } | null;
   indicado: { id: string; nome: string; cpf: string } | null;
+  comercial: { id: string; nome: string; funcao?: string } | null;
   upload: {
     id: string;
     nomeArquivo: string;
@@ -91,6 +92,15 @@ export default function GestorPFProducao() {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   }
 
+  function formatFuncao(funcao?: string) {
+    if (!funcao) return "";
+    return funcao
+      .replace(/_/g, " ")
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
   function formatStatus(status: string) {
     switch (status) {
       case "PAGA":
@@ -109,6 +119,16 @@ export default function GestorPFProducao() {
     const [ano, mesNum] = mes.split("-");
     const date = new Date(Number(ano), Number(mesNum) - 1);
     return date.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+  }
+
+  function getMesReferenciaData(dataReferencia: string) {
+    const d = new Date(dataReferencia);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function formatMesReferencia(dataReferencia: string) {
+    const mesRef = getMesReferenciaData(dataReferencia);
+    return formatMes(mesRef);
   }
 
   const filteredProcedimentos = (data?.procedimentos ?? []).filter((p) => {
@@ -237,6 +257,7 @@ export default function GestorPFProducao() {
                 <th className="text-left p-2 font-medium text-gray-600">Unidade</th>
                 <th className="text-left p-2 font-medium text-gray-600">Forma Pgto</th>
                 <th className="text-left p-2 font-medium text-gray-600">Parceiro</th>
+                <th className="text-left p-2 font-medium text-gray-600">Comercial</th>
                 <th className="text-left p-2 font-medium text-gray-600">Mês Ref.</th>
                 <th className="text-left p-2 font-medium text-gray-600">Status</th>
                 <th className="text-right p-2 font-medium text-gray-600">Total Pago</th>
@@ -260,8 +281,27 @@ export default function GestorPFProducao() {
                       <span className="text-orange-500 text-xs">Sem vínculo</span>
                     )}
                   </td>
+                  <td className="p-2">
+                    {p.comercial ? (
+                      <div>
+                        <p className="text-xs font-medium text-gray-900">{p.comercial.nome}</p>
+                        {p.comercial.funcao && (
+                          <p className="text-xs text-gray-500">
+                            {formatFuncao(p.comercial.funcao)}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </td>
                   <td className="p-2 text-gray-600">
-                    {p.upload?.mesReferencia ? formatMes(p.upload.mesReferencia) : "-"}
+                    {formatMesReferencia(p.dataReferencia)}
+                  </td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${formatStatus(p.statusComissao).class}`}>
+                      {formatStatus(p.statusComissao).label}
+                    </span>
                   </td>
                   <td className="p-2">
                     <span className={`text-xs px-2 py-0.5 rounded ${formatStatus(p.statusComissao).class}`}>

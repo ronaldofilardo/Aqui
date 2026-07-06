@@ -25,6 +25,13 @@ interface Resumo {
     totalComissao: number;
     quantidade: number;
   }>;
+  porFuncao: Array<{
+    funcao: string | null;
+    totalVendas: number;
+    totalComissao: number;
+    quantidade: number;
+    comerciaisCount: number;
+  }>;
   totalGeral: {
     totalVendas: number;
     totalComissao: number;
@@ -49,14 +56,45 @@ function formatMonth(mes: string) {
   return `${meses[parseInt(mesNum) - 1]}/${ano}`;
 }
 
+function formatarMes(mes: string) {
+  const [ano, mesNum] = mes.split("-");
+  const meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+  return `${meses[parseInt(mesNum) - 1]} de ${ano}`;
+}
+
+function formatFuncao(funcao?: string) {
+  if (!funcao) return "-";
+  // Converte "GERENTE_CIRE" para "Gerente Cire"
+  return funcao
+    .replace(/_/g, " ")
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default function RelatorioComissoesPage() {
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [resumo, setResumo] = useState<Resumo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [comercialId, setComercialId] = useState("");
-  const [comerciais, setComerciais] = useState<Array<{ id: string; nome: string }>>([]);
+  const [funcao, setFuncao] = useState("");
+  const [comerciais, setComerciais] = useState<Array<{ id: string; nome: string; funcao?: string }>>([]);
+  const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
+  const [reprocessando, setReprocessando] = useState(false);
+  const [procedimentosSemComercial, setProcedimentosSemComercial] = useState<{
+    count: number;
+    totalVendas: number;
+  } | null>(null);
+
+  // Extrair lista única de funções
+  const funcoesDisponiveis = Array.from(
+    new Set(comerciais.map(c => c.funcao).filter(Boolean))
+  ).sort();
 
   useEffect(() => {
     // Buscar comerciais para o filtro
@@ -64,7 +102,84 @@ export default function RelatorioComissoesPage() {
       .then((res) => res.json())
       .then((data) => setComerciais(data))
       .catch(() => {});
+    
+    // Buscar meses disponíveis da API de produção
+    fetch("/api/v1/gestor-pf/producao?limit=1")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.mesesDisponiveis) {
+          setMesesDisponiveis(data.mesesDisponiveis.sort());
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  async function verificarProcedimentosSemComercial() {
+    if (!inicio) {
+      toast.error("Selecione o mês de referência");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/v1/gestor-pf/reprocessar-comissoes?mes=${inicio}`);
+      const data = await res.json();
+      setProcedimentosSemComercial({
+        count: data.procedimentosSemComercial,
+        totalVendas: data.totalVendasSemComissional,
+      });
+      if (data.procedimentosSemComercial > 0) {
+        toast.info(
+          `${data.procedimentosSemComercial} procedimento(s) sem comercial (R$ ${data.totalVendasSemComissional.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})`
+        );
+      } else if (data.procedimentosSemComercial === 0) {
+        toast.success("Todos os procedimentos já possuem comercial vinculado!");
+      }
+    } catch (err) {
+      console.error("[verificarProcedimentosSemComercial] Erro:", err);
+      toast.error("Erro ao verificar procedimentos sem comercial");
+    }
+  }
+
+  async function handleReprocessarComissoes() {
+    if (!comercialId) {
+      toast.error("Selecione um comercial para vincular");
+      return;
+    }
+
+    if (!inicio) {
+      toast.error("Selecione o mês de referência");
+      return;
+    }
+
+    setReprocessando(true);
+    try {
+      const res = await fetch("/api/v1/gestor-pf/reprocessar-comissoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          comercialId,
+          mesReferencia: inicio,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Erro ao reprocessar comissões");
+        return;
+      }
+
+      const data = await res.json();
+      toast.success(
+        `✅ ${data.procedimentosVinculados} procedimentos vinculados - Comissão: ${formatBRL(data.valorComissao)}`
+      );
+      setProcedimentosSemComercial(null);
+      buscarRelatorio(); // Recarrega o relatório
+    } catch {
+      toast.error("Erro ao reprocessar comissões");
+    } finally {
+      setReprocessando(false);
+    }
+  }
 
   async function buscarRelatorio() {
     if (!inicio || !fim) {
@@ -78,18 +193,34 @@ export default function RelatorioComissoesPage() {
         inicio,
         fim,
         ...(comercialId && { comercialId }),
+        ...(funcao && { funcao }),
       });
       const res = await fetch(`/api/v1/gestor-pf/relatorio-comissoes?${params}`);
+      
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Erro ao buscar relatório");
         return;
       }
+      
       const data = await res.json();
-      setComissoes(data.comissoes);
+      
+      if (!data || !data.resumo) {
+        toast.error("Dados inválidos recebidos da API");
+        return;
+      }
+      
+      setComissoes(data.comissoes || []);
       setResumo(data.resumo);
-      toast.success("Relatório carregado com sucesso!");
-    } catch {
+      
+      const quantidadeComissoes = data.comissoes?.length || 0;
+      if (quantidadeComissoes > 0) {
+        toast.success(`Relatório carregado! ${quantidadeComissoes} comissões encontradas.`);
+      } else {
+        toast.info("Nenhuma comissão encontrada no período selecionado.");
+      }
+    } catch (err) {
+      console.error("[buscarRelatorio] Erro:", err);
       toast.error("Erro ao buscar relatório");
     } finally {
       setLoading(false);
@@ -131,24 +262,51 @@ export default function RelatorioComissoesPage() {
       {/* Filtros */}
       <div className="card mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Filtros</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Período Inicial</label>
-            <input
-              type="month"
+            <label className="block text-xs text-gray-600 mb-1">Mês Inicial</label>
+            <select
               value={inicio}
               onChange={(e) => setInicio(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
+            >
+              <option value="">Selecione...</option>
+              {mesesDisponiveis.map((mes) => (
+                <option key={mes} value={mes}>
+                  {formatarMes(mes)}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Período Final</label>
-            <input
-              type="month"
+            <label className="block text-xs text-gray-600 mb-1">Mês Final</label>
+            <select
               value={fim}
               onChange={(e) => setFim(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
+            >
+              <option value="">Selecione...</option>
+              {mesesDisponiveis.map((mes) => (
+                <option key={mes} value={mes}>
+                  {formatarMes(mes)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Função</label>
+            <select
+              value={funcao}
+              onChange={(e) => setFuncao(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            >
+              <option value="">Todas as Funções</option>
+              {funcoesDisponiveis.map((f) => (
+                <option key={f} value={f}>
+                  {formatFuncao(f)}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs text-gray-600 mb-1">Comercial (opcional)</label>
@@ -158,11 +316,13 @@ export default function RelatorioComissoesPage() {
               className="w-full px-3 py-2 border rounded-lg text-sm"
             >
               <option value="">Todos</option>
-              {comerciais.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
+              {comerciais
+                .filter(c => !funcao || c.funcao === funcao)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
             </select>
           </div>
           <div className="flex items-end gap-2">
@@ -183,31 +343,128 @@ export default function RelatorioComissoesPage() {
             )}
           </div>
         </div>
+
+        {/* Alerta de procedimentos sem comercial */}
+        {procedimentosSemComercial && procedimentosSemComercial.count > 0 && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-yellow-800">
+                  {procedimentosSemComercial.count} procedimento(s) sem comercial vinculado
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Total de vendas: {formatBRL(procedimentosSemComercial.totalVendas)}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <select
+                    value={comercialId}
+                    onChange={(e) => setComercialId(e.target.value)}
+                    className="text-sm border rounded px-3 py-1.5 bg-white"
+                  >
+                    <option value="">Selecione um comercial...</option>
+                    {comerciais.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleReprocessarComissoes}
+                    disabled={reprocessando || !comercialId}
+                    className="text-sm bg-yellow-600 text-white px-4 py-1.5 rounded hover:bg-yellow-700 disabled:opacity-50"
+                  >
+                    {reprocessando ? "⏳ Processando..." : "🔗 Vincular ao Comercial"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={verificarProcedimentosSemComercial}
+            disabled={!inicio}
+            className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          >
+            📋 Verificar procedimentos sem comercial
+          </button>
+        </div>
       </div>
 
       {/* Resumo */}
-      {resumo && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
-            <p className="text-sm text-blue-600 font-medium">Total Vendas</p>
-            <p className="text-2xl font-bold text-blue-800">{formatBRL(resumo.totalGeral.totalVendas)}</p>
-            <p className="text-xs text-blue-500 mt-1">{resumo.totalGeral.quantidade} registros</p>
+      {/* Resumo Geral */}
+      {resumo && resumo.totalGeral && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
+              <p className="text-sm text-blue-600 font-medium">Total Vendas</p>
+              <p className="text-2xl font-bold text-blue-800">{formatBRL(resumo.totalGeral.totalVendas || 0)}</p>
+              <p className="text-xs text-blue-500 mt-1">{resumo.totalGeral.quantidade || 0} registros</p>
+            </div>
+            <div className="card bg-gradient-to-br from-green-50 to-green-100">
+              <p className="text-sm text-green-600 font-medium">Total Comissões</p>
+              <p className="text-2xl font-bold text-green-800">{formatBRL(resumo.totalGeral.totalComissao || 0)}</p>
+              <p className="text-xs text-green-500 mt-1">
+                {resumo.totalGeral.totalVendas > 0 
+                  ? `${((resumo.totalGeral.totalComissao || 0) / resumo.totalGeral.totalVendas * 100).toFixed(2)}% do total`
+                  : '0%'
+                }
+              </p>
+            </div>
+            <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
+              <p className="text-sm text-purple-600 font-medium">Média Mensal</p>
+              <p className="text-2xl font-bold text-purple-800">
+                {formatBRL((resumo.totalGeral.totalComissao || 0) / Math.max(1, resumo.porMes?.length || 1))}
+              </p>
+              <p className="text-xs text-purple-500 mt-1">{resumo.porMes?.length || 0} meses</p>
+            </div>
           </div>
-          <div className="card bg-gradient-to-br from-green-50 to-green-100">
-            <p className="text-sm text-green-600 font-medium">Total Comissões</p>
-            <p className="text-2xl font-bold text-green-800">{formatBRL(resumo.totalGeral.totalComissao)}</p>
-            <p className="text-xs text-green-500 mt-1">
-              {(resumo.totalGeral.totalComissao / resumo.totalGeral.totalVendas * 100).toFixed(2)}% do total
-            </p>
-          </div>
-          <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
-            <p className="text-sm text-purple-600 font-medium">Média Mensal</p>
-            <p className="text-2xl font-bold text-purple-800">
-              {formatBRL(resumo.totalGeral.totalComissao / Math.max(1, resumo.porMes.length))}
-            </p>
-            <p className="text-xs text-purple-500 mt-1">{resumo.porMes.length} meses</p>
-          </div>
-        </div>
+
+          {/* Resumo por Função */}
+          {resumo.porFuncao && resumo.porFuncao.length > 0 && (
+            <div className="card mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo por Função</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {resumo.porFuncao.map((f, idx) => (
+                  <div 
+                    key={idx}
+                    className={`p-4 rounded-lg border-2 ${
+                      idx === 0 
+                        ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300' 
+                        : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '👤'}
+                      </span>
+                      <div>
+                        <p className={`text-sm font-semibold ${
+                          idx === 0 ? 'text-orange-800' : 'text-gray-700'
+                        }`}>
+                          {formatFuncao(f.funcao || undefined)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {f.comerciaisCount} {f.comerciaisCount === 1 ? 'comercial' : 'comerciais'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-lg font-bold text-gray-900">
+                        {formatBRL(f.totalComissao || 0)}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Vendas: {formatBRL(f.totalVendas || 0)} • {f.quantidade || 0} {f.quantidade === 1 ? 'lançamento' : 'lançamentos'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Tabela */}
@@ -247,8 +504,8 @@ export default function RelatorioComissoesPage() {
                     </td>
                     <td className="p-3">
                       {c.comercial.funcao ? (
-                        <span className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded">
-                          {c.comercial.funcao.replace(/_/g, " ").toLowerCase()}
+                        <span className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded font-medium">
+                          {formatFuncao(c.comercial.funcao)}
                         </span>
                       ) : (
                         <span className="text-xs text-gray-400">-</span>

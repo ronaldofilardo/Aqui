@@ -14,8 +14,16 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "50");
   const skip = (page - 1) * limit;
 
+  // Busca os IDs dos parceiros deste gestor para filtrar os procedimentos
+  const parceirosDoGestor = await prisma.parceiro.findMany({
+    where: { gestorPfId },
+    select: { id: true },
+  });
+  
+  const parceiroIds = parceirosDoGestor.map(p => p.id);
+
   const where: Record<string, unknown> = {
-    parceiroId: { not: null },
+    parceiroId: parceiroIds.length > 0 ? { in: parceiroIds } : undefined,
   };
 
   if (status && status !== "TODOS") {
@@ -26,12 +34,24 @@ export async function GET(req: NextRequest) {
     where.parceiroId = parceiroId;
   }
 
+  // Filtrar por mês de referência (baseado na dataReferencia, não no upload)
+  if (mesReferencia) {
+    const [ano, mes] = mesReferencia.split("-");
+    const inicioMes = new Date(Number(ano), Number(mes) - 1, 1);
+    const fimMes = new Date(Number(ano), Number(mes), 0, 23, 59, 59);
+    where.dataReferencia = {
+      gte: inicioMes,
+      lte: fimMes,
+    };
+  }
+
   const [procedimentos, total, parceiros, mesesDisponiveis] = await Promise.all([
     prisma.procedimentoPF.findMany({
       where,
       include: {
         parceiro: { select: { id: true, nome: true, cpf: true } },
         indicado: { select: { id: true, nome: true, cpf: true } },
+        comercial: { select: { id: true, nome: true, funcao: true } },
         upload: { select: { id: true, nomeArquivo: true, mesReferencia: true } },
       },
       orderBy: { dataReferencia: "desc" },
@@ -45,7 +65,9 @@ export async function GET(req: NextRequest) {
       orderBy: { nome: "asc" },
     }),
     prisma.procedimentoPF.findMany({
-      where: { parceiroId: { not: null } },
+      where: {
+        parceiroId: parceiroIds.length > 0 ? { in: parceiroIds } : undefined,
+      },
       select: { dataReferencia: true },
       distinct: ["dataReferencia"],
       orderBy: { dataReferencia: "desc" },

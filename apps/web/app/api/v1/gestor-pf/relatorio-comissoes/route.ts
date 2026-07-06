@@ -18,15 +18,44 @@ export async function GET(req: NextRequest) {
   const inicio = searchParams.get("inicio");
   const fim = searchParams.get("fim");
   const comercialId = searchParams.get("comercialId");
+  const funcao = searchParams.get("funcao");
 
   if (!inicio || !fim) {
     return badRequest("Parâmetros obrigatórios: inicio e fim (formato: YYYY-MM)");
   }
 
+  // Busca os IDs dos comerciais deste gestor para filtrar as comissões
+  const comerciaisDoGestor = await prisma.comercial.findMany({
+    where: { gestorPfId },
+    select: { id: true, funcao: true },
+  });
+  
+  let comercialIds = comerciaisDoGestor.map(c => c.id);
+
+  // Filtrar por função se especificado
+  if (funcao) {
+    comercialIds = comerciaisDoGestor
+      .filter(c => c.funcao === funcao)
+      .map(c => c.id);
+  }
+
+  // Se não houver comerciais, retorna array vazio
+  if (comercialIds.length === 0) {
+    return ok({
+      comissoes: [],
+      resumo: {
+        porMes: [],
+        totalGeral: {
+          totalVendas: 0,
+          totalComissao: 0,
+          quantidade: 0,
+        },
+      },
+    });
+  }
+
   const where: any = {
-    comercial: {
-      gestorPfId,
-    },
+    comercialId: { in: comercialIds },
     mesReferencia: {
       gte: inicio,
       lte: fim,
@@ -56,13 +85,37 @@ export async function GET(req: NextRequest) {
   let totalGeralVendas = 0;
   let totalGeralComissao = 0;
 
+  // Agrupar por função para totais
+  const porFuncao = new Map<string, { 
+    totalVendas: number; 
+    totalComissao: number; 
+    quantidade: number;
+    comerciais: Set<string>;
+  }>();
+
   comissoes.forEach((c) => {
     const mes = c.mesReferencia;
-    const atual = porMes.get(mes) || { totalVendas: 0, totalComissao: 0, quantidade: 0 };
-    atual.totalVendas += Number(c.valorVendas);
-    atual.totalComissao += Number(c.valorComissao);
-    atual.quantidade += 1;
-    porMes.set(mes, atual);
+    const funcao = c.comercial.funcao || "SEM_FUNCAO";
+    
+    // Agrupamento por mês
+    const atualMes = porMes.get(mes) || { totalVendas: 0, totalComissao: 0, quantidade: 0 };
+    atualMes.totalVendas += Number(c.valorVendas);
+    atualMes.totalComissao += Number(c.valorComissao);
+    atualMes.quantidade += 1;
+    porMes.set(mes, atualMes);
+
+    // Agrupamento por função
+    const atualFuncao = porFuncao.get(funcao) || { 
+      totalVendas: 0, 
+      totalComissao: 0, 
+      quantidade: 0,
+      comerciais: new Set<string>(),
+    };
+    atualFuncao.totalVendas += Number(c.valorVendas);
+    atualFuncao.totalComissao += Number(c.valorComissao);
+    atualFuncao.quantidade += 1;
+    atualFuncao.comerciais.add(c.comercial.id);
+    porFuncao.set(funcao, atualFuncao);
 
     totalGeralVendas += Number(c.valorVendas);
     totalGeralComissao += Number(c.valorComissao);
@@ -91,6 +144,15 @@ export async function GET(req: NextRequest) {
           mes,
           ...dados,
         })),
+      porFuncao: Array.from(porFuncao.entries())
+        .map(([funcao, dados]) => ({
+          funcao: funcao === "SEM_FUNCAO" ? null : funcao,
+          totalVendas: dados.totalVendas,
+          totalComissao: dados.totalComissao,
+          quantidade: dados.quantidade,
+          comerciaisCount: dados.comerciais.size,
+        }))
+        .sort((a, b) => b.totalComissao - a.totalComissao),
       totalGeral: {
         totalVendas: totalGeralVendas,
         totalComissao: totalGeralComissao,

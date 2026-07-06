@@ -33,6 +33,7 @@ export async function GET() {
       nome: c.nome,
       cpf: c.cpf,
       email: c.usuario.email,
+      funcao: c.funcao,
       percentualComissao: c.percentualComissao,
       status: c.status,
       createdAt: c.createdAt,
