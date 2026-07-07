@@ -285,32 +285,12 @@ export const criarParceiroSchema = z.object({
   cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
   pixChave: z.string().optional(),
   telefone: z.string().optional(),
-  percentualComissao: z
-    .union([z.string(), z.number()])
-    .refine(
-      (val) => {
-        const num = typeof val === "string" ? parseFloat(val) : val;
-        return num >= 0 && num <= 100;
-      },
-      { message: "Deve estar entre 0 e 100" },
-    )
-    .optional(),
 });
 
 export const atualizarParceiroSchema = z.object({
   id: z.string().uuid("ID inválido"),
   nome: z.string().min(3).optional(),
   pixChave: z.string().optional(),
-  percentualComissao: z
-    .union([z.string(), z.number()])
-    .refine(
-      (val) => {
-        const num = typeof val === "string" ? parseFloat(val) : val;
-        return num >= 0 && num <= 100;
-      },
-      { message: "Deve estar entre 0 e 100" },
-    )
-    .optional(),
   status: z.enum(["ATIVO", "DESLIGADO"]).optional(),
 });
 
@@ -362,7 +342,10 @@ export const criarComercialSchema = z.object({
 
 export const atualizarComercialSchema = z.object({
   nome: z.string().min(3).optional(),
+  email: z.string().email().optional(),
+  cpf: z.string().optional(),
   telefone: z.string().optional(),
+  funcao: z.string().optional(),
   percentualComissao: z
     .union([z.string(), z.number()])
     .refine(

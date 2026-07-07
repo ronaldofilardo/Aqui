@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
     cpf: p.cpf,
     email: p.usuario.email,
     pixChave: p.pixChave,
-    percentualComissao: p.percentualComissao, // legado
     periodicidadeCicloEscolhida: p.periodicidadeCicloEscolhida,
     status: p.status,
     totalIndicados: p._count.indicacoes,
@@ -134,8 +133,6 @@ export async function POST(req: NextRequest) {
         nome,
         cpf: cpfClean,
         pixChave,
-        // Campo legado: percentualComissao fica null após a migração para pontos.
-        percentualComissao: null,
         status: "ATIVO",
         gestorPfId,
       },
@@ -197,8 +194,6 @@ export async function PUT(req: NextRequest) {
     return notFound("Parceiro não encontrado");
   }
 
-  // percentualComissao é campo legado: aceita para preservar dados antigos
-  // durante a migração, mas novas parcerias devem ter null.
   const updated = await prisma.parceiro.update({
     where: { id },
     data: parsedData,

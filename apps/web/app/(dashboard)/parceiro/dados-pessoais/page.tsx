@@ -11,7 +11,6 @@ interface DadosParceiro {
   email: string;
   telefone: string | null;
   pixChave: string | null;
-  percentualComissao: string;
   status: string;
 }
 
@@ -116,12 +115,6 @@ export default function ParceiroDadosPessoais() {
             <div>
               <p className="text-xs text-gray-500">Email</p>
               <p className="font-medium text-gray-900">{dados?.email}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">% Comissão</p>
-              <p className="font-medium text-gray-900">
-                {Number(dados?.percentualComissao || 0).toFixed(2)}%
-              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Status</p>

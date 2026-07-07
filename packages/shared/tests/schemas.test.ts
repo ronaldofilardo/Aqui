@@ -529,56 +529,16 @@ describe("atualizarConsultorSelfSchema — não permite status", () => {
 });
 
 // ============================================================================
-// Schemas para Parceiro (campos legados opcionais)
+// Schemas para Parceiro
 // ============================================================================
 describe("criarParceiroSchema", () => {
-  it("deve aceitar parceiro sem percentualComissao (legado, opcional)", () => {
+  it("deve aceitar parceiro sem percentualComissao", () => {
     const result = criarParceiroSchema.safeParse({
       nome: "Carlos Parceiro",
       email: "carlos@email.com",
       cpf: "530.511.739-91",
     });
     expect(result.success).toBe(true);
-  });
-
-  it("deve aceitar parceiro com percentualComissao válido", () => {
-    const result = criarParceiroSchema.safeParse({
-      nome: "Carlos Parceiro",
-      email: "carlos@email.com",
-      cpf: "530.511.739-91",
-      percentualComissao: "5.5",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("deve aceitar percentualComissao como número", () => {
-    const result = criarParceiroSchema.safeParse({
-      nome: "Carlos",
-      email: "carlos@email.com",
-      cpf: "530.511.739-91",
-      percentualComissao: 12.34,
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("deve rejeitar percentualComissao acima de 100", () => {
-    const result = criarParceiroSchema.safeParse({
-      nome: "Carlos",
-      email: "carlos@email.com",
-      cpf: "530.511.739-91",
-      percentualComissao: "150",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("deve rejeitar percentualComissao negativo", () => {
-    const result = criarParceiroSchema.safeParse({
-      nome: "Carlos",
-      email: "carlos@email.com",
-      cpf: "530.511.739-91",
-      percentualComissao: "-1",
-    });
-    expect(result.success).toBe(false);
   });
 
   it("deve rejeitar CPF inválido", () => {

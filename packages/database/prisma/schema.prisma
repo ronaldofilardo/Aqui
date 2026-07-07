@@ -319,14 +319,12 @@ model Parceiro {
   nome                        String               @db.VarChar(255)
   cpf                         String               @unique @db.VarChar(14)
   pixChave                    String?              @map("pix_chave") @db.VarChar(100)
-  percentualComissao          Decimal?             @map("percentual_comissao") @db.Decimal(5, 2)
   status                      StatusParceiro       @default(ATIVO)
   gestorPfId                  String               @map("gestor_pf_id") @db.Uuid
   desligadoEm                 DateTime?            @map("desligado_em")
   createdAt                   DateTime             @default(now()) @map("created_at")
   updatedAt                   DateTime             @updatedAt @map("updated_at")
   periodicidadeCicloEscolhida PeriodicidadeCiclo?  @map("periodicidade_ciclo_escolhida")
-  comissoes                   ComissaoParceiro[]
   indicacoes                  Indicado[]
   movimentacoesPontos         MovimentacaoPontos[]
   gestorPf                    GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
@@ -409,22 +407,6 @@ model ProcedimentoPF {
   @@index([comercialId])
   @@index([uploadId])
   @@map("procedimentos_pf")
-}
-
-model ComissaoParceiro {
-  id            String         @id @default(uuid()) @db.Uuid
-  parceiroId    String         @map("parceiro_id") @db.Uuid
-  mesReferencia String         @map("mes_referencia")
-  valorTotal    Decimal        @default(0) @map("valor_total") @db.Decimal(12, 2)
-  status        StatusComissao @default(PENDENTE)
-  dataPagamento DateTime?      @map("data_pagamento")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  parceiro      Parceiro       @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-
-  @@unique([parceiroId, mesReferencia])
-  @@index([parceiroId])
-  @@map("comissoes_parceiros")
 }
 
 model PrimeiraAcss {

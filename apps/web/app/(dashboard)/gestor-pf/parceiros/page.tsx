@@ -18,7 +18,6 @@ interface Parceiro {
   cpf: string;
   email: string;
   pixChave: string | null;
-  percentualComissao: string;
   status: string;
   totalIndicados: number;
   desligadoEm: string | null;
@@ -38,7 +37,6 @@ export default function GestorPFParceiros() {
     cpf: "",
     pixChave: "",
     telefone: "",
-    percentualComissao: "",
   });
   const [saving, setSaving] = useState(false);
   const [cpfValidation, setCpfValidation] = useState<"valid" | "invalid" | "">(
@@ -72,7 +70,6 @@ export default function GestorPFParceiros() {
       cpf: "",
       pixChave: "",
       telefone: "",
-      percentualComissao: "",
     });
     setCpfValidation("");
     setShowModal(true);
@@ -105,13 +102,13 @@ export default function GestorPFParceiros() {
       cpf: p.cpf,
       pixChave: p.pixChave || "",
       telefone: "",
-      percentualComissao: p.percentualComissao,
     });
     setShowModal(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[Parceiros] Submit iniciado:", form);
     setSaving(true);
 
     try {
@@ -125,13 +122,18 @@ export default function GestorPFParceiros() {
         payload.id = editParceiro.id;
       }
 
+      console.log("[Parceiros] Enviando payload:", payload);
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      console.log("[Parceiros] Resposta:", res.status);
+
       const data = await res.json();
+      console.log("[Parceiros] Data:", data);
 
       if (!res.ok) {
         toast.error(data.error || "Erro ao salvar");
@@ -148,6 +150,7 @@ export default function GestorPFParceiros() {
       setShowModal(false);
       fetchParceiros();
     } catch (e) {
+      console.error("[Parceiros] Erro:", e);
       toast.error("Erro ao salvar parceiro");
     } finally {
       setSaving(false);
@@ -157,7 +160,7 @@ export default function GestorPFParceiros() {
   async function handleDesligar(p: Parceiro) {
     if (
       !confirm(
-        `Desligar ${p.nome}? Os vínculos com clientes serão desfeitos e as comissões cessarão.`,
+        `Desligar ${p.nome}? Os vínculos com clientes serão desfeitos.`,
       )
     ) {
       return;
@@ -212,7 +215,7 @@ export default function GestorPFParceiros() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Parceiros</h1>
           <p className="text-gray-500 text-sm">
-            Gerencie parceiros e suas comissões
+            Gerencie parceiros e suas indicações
           </p>
         </div>
         <button
@@ -259,9 +262,6 @@ export default function GestorPFParceiros() {
                   Email
                 </th>
                 <th className="text-left p-3 font-semibold text-gray-600">
-                  % Comissão
-                </th>
-                <th className="text-left p-3 font-semibold text-gray-600">
                   Clientes
                 </th>
                 <th className="text-left p-3 font-semibold text-gray-600">
@@ -287,9 +287,6 @@ export default function GestorPFParceiros() {
                     <td className="p-3 font-medium text-gray-900">{p.nome}</td>
                     <td className="p-3 text-gray-600">{formatCpf(p.cpf)}</td>
                     <td className="p-3 text-gray-600">{p.email}</td>
-                    <td className="p-3 text-gray-600">
-                      {Number(p.percentualComissao).toFixed(2)}%
-                    </td>
                     <td className="p-3 text-gray-600">{p.totalIndicados}</td>
                     <td className="p-3">
                       <span

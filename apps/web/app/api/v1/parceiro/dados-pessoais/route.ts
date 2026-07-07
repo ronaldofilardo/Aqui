@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     email: parceiro.usuario.email,
     telefone: parceiro.usuario.telefone,
     pixChave: parceiro.pixChave,
-    percentualComissao: parceiro.percentualComissao,
     status: parceiro.status,
   });
 }
