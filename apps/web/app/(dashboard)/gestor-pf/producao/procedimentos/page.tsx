@@ -229,7 +229,7 @@ export default function GestorPFProducao() {
             className="text-sm border rounded px-3 py-2"
           >
             <option value="">Todos os Parceiros</option>
-            {data?.parceiros.map((p) => (
+            {data?.parceiros?.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nome}
               </option>
@@ -328,7 +328,7 @@ export default function GestorPFProducao() {
           </table>
         </div>
 
-        {data && data.pagination.totalPages > 1 && (
+        {data?.pagination?.totalPages && data.pagination.totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-4">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}

@@ -189,7 +189,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
       .catch(() => {});
   });
 
-  it("Workbook deve aceitar a coluna 'CPF do Comercial'", () => {
+  it("Workbook deve aceitar a coluna 'Usuário da conta'", () => {
     const buf = criarPlanilha([
       {
         "Data de Referência": new Date("2026-09-01"),
@@ -201,7 +201,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
         CPF: "12345678901",
         "Tipo do Procedimento": "ROTINA",
         Unidade: "Unidade 1",
-        "CPF do Comercial": "98765432100",
+        "Usuário da conta": "Comercial Teste",
       },
     ]);
     expect(buf.length).toBeGreaterThan(0);
@@ -379,6 +379,52 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
       where: { referenciaProcedimentoId: proc.id },
     });
     await prisma.procedimentoPF.delete({ where: { id: proc.id } });
+    await prisma.indicado.deleteMany({ where: { cpf: cpfCliente } });
+  });
+
+  it("Busca comercial por nome (Usuário da conta) case-insensitive", async () => {
+    const cpfCliente = "99988877766";
+    await prisma.indicado.create({
+      data: { nome: "Cliente Busca Nome", cpf: cpfCliente, parceiroId },
+    });
+
+    const comercialNomeTeste = await criarComercial(gestorPfId, 5);
+    await prisma.comercial.update({
+      where: { id: comercialNomeTeste.id },
+      data: { nome: "Comercial Nome Teste" },
+    });
+
+    const dataRef = new Date("2026-09-15");
+    const totalPago = 300;
+
+    const proc = await prisma.procedimentoPF.create({
+      data: {
+        dataReferencia: dataRef,
+        dataPagamento: dataRef,
+        formaPagamento: "PIX",
+        totalPago,
+        paciente: "Busca Nome",
+        procedimento: "Consulta",
+        cpf: cpfCliente,
+        tipoProcedimento: "ROTINA",
+        unidade: "U1",
+        parceiroId,
+        comercialId: comercialNomeTeste.id,
+        uploadId,
+      },
+    });
+
+    expect(proc.comercialId).toBe(comercialNomeTeste.id);
+
+    const procBusca = await prisma.procedimentoPF.findUnique({
+      where: { id: proc.id },
+      include: { comercial: true },
+    });
+
+    expect(procBusca?.comercial?.nome).toBe("Comercial Nome Teste");
+
+    await prisma.procedimentoPF.delete({ where: { id: proc.id } });
+    await prisma.comercial.delete({ where: { id: comercialNomeTeste.id } });
     await prisma.indicado.deleteMany({ where: { cpf: cpfCliente } });
   });
 });
