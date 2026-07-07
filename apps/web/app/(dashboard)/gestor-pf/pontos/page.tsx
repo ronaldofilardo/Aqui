@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
-type TabType = "ciclos" | "configuracao" | "premios" | "ranking" | "resgates";
+type TabType = "ciclos" | "configuracao" | "premios" | "ranking" | "resgates" | "distribuir";
 
 interface PontosData {
   ciclos?: any;
@@ -12,11 +12,13 @@ interface PontosData {
   premios?: any;
   ranking?: any;
   resgates?: any;
+  distribuicao?: any;
 }
 
 const TABS: { id: TabType; label: string; icon: string }[] = [
   { id: "ciclos", label: "Ciclos", icon: "📅" },
   { id: "configuracao", label: "Configuração", icon: "⚙️" },
+  { id: "distribuir", label: "Distribuir Pontos", icon: "💰" },
   { id: "premios", label: "Prêmios", icon: "🎁" },
   { id: "ranking", label: "Ranking", icon: "🏆" },
   { id: "resgates", label: "Resgates", icon: "🔄" },
@@ -34,7 +36,7 @@ export default function GestorPFPontosPage() {
     }
   }, [session?.user?.gestorPfId, activeTab]);
 
-  async function fetchData() {
+async function fetchData() {
     setLoading(true);
     try {
       const endpoint = `/api/v1/gestor-pf/pontos/${activeTab}`;
@@ -44,6 +46,12 @@ export default function GestorPFPontosPage() {
         let value: any = tabData;
         if (activeTab === "ciclos") value = tabData.ciclos;
         else if (activeTab === "configuracao") value = tabData.configuracoes;
+        else if (activeTab === "distribuir") {
+          value = tabData.producoes;
+          if (tabData.ciclo) {
+            setData((prev) => ({ ...prev, ciclo: tabData.ciclo }));
+          }
+        }
         else if (activeTab === "premios") value = tabData.premios;
         else if (activeTab === "ranking") value = tabData.ranking?.posicoes;
         else if (activeTab === "resgates") value = tabData.resgates;
@@ -52,7 +60,7 @@ export default function GestorPFPontosPage() {
     } catch (e) {
       toast.error(`Erro ao carregar ${activeTab}`);
     } finally {
-      setLoading(false);
+setLoading(false);
     }
   }
 
@@ -101,6 +109,9 @@ export default function GestorPFPontosPage() {
               {activeTab === "configuracao" && (
                 <ConfiguracaoPontos data={data.configuracao} />
               )}
+              {activeTab === "distribuir" && (
+                <DistribuirPontos data={data.distribuicao} ciclo={data.ciclo} />
+              )}
               {activeTab === "premios" && <PremiosPontos data={data.premios} />}
               {activeTab === "ranking" && <RankingPontos data={data.ranking} />}
               {activeTab === "resgates" && (
@@ -115,6 +126,124 @@ export default function GestorPFPontosPage() {
 }
 
 // Componentes de cada aba
+
+function DistribuirPontos({ data, ciclo }: { data?: any[], ciclo?: any }) {
+  const [producoes, setProducoes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (data) {
+      setProducoes(data || []);
+    }
+  }, [data]);
+
+  const handleDistribuir = async (producaoId: string) => {
+    try {
+      const res = await fetch("/api/v1/gestor-pf/pontos/distribuir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ producaoId }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        toast.error(json.error || "Erro ao distribuir pontos");
+        return;
+      }
+
+      toast.success(
+        `${json.pontos} pontos distribuídos para ${json.parceiro.nome}!`,
+      );
+
+      // Recarregar lista
+      const resAtualizada = await fetch(
+        "/api/v1/gestor-pf/pontos/distribuir",
+      );
+      if (resAtualizada.ok) {
+        const dados = await resAtualizada.json();
+        setProducoes(dados.producoes || []);
+      }
+    } catch {
+      toast.error("Erro ao distribuir pontos");
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        Distribuir Pontos por Produção
+      </h2>
+
+      {ciclo && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>Ciclo vigente:</strong> {ciclo.nome}
+          </p>
+        </div>
+      )}
+
+      {!producoes || producoes.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          Nenhuma produção encontrada
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {producoes.map((producao: any) => (
+            <div
+              key={producao.id}
+              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-semibold text-gray-900">
+                    {producao.paciente}
+                  </span>
+                  {producao.pontosDistribuidos && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
+                      ✓ {producao.pontosDistribuidos.pontos} pts
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
+                  <div>
+                    <span className="text-gray-500">Procedimento:</span>{" "}
+                    {producao.procedimento}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Parceiro:</span>{" "}
+                    {producao.parceiro?.nome}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Total:</span> R${" "}
+                    {producao.totalPago}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Data:</span>{" "}
+                    {new Date(producao.dataProcedimento || producao.dataReferencia).toLocaleDateString(
+                      "pt-BR",
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="ml-4">
+                {producao.pontosDistribuidos ? (
+                  <span className="text-xs text-gray-500">Distribuído</span>
+                ) : (
+                  <button
+                    onClick={() => handleDistribuir(producao.id)}
+                    className="bg-primary-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-700 transition"
+                  >
+                    Distribuir Pontos
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CiclosPontos({ data }: { data?: any }) {
   return (
@@ -307,13 +436,48 @@ function ConfiguracaoPontos({ data }: { data?: any[] }) {
     valorPorPonto: config?.valorPorPonto || "0",
     tipoArredondamento: config?.tipoArredondamento || "PADRAO",
   });
+  const [salvando, setSalvando] = useState(false);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
-    toast.success("Configurações salvas com sucesso");
+    if (!formData.valorPorPonto || parseFloat(formData.valorPorPonto) <= 0) {
+      toast.error("Valor por ponto deve ser positivo");
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      const endpoint = config?.id
+        ? `/api/v1/gestor-pf/pontos/configuracao?id=${config.id}`
+        : "/api/v1/gestor-pf/pontos/configuracao";
+
+      const method = config?.id ? "PATCH" : "POST";
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          valorPorPonto: parseFloat(formData.valorPorPonto),
+          tipoArredondamento: formData.tipoArredondamento,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        toast.error(json.error || "Erro ao salvar configurações");
+        return;
+      }
+
+      toast.success("Configurações salvas com sucesso!");
+    } catch {
+      toast.error("Erro ao salvar configurações");
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
@@ -357,9 +521,10 @@ function ConfiguracaoPontos({ data }: { data?: any[] }) {
 
         <button
           onClick={handleSave}
-          className="w-full bg-primary-600 text-white py-2 rounded-lg font-semibold hover:bg-primary-700 transition"
+          disabled={salvando}
+          className="w-full bg-primary-600 text-white py-2 rounded-lg font-semibold hover:bg-primary-700 transition disabled:opacity-50"
         >
-          💾 Salvar Configurações
+          {salvando ? "Salvando..." : "💾 Salvar Configurações"}
         </button>
       </div>
     </div>

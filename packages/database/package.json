@@ -7,7 +7,13 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "postinstall": "prisma generate",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "migrate:dev": "prisma migrate dev --skip-seed",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2"
