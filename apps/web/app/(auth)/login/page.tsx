@@ -76,20 +76,28 @@ export default function LoginPage() {
     const tipo = session?.user?.tipo;
     const papel = session?.user?.papel;
 
+    console.log("[Login] Session:", session);
+    console.log("[Login] Tipo:", tipo, "Papel:", papel);
+
     if (tipo === "ADMIN") {
       router.push("/admin/usuarios");
     } else if (tipo === "GESTOR" && papel === "GESTOR_PF") {
       router.push("/gestor-pf/dashboard");
-    } else if (tipo === "GESTOR") {
+    } else if (tipo === "GESTOR" && papel === "GESTOR_PJ") {
       router.push("/gestor/dashboard");
     } else if (tipo === "GESTOR_PF") {
       router.push("/gestor-pf/dashboard");
+    } else if (tipo === "GESTOR_PJ") {
+      router.push("/gestor/dashboard");
     } else if (tipo === "PARCEIRO") {
       router.push("/parceiro/indicados");
     } else if (tipo === "ESTABELECIMENTO") {
       router.push("/estabelecimento/dashboard");
-    } else {
+    } else if (tipo === "CONSULTOR") {
       router.push("/consultor/estabelecimentos");
+    } else {
+      console.error("[Login] Tipo não reconhecido:", tipo);
+      router.push("/login");
     }
   }
 

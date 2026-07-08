@@ -23,7 +23,7 @@ async function main() {
 
   // 2. Gestor PF (Pessoa Fisica) - tipo GESTOR_PF
   const gestorPfUsuario = await prisma.usuario.upsert({
-    where: { email: "gestor-pf@asa.com.br" },
+    where: { email: "gestor-pf@asa.com" },
     update: {
       senhaHash: senhaPadrao,
       senhaTemporaria: false,
@@ -32,7 +32,7 @@ async function main() {
     },
     create: {
       nome: "Gestor PF",
-      email: "gestor-pf@asa.com.br",
+      email: "gestor-pf@asa.com",
       senhaHash: senhaPadrao,
       tipo: "GESTOR",
       papel: "GESTOR_PF",
@@ -52,7 +52,7 @@ async function main() {
 
   // 3. Gestor PJ (Pessoa Juridica) - tipo GESTOR
   const gestorPjUsuario = await prisma.usuario.upsert({
-    where: { email: "gestor-pj@asa.com.br" },
+    where: { email: "gestor-pj@asa.com" },
     update: {
       senhaHash: senhaPadrao,
       senhaTemporaria: false,
@@ -61,7 +61,7 @@ async function main() {
     },
     create: {
       nome: "Gestor PJ",
-      email: "gestor-pj@asa.com.br",
+      email: "gestor-pj@asa.com",
       senhaHash: senhaPadrao,
       tipo: "GESTOR",
       papel: "GESTOR_PJ",
@@ -72,11 +72,11 @@ async function main() {
 
   // 4. Consultor
   const consultorUsuario = await prisma.usuario.upsert({
-    where: { email: "consultor@asa.com.br" },
+    where: { email: "consultor@asa.com" },
     update: { senhaHash: senhaPadrao, senhaTemporaria: false },
     create: {
       nome: "Consultor",
-      email: "consultor@asa.com.br",
+      email: "consultor@asa.com",
       senhaHash: senhaPadrao,
       tipo: "CONSULTOR",
       papel: null,

@@ -37,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (user) {
             console.log(
-              `[auth] Found usuario: ${email}, status: ${user.status}, tipo: ${user.tipo}`
+              `[auth] Found usuario: ${email}, status: ${user.status}, tipo: ${user.tipo}, papel: ${user.papel}`
             );
 
             if (user.status !== "ATIVO" && user.status !== undefined) {
@@ -52,12 +52,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             if (senhaValida) {
               console.log(`[auth] ✓ Senha válida para ${email}`);
+              
               return {
                 id: user.id,
                 name: user.nome,
                 email: user.email,
                 tipo: user.tipo as TipoAcesso,
-                papel: user.papel ?? null,
+                papel: user.papel,
                 consultorId: user.consultor?.id ?? null,
                 estabelecimentoId: null,
                 gestorPfId: user.gestorPf?.id ?? null,

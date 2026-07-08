@@ -14,20 +14,64 @@ async function main() {
       email: "admin@asa.com",
       senhaHash: senhaAdmin,
       tipo: "ADMIN",
+      papel: null,
       senhaTemporaria: false,
     },
   });
 
-  // Gestor
-  const senhaGestor = await hash("123456", 12);
+  // Gestor PF
+  const senhaGestorPf = await hash("123456", 12);
   await prisma.usuario.upsert({
-    where: { email: "gestor@asa.com" },
-    update: { senhaHash: senhaGestor, senhaTemporaria: false },
-    create: {
-      nome: "Gestor",
-      email: "gestor@asa.com",
-      senhaHash: senhaGestor,
+    where: { email: "gestor-pf@asa.com" },
+    update: {
+      senhaHash: senhaGestorPf,
+      senhaTemporaria: false,
       tipo: "GESTOR",
+      papel: "GESTOR_PF",
+    },
+    create: {
+      nome: "Gestor Pessoa Física",
+      email: "gestor-pf@asa.com",
+      senhaHash: senhaGestorPf,
+      tipo: "GESTOR",
+      papel: "GESTOR_PF",
+      senhaTemporaria: false,
+    },
+  });
+
+  const gestorPfUsuario = await prisma.usuario.findUnique({
+    where: { email: "gestor-pf@asa.com" },
+  });
+  if (gestorPfUsuario) {
+    await prisma.gestorPF.upsert({
+      where: { usuarioId: gestorPfUsuario.id },
+      update: { cpf: "12345678901" },
+      create: {
+        usuarioId: gestorPfUsuario.id,
+        nome: "Gestor PF",
+        cpf: "12345678901",
+        percentualComissaoDefault: 5.0,
+        percentualComissaoMax: 100.0,
+      },
+    });
+  }
+
+  // Gestor PJ
+  const senhaGestorPj = await hash("123456", 12);
+  await prisma.usuario.upsert({
+    where: { email: "gestor-pj@asa.com" },
+    update: {
+      senhaHash: senhaGestorPj,
+      senhaTemporaria: false,
+      tipo: "GESTOR",
+      papel: "GESTOR_PJ",
+    },
+    create: {
+      nome: "Gestor Pessoa Jurídica",
+      email: "gestor-pj@asa.com",
+      senhaHash: senhaGestorPj,
+      tipo: "GESTOR",
+      papel: "GESTOR_PJ",
       senhaTemporaria: false,
     },
   });
@@ -38,20 +82,21 @@ async function main() {
     where: { email: "consultor@asa.com" },
     update: { senhaHash: senhaConsultor, senhaTemporaria: false },
     create: {
-      nome: "Consultor Teste",
+      nome: "Consultor",
       email: "consultor@asa.com",
       senhaHash: senhaConsultor,
       tipo: "CONSULTOR",
+      papel: null,
       senhaTemporaria: false,
     },
   });
 
-  // Cria registro Consultor e captura o ID (diferente do ID do Usuario)
   const consultorRecord = await prisma.consultor.upsert({
     where: { usuarioId: consultorUsuario.id },
-    update: {},
+    update: { cpf: "12345678903" },
     create: {
       usuarioId: consultorUsuario.id,
+      cpf: "12345678903",
     },
   });
 

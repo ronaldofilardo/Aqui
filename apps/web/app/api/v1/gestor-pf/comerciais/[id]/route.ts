@@ -52,10 +52,12 @@ export async function PATCH(
 
   const comercial = await prisma.comercial.findFirst({
     where: { id: params.id, gestorPfId },
+    include: { usuario: true },
   });
   if (!comercial) return notFound("Comercial não encontrado");
 
   const dataToUpdate: any = { ...parsed.data };
+  
   if (dataToUpdate.percentualComissao !== undefined) {
     dataToUpdate.percentualComissao =
       typeof dataToUpdate.percentualComissao === "string"
@@ -63,15 +65,29 @@ export async function PATCH(
         : dataToUpdate.percentualComissao;
   }
 
+  const usuarioUpdate: any = {};
+  if (dataToUpdate.nome) {
+    usuarioUpdate.nome = dataToUpdate.nome;
+    delete dataToUpdate.nome;
+  }
+  if (dataToUpdate.email) {
+    usuarioUpdate.email = dataToUpdate.email.toLowerCase().trim();
+    delete dataToUpdate.email;
+  }
+  if (dataToUpdate.status) {
+    usuarioUpdate.status = dataToUpdate.status;
+    delete dataToUpdate.status;
+  }
+
   const updated = await prisma.comercial.update({
     where: { id: params.id },
     data: dataToUpdate,
   });
 
-  if (dataToUpdate.nome) {
+  if (Object.keys(usuarioUpdate).length > 0) {
     await prisma.usuario.update({
       where: { id: comercial.usuarioId },
-      data: { nome: dataToUpdate.nome },
+      data: usuarioUpdate,
     });
   }
 
@@ -80,8 +96,73 @@ export async function PATCH(
     acao: "ATUALIZAR_COMERCIAL",
     entidade: "comercial",
     entidadeId: params.id,
-    detalhes: dataToUpdate,
+    detalhes: parsed.data,
   });
 
   return ok(updated);
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const { session, gestorPfId, error } = await requireGestorPFWithScope();
+  if (error) return error;
+
+  const comercial = await prisma.comercial.findFirst({
+    where: { id: params.id, gestorPfId },
+    include: { 
+      usuario: true,
+      comissoes: true,
+      metas: true,
+      procedimentos: true,
+    },
+  });
+  if (!comercial) return notFound("Comercial não encontrado");
+
+  try {
+    // Deletar registros relacionados primeiro
+    await Promise.all([
+      // Deletar comissões
+      prisma.comissaoComercial.deleteMany({
+        where: { comercialId: params.id },
+      }),
+      // Deletar metas
+      prisma.metaComercial.deleteMany({
+        where: { comercialId: params.id },
+      }),
+      // Deletar procedimentos
+      prisma.procedimentoPF.deleteMany({
+        where: { comercialId: params.id },
+      }),
+    ]);
+
+    // Deletar o usuário associado (se existir)
+    if (comercial.usuarioId) {
+      await prisma.usuario.delete({
+        where: { id: comercial.usuarioId },
+      }).catch((err) => {
+        console.error("Erro ao deletar usuário:", err.message);
+        // Ignora erro se o usuário já foi deletado ou não existe
+      });
+    }
+
+    // Deletar o comercial
+    await prisma.comercial.delete({
+      where: { id: params.id },
+    });
+
+    await criarAuditLog({
+      usuarioId: session!.user.id,
+      acao: "DELETAR_COMERCIAL",
+      entidade: "comercial",
+      entidadeId: params.id,
+      detalhes: { nome: comercial.nome, cpf: comercial.cpf },
+    });
+
+    return ok({ message: "Comercial deletado com sucesso" });
+  } catch (error: any) {
+    console.error("Erro ao deletar comercial:", error);
+    return badRequest("Erro ao deletar comercial: " + error.message);
+  }
 }
