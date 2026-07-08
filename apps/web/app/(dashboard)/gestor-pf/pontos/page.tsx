@@ -60,7 +60,7 @@ async function fetchData() {
     } catch (e) {
       toast.error(`Erro ao carregar ${activeTab}`);
     } finally {
-setLoading(false);
+      setLoading(false);
     }
   }
 
@@ -110,7 +110,7 @@ setLoading(false);
                 <ConfiguracaoPontos data={data.configuracao} />
               )}
               {activeTab === "distribuir" && (
-                <DistribuirPontos data={data.distribuicao} ciclo={data.ciclo} />
+                <DistribuirPontos data={data.distribuir} ciclo={data.ciclo} />
               )}
               {activeTab === "premios" && <PremiosPontos data={data.premios} />}
               {activeTab === "ranking" && <RankingPontos data={data.ranking} />}
@@ -131,10 +131,10 @@ function DistribuirPontos({ data, ciclo }: { data?: any[], ciclo?: any }) {
   const [producoes, setProducoes] = useState<any[]>([]);
 
   useEffect(() => {
-    if (data) {
-      setProducoes(data || []);
+    if (data && Array.isArray(data)) {
+      setProducoes(data);
     }
-  }, [data]);
+  }, [data, ciclo]);
 
   const handleDistribuir = async (producaoId: string) => {
     try {
@@ -200,40 +200,54 @@ function DistribuirPontos({ data, ciclo }: { data?: any[], ciclo?: any }) {
                   </span>
                   {producao.pontosDistribuidos && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
-                      ✓ {producao.pontosDistribuidos.pontos} pts
+                      ✓ {producao.pontosDistribuidos.pontos} pts distribuídos
+                    </span>
+                  )}
+                  {!producao.pontosDistribuidos && producao.pontosPotenciais > 0 && (
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-medium">
+                      💰 {producao.pontosPotenciais} pts a distribuir
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
-                  <div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm text-gray-600">
+                  <div className="md:col-span-2">
                     <span className="text-gray-500">Procedimento:</span>{" "}
-                    {producao.procedimento}
+                    <span className="truncate block">{producao.procedimento}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Parceiro:</span>{" "}
-                    {producao.parceiro?.nome}
+                    <span className="font-medium">{producao.parceiro?.nome}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Total:</span> R${" "}
-                    {producao.totalPago}
+                    <span className="text-gray-500">Total:</span>{" "}
+                    <span className="font-semibold text-green-600">R$ {producao.totalPago}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Data:</span>{" "}
-                    {new Date(producao.dataProcedimento || producao.dataReferencia).toLocaleDateString(
+                    {new Date(producao.dataReferencia || producao.dataProcedimento).toLocaleDateString(
                       "pt-BR",
                     )}
                   </div>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-4 flex items-center gap-3">
                 {producao.pontosDistribuidos ? (
-                  <span className="text-xs text-gray-500">Distribuído</span>
+                  <div className="text-right">
+                    <span className="text-xs text-gray-500 block">Distribuído</span>
+                    <span className="text-lg font-bold text-green-600">{producao.pontosDistribuidos.pontos} pts</span>
+                  </div>
                 ) : (
+                  <div className="text-right">
+                    <span className="text-xs text-gray-500 block">Pontos</span>
+                    <span className="text-lg font-bold text-yellow-600">{producao.pontosPotenciais || 0} pts</span>
+                  </div>
+                )}
+                {!producao.pontosDistribuidos && (
                   <button
                     onClick={() => handleDistribuir(producao.id)}
-                    className="bg-primary-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-700 transition"
+                    className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition"
                   >
-                    Distribuir Pontos
+                    Distribuir
                   </button>
                 )}
               </div>
@@ -667,3 +681,4 @@ function ResgatePontos({ data }: { data?: any[] }) {
     </div>
   );
 }
+

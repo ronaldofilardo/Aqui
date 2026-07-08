@@ -475,6 +475,7 @@ model MovimentacaoPontos {
   tipo                           TipoMovimentacaoPontos
   origem                         OrigemMovimentacaoPontos
   quantidade                     Int
+  descricao                      String?
   referenciaProcedimentoId       String?                  @map("referencia_procedimento_id") @db.Uuid
   referenciaSolicitacaoResgateId String?                  @map("referencia_solicitacao_resgate_id") @db.Uuid
   configuracaoPontosId           String?                  @map("configuracao_pontos_id") @db.Uuid
