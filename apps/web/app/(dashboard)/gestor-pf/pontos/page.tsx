@@ -24,7 +24,7 @@ const TABS: { id: TabType; label: string; icon: string }[] = [
 export default function GestorPFPontosPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabType>("ciclos");
-  const { data, loading } = usePontosData(activeTab, session?.user?.gestorPfId);
+  const { data, loading } = usePontosData(activeTab, session?.user?.gestorPfId ?? undefined);
 
   return (
     <div>
