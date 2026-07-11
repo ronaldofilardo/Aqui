@@ -170,23 +170,6 @@ export default function GestorPFConfiguracoes() {
             </button>
           </form>
         </div>
-
-        <div className="card lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">
-            Equipe de Vendas / Comercial
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Cadastre e configure sua equipe Comercial (Cargo de gestão interna
-            do Gestor PF), defina o percentual individual de cada um e cadastre
-            metas mensais em R$.
-          </p>
-          <a
-            href="/gestor-pf/configuracoes/comissoes-gestao"
-            className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700"
-          >
-            💼 Abrir Comissões Gestão
-          </a>
-        </div>
       </div>
     </div>
   );

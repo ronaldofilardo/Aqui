@@ -346,6 +346,7 @@ export const atualizarComercialSchema = z.object({
   cpf: z.string().optional(),
   telefone: z.string().optional(),
   funcao: z.string().optional(),
+  lideranca: z.enum(["COMERCIAL", "GESTOR"]).optional(),
   percentualComissao: z
     .union([z.string(), z.number()])
     .refine(

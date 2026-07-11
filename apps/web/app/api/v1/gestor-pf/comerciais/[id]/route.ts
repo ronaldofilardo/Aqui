@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
 import {
   badRequest,
+  forbidden,
   notFound,
   ok,
   requireGestorPFWithScope,
@@ -16,15 +17,25 @@ export async function GET(
   const { gestorPfId, error } = await requireGestorPFWithScope();
   if (error) return error;
 
+  // Buscar comercial e verificar se pertence a uma liderança deste gestor-pf
   const comercial = await prisma.comercial.findFirst({
-    where: { id: params.id, gestorPfId },
+    where: { id: params.id },
     include: {
+      lideranca: {
+        select: { gestorPfId: true },
+      },
       usuario: {
         select: { id: true, email: true, status: true },
       },
     },
   });
+  
   if (!comercial) return notFound("Comercial não encontrado");
+  
+  // Verificar se a liderança pertence a este gestor-pf
+  if (comercial.lideranca.gestorPfId !== gestorPfId) {
+    return forbidden();
+  }
 
   return ok({
     id: comercial.id,
@@ -34,6 +45,8 @@ export async function GET(
     percentualComissao: comercial.percentualComissao,
     status: comercial.status,
     createdAt: comercial.createdAt,
+    liderancaId: comercial.liderancaId,
+    tipoLideranca: comercial.tipoLideranca,
   });
 }
 
@@ -50,11 +63,21 @@ export async function PATCH(
     return badRequest(parsed.error.errors.map((e) => e.message).join(", "));
   }
 
+  // Buscar comercial e verificar permissão
   const comercial = await prisma.comercial.findFirst({
-    where: { id: params.id, gestorPfId },
-    include: { usuario: true },
+    where: { id: params.id },
+    include: { 
+      usuario: true,
+      lideranca: { select: { gestorPfId: true } }
+    },
   });
+  
   if (!comercial) return notFound("Comercial não encontrado");
+  
+  // Verificar se a liderança pertence a este gestor-pf
+  if (comercial.lideranca.gestorPfId !== gestorPfId) {
+    return forbidden();
+  }
 
   const dataToUpdate: any = { ...parsed.data };
   
@@ -63,6 +86,11 @@ export async function PATCH(
       typeof dataToUpdate.percentualComissao === "string"
         ? parseFloat(dataToUpdate.percentualComissao)
         : dataToUpdate.percentualComissao;
+  }
+
+  if (dataToUpdate.lideranca !== undefined) {
+    dataToUpdate.tipoLideranca = dataToUpdate.lideranca;
+    delete dataToUpdate.lideranca;
   }
 
   const usuarioUpdate: any = {};
@@ -109,16 +137,24 @@ export async function DELETE(
   const { session, gestorPfId, error } = await requireGestorPFWithScope();
   if (error) return error;
 
+  // Buscar comercial e verificar permissão
   const comercial = await prisma.comercial.findFirst({
-    where: { id: params.id, gestorPfId },
+    where: { id: params.id },
     include: { 
       usuario: true,
       comissoes: true,
       metas: true,
       procedimentos: true,
+      lideranca: { select: { gestorPfId: true } }
     },
   });
+  
   if (!comercial) return notFound("Comercial não encontrado");
+  
+  // Verificar se a liderança pertence a este gestor-pf
+  if (comercial.lideranca.gestorPfId !== gestorPfId) {
+    return forbidden();
+  }
 
   try {
     // Deletar registros relacionados primeiro
@@ -166,3 +202,5 @@ export async function DELETE(
     return badRequest("Erro ao deletar comercial: " + error.message);
   }
 }
+
+

@@ -25,6 +25,8 @@ model Usuario {
   cupomConfig         CupomConfig[]
   gestoresConsultores GestorConsultor[]    @relation("gestor_atribuicoes")
   gestorPf            GestorPF?
+  lideranca           Lideranca?
+  gestor              Gestor?
   parceiro            Parceiro?
   passwordResetTokens PasswordResetToken[]
 
@@ -213,10 +215,9 @@ model GestorPF {
   createdAt                 DateTime             @default(now()) @map("created_at")
   updatedAt                 DateTime             @updatedAt @map("updated_at")
   ciclosPontos              CicloPontos[]
-  comerciais                Comercial[]
+  liderancas                Lideranca[]
   configuracoesPontos       ConfiguracaoPontos[]
   usuario                   Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  parceiros                 Parceiro[]
   premios                   Premio[]
   regraComercial            RegraComercial?
   regraGestor               RegraGestor?
@@ -225,24 +226,68 @@ model GestorPF {
   @@map("gestores_pf")
 }
 
+model Lideranca {
+  id            String         @id @default(uuid()) @db.Uuid
+  usuarioId     String         @unique @map("usuario_id") @db.Uuid
+  nome          String         @db.VarChar(255)
+  cpf           String         @unique @db.VarChar(14)
+  gestorPfId    String         @map("gestor_pf_id") @db.Uuid
+  tipo          TipoLideranca
+  status        StatusUsuario  @default(ATIVO)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  gestorPf      GestorPF       @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  comerciais    Comercial[]
+  gestores      Gestor[]
+
+  @@index([gestorPfId])
+  @@index([tipo])
+  @@map("liderancas")
+}
+
+model Gestor {
+  id                 String              @id @default(uuid()) @db.Uuid
+  usuarioId          String              @unique @map("usuario_id") @db.Uuid
+  nome               String              @db.VarChar(255)
+  cpf                String              @unique @db.VarChar(14)
+  liderancaId        String              @map("lideranca_id") @db.Uuid
+  percentualComissao Decimal             @default(0) @map("percentual_comissao") @db.Decimal(5, 2)
+  status             StatusUsuario       @default(ATIVO)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  usuario            Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  lideranca          Lideranca           @relation(fields: [liderancaId], references: [id], onDelete: Cascade)
+  parceiros          Parceiro[]
+  procedimentos      ProcedimentoPF[]
+
+  @@index([liderancaId])
+  @@map("gestores")
+}
+
 model Comercial {
   id                 String              @id @default(uuid()) @db.Uuid
   usuarioId          String              @unique @map("usuario_id") @db.Uuid
   nome               String              @db.VarChar(255)
   cpf                String              @unique @db.VarChar(14)
-  gestorPfId         String              @map("gestor_pf_id") @db.Uuid
+  liderancaId        String              @map("lideranca_id") @db.Uuid
   percentualComissao Decimal             @default(0) @map("percentual_comissao") @db.Decimal(5, 2)
   status             StatusUsuario       @default(ATIVO)
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   funcao             FuncaoComercial?
-  gestorPf           GestorPF            @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  tipoLideranca      TipoLideranca?
+
+  lideranca          Lideranca           @relation(fields: [liderancaId], references: [id], onDelete: Cascade)
   usuario            Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  parceiros          Parceiro[]
   comissoes          ComissaoComercial[]
   metas              MetaComercial[]
   procedimentos      ProcedimentoPF[]
 
-  @@index([gestorPfId])
+  @@index([liderancaId])
   @@map("comerciais")
 }
 
@@ -320,21 +365,27 @@ model Parceiro {
   cpf                         String               @unique @db.VarChar(14)
   pixChave                    String?              @map("pix_chave") @db.VarChar(100)
   status                      StatusParceiro       @default(ATIVO)
-  gestorPfId                  String               @map("gestor_pf_id") @db.Uuid
+
+  comercialId                 String?              @map("comercial_id") @db.Uuid
+  gestorId                    String?              @map("gestor_id") @db.Uuid
+
   desligadoEm                 DateTime?            @map("desligado_em")
   createdAt                   DateTime             @default(now()) @map("created_at")
   updatedAt                   DateTime             @updatedAt @map("updated_at")
   periodicidadeCicloEscolhida PeriodicidadeCiclo?  @map("periodicidade_ciclo_escolhida")
+
   indicacoes                  Indicado[]
   movimentacoesPontos         MovimentacaoPontos[]
-  gestorPf                    GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  comercial                   Comercial?           @relation(fields: [comercialId], references: [id])
+  gestor                      Gestor?              @relation(fields: [gestorId], references: [id])
   usuario                     Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   primeiraAcss                PrimeiraAcss[]
   procedimentos               ProcedimentoPF[]
   rankingPosicoes             RankingPosicao[]
   solicitacoesResgate         SolicitacaoResgate[]
 
-  @@index([gestorPfId])
+  @@index([comercialId])
+  @@index([gestorId])
   @@map("parceiros")
 }
 
@@ -395,7 +446,9 @@ model ProcedimentoPF {
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
   comercialId      String?            @map("comercial_id") @db.Uuid
+  gestorId         String?            @map("gestor_id") @db.Uuid
   comercial        Comercial?         @relation(fields: [comercialId], references: [id])
+  gestor           Gestor?            @relation(fields: [gestorId], references: [id])
   indicado         Indicado?          @relation(fields: [indicadoId], references: [id])
   parceiro         Parceiro?          @relation(fields: [parceiroId], references: [id])
   upload           UploadPlanilhaPF   @relation(fields: [uploadId], references: [id])
@@ -405,6 +458,7 @@ model ProcedimentoPF {
   @@index([indicadoId])
   @@index([parceiroId])
   @@index([comercialId])
+  @@index([gestorId])
   @@index([uploadId])
   @@map("procedimentos_pf")
 }
@@ -412,11 +466,11 @@ model ProcedimentoPF {
 model PrimeiraAcss {
   id         String   @id @default(uuid()) @db.Uuid
   token      String   @unique
-  parceiroId String   @map("parceiro_id") @db.Uuid
+  parceiroId String?  @map("parceiro_id") @db.Uuid
   expiresAt  DateTime
   revoked    Boolean  @default(false)
   createdAt  DateTime @default(now()) @map("created_at")
-  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+  parceiro   Parceiro? @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@map("primeira_acss")
@@ -570,6 +624,7 @@ enum TipoUsuario {
   GESTOR_PF
   PARCEIRO
   COMERCIAL
+  LIDERANCA
 }
 
 enum PeriodicidadeCiclo {
@@ -585,6 +640,11 @@ enum FuncaoComercial {
   SUPERVISOR_ATENDIMENTO
   GERENTE_ATENDIMENTO
   SUPERVISOR_COMERCIAL
+}
+
+enum TipoLideranca {
+  COMERCIAL
+  GESTOR
 }
 
 enum PapelGestor {

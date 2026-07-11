@@ -1,15 +1,31 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@asa/database";
-import { hash } from "bcryptjs";
 import {
   badRequest,
-  created,
-  forbidden,
   ok,
   requireGestorPFWithScope,
+  created,
+  forbidden,
 } from "@/lib/api-helpers";
-import { criarComercialSchema } from "@asa/shared";
-import { criarAuditLog } from "@/lib/audit";
+import { z } from "zod";
+
+const createComercialSchema = z.object({
+  nome: z.string().min(1),
+  cpf: z.string().length(11),
+  email: z.string().email(),
+  telefone: z.string().optional(),
+  funcao: z.enum([
+    "GERENTE_CIRE",
+    "SUPERVISOR_ATIVO",
+    "SUPERVISOR_RECEPTIVO",
+    "SUPERVISOR_FRANQUIA",
+    "SUPERVISOR_ATENDIMENTO",
+    "GERENTE_ATENDIMENTO",
+    "SUPERVISOR_COMERCIAL",
+  ]).optional(),
+  lideranca: z.enum(["COMERCIAL", "GESTOR"]).optional(),
+  percentualComissao: z.number().min(0).max(100),
+});
 
 export async function GET() {
   console.log("[comerciais GET] Iniciando requisição...");
@@ -17,15 +33,23 @@ export async function GET() {
   console.log("[comerciais GET] Session:", session?.user?.email, "gestorPfId:", gestorPfId, "error:", error?.status);
   if (error) return error;
 
-  const comerciais = await prisma.comercial.findMany({
+  // Buscar todas as lideranças deste gestor-pf
+  const liderancas = await prisma.lideranca.findMany({
     where: { gestorPfId },
     include: {
-      usuario: {
-        select: { id: true, email: true, status: true },
+      comerciais: {
+        include: {
+          usuario: {
+            select: { id: true, email: true, status: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
       },
     },
-    orderBy: { createdAt: "desc" },
   });
+
+  // Planificar todos os comerciais de todas as lideranças
+  const comerciais = liderancas.flatMap(l => l.comerciais);
 
   return ok(
     comerciais.map((c) => ({
@@ -37,111 +61,112 @@ export async function GET() {
       percentualComissao: c.percentualComissao,
       status: c.status,
       createdAt: c.createdAt,
+      liderancaId: c.liderancaId,
+      tipoLideranca: c.tipoLideranca,
     })),
   );
 }
 
 export async function POST(req: NextRequest) {
-  console.log("[comerciais POST] Iniciando requisição...");
+  const { session, gestorPfId, error } = await requireGestorPFWithScope();
+  if (error) return error;
+
   try {
-    const { session, gestorPfId, error } = await requireGestorPFWithScope();
-    console.log("[comerciais POST] Session:", session?.user?.email, "gestorPfId:", gestorPfId, "error:", error?.status);
-    if (error) return error;
+    const body = await req.json();
+    const data = createComercialSchema.parse(body);
 
-    let body: any;
-    try {
-      body = await req.json();
-    } catch (parseErr) {
-      return badRequest("Corpo da requisição inválido. Envie JSON válido.");
-    }
-
-    const parsed = criarComercialSchema.safeParse(body);
-    if (!parsed.success) {
-      const messages = parsed.error.errors.map((e) => e.message).join(", ");
-      return badRequest(messages);
-    }
-
-    const { nome, email, cpf, telefone, percentualComissao, funcao } = parsed.data;
-    const cpfClean = cpf.replace(/\D/g, "");
-    const percentualNum =
-      typeof percentualComissao === "string"
-        ? parseFloat(percentualComissao)
-        : percentualComissao;
-
-    const existsUsuario = await prisma.usuario.findUnique({
-      where: { email: email.toLowerCase().trim() },
+    // Verificar se já existe usuário com este email
+    const existingUser = await prisma.usuario.findUnique({
+      where: { email: data.email.toLowerCase() },
     });
-    if (existsUsuario) {
-      return badRequest("Email já cadastrado no sistema");
+
+    if (existingUser) {
+      return badRequest("Já existe um usuário com este email");
     }
 
-    const existsCpf = await prisma.comercial.findUnique({
-      where: { cpf: cpfClean },
+    // Verificar se já existe comercial com este CPF
+    const existingComercial = await prisma.comercial.findUnique({
+      where: { cpf: data.cpf },
     });
-    if (existsCpf) {
-      return badRequest("CPF já cadastrado como Comercial");
+
+    if (existingComercial) {
+      return badRequest("Já existe um comercial com este CPF");
     }
 
-    const gestorPf = await prisma.gestorPF.findUnique({
-      where: { id: gestorPfId! },
+    // Buscar a primeira liderança do tipo COMERCIAL para este gestor-pf
+    // ou criar uma nova se não existir
+    let lideranca = await prisma.lideranca.findFirst({
+      where: { gestorPfId, tipo: "COMERCIAL" },
     });
-    if (!gestorPf) {
-      return forbidden();
-    }
 
-    const senhaTemporaria = cpfClean.substring(0, 5);
-    const senhaHash = await hash(senhaTemporaria, 12);
-
-    const result = await prisma.$transaction(async (tx) => {
-      const usuario = await tx.usuario.create({
+    if (!lideranca) {
+      // Criar nova liderança tipo COMERCIAL
+      const usuarioLideranca = await prisma.usuario.create({
         data: {
-          nome,
-          email: email.toLowerCase().trim(),
-          senhaHash,
+          nome: data.nome,
+          email: data.email.toLowerCase(),
+          senhaHash: "", // será definido no primeiro login
+          tipo: "GESTOR",
+          papel: "GESTOR_PF",
+        },
+      });
+
+      lideranca = await prisma.lideranca.create({
+        data: {
+          usuarioId: usuarioLideranca.id,
+          nome: data.nome,
+          cpf: data.cpf,
+          gestorPfId,
           tipo: "COMERCIAL",
-          telefone: telefone || undefined,
-          senhaTemporaria: true,
         },
       });
+    }
 
-      const comercial = await tx.comercial.create({
-        data: {
-          usuarioId: usuario.id,
-          nome,
-          cpf: cpfClean,
-          percentualComissao: percentualNum,
-          funcao: funcao || null,
-          status: "ATIVO",
-          gestorPfId: gestorPfId!,
-        },
-      });
-
-      return { usuario, comercial };
+    // Criar usuário para o comercial
+    const usuario = await prisma.usuario.create({
+      data: {
+        nome: data.nome,
+        email: data.email.toLowerCase(),
+        senhaHash: "",
+        tipo: "COMERCIAL",
+        telefone: data.telefone,
+      },
     });
 
-    try {
-      await criarAuditLog({
-        usuarioId: session!.user.id,
-        acao: "CRIAR_COMERCIAL",
-        entidade: "comercial",
-        entidadeId: result.comercial.id,
-        detalhes: { nome, email, cpf: cpfClean },
-      });
-    } catch (auditErr) {
-      // Não interrompe a resposta por falha no audit log
-      console.error("[comerciais] Erro ao criar audit log:", auditErr);
-    }
+    // Criar comercial
+    const comercial = await prisma.comercial.create({
+      data: {
+        usuarioId: usuario.id,
+        nome: data.nome,
+        cpf: data.cpf,
+        liderancaId: lideranca.id,
+        percentualComissao: data.percentualComissao,
+        funcao: data.funcao,
+        tipoLideranca: data.lideranca,
+      },
+      include: {
+        usuario: {
+          select: { id: true, email: true, status: true },
+        },
+      },
+    });
 
     return created({
-      id: result.comercial.id,
-      usuarioId: result.usuario.id,
-      nome,
-      email: email.toLowerCase().trim(),
-      cpf: cpfClean,
-      senhaTemporaria,
+      id: comercial.id,
+      nome: comercial.nome,
+      cpf: comercial.cpf,
+      email: comercial.usuario.email,
+      funcao: comercial.funcao,
+      percentualComissao: comercial.percentualComissao,
+      status: comercial.status,
+      tipoLideranca: comercial.tipoLideranca,
     });
-  } catch (err: any) {
-    console.error("[comerciais] Erro ao criar comercial:", err);
-    return badRequest(err?.message || "Erro interno ao criar comercial");
+  } catch (e: any) {
+    console.error("[comerciais POST] Erro:", e);
+    if (e instanceof z.ZodError) {
+      return badRequest("Dados inválidos");
+    }
+    return badRequest("Erro ao criar comercial");
   }
 }
+

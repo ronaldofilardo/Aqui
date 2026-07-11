@@ -14,11 +14,10 @@ export function ComercialModal({ comercial, onSave, onClose }: ComercialModalPro
     ...comercial,
     telefone: comercial.telefone || "",
     funcao: comercial.funcao || "",
+    lideranca: comercial.lideranca || "",
   });
 
-  const [lideranca, setLideranca] = useState<"COMERCIAL" | "GESTOR" | undefined>(
-    comercial.lideranca || undefined
-  );
+  const [lideranca, setLideranca] = useState(comercial.lideranca || "");
 
   const funcoesComercial = [
     "SUPERVISOR_COMERCIAL",
@@ -100,11 +99,10 @@ export function ComercialModal({ comercial, onSave, onClose }: ComercialModalPro
               Liderança
             </label>
             <select
-              value={lideranca || ""}
+              value={lideranca}
               onChange={(e) => {
-                const value = e.target.value as "COMERCIAL" | "GESTOR" | "";
-                setLideranca(value || undefined);
-                setFormData({ ...formData, lideranca: value || undefined, funcao: "" });
+                setLideranca(e.target.value);
+                setFormData({ ...formData, lideranca: e.target.value as "COMERCIAL" | "GESTOR", funcao: "" });
               }}
               className="w-full px-3 py-2 border rounded"
             >

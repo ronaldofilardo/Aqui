@@ -37,20 +37,42 @@ const consultorNav: NavItem[] = [
 
 const gestorpFNav: NavItem[] = [
   { label: "Dashboard", href: "/gestor-pf/dashboard", icon: "📊" },
-  { label: "Parceiros", href: "/gestor-pf/parceiros", icon: "👥" },
-  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
-  { label: "Upload Planilha", href: "/gestor-pf/uploads", icon: "📥" },
+  { 
+    label: "Usuários", 
+    href: "/gestor-pf/usuarios", 
+    icon: "👥",
+    subItems: [
+      { label: "Comerciais", href: "/gestor-pf/usuarios/comerciais" },
+    ]
+  },
   { 
     label: "Produção", 
     href: "/gestor-pf/producao", 
     icon: "📋",
     subItems: [
+      { label: "Upload Planilha", href: "/gestor-pf/producao/upload" },
       { label: "Procedimentos", href: "/gestor-pf/producao/procedimentos" },
-      { label: "Relatórios", href: "/gestor-pf/producao/relatorios" },
-      { label: "Pagamentos", href: "/gestor-pf/producao/pagamentos" },
     ]
   },
-  { label: "Configurações", href: "/gestor-pf/configuracoes", icon: "⚙️" },
+  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
+  { 
+    label: "Comissionamento", 
+    href: "/gestor-pf/comissionamento", 
+    icon: "💰",
+    subItems: [
+      { label: "Relatórios", href: "/gestor-pf/comissionamento/relatorios" },
+      { label: "Pagamentos", href: "/gestor-pf/comissionamento/pagamentos" },
+    ]
+  },
+  { 
+    label: "Configurações", 
+    href: "/gestor-pf/configuracoes", 
+    icon: "⚙️",
+    subItems: [
+      { label: "Regras", href: "/gestor-pf/configuracoes/regras" },
+      { label: "Comissões", href: "/gestor-pf/configuracoes/comissoes" },
+    ]
+  },
 ];
 
 const parceiroNav: NavItem[] = [
