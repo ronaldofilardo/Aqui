@@ -36,7 +36,7 @@ const consultorNav: NavItem[] = [
 ];
 
 const gestorpFNav: NavItem[] = [
-  { label: "Dashboard", href: "/gestor-pf/dashboard", icon: "📊" },
+  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
   { 
     label: "Usuários", 
     href: "/gestor-pf/usuarios", 
@@ -54,7 +54,6 @@ const gestorpFNav: NavItem[] = [
       { label: "Procedimentos", href: "/gestor-pf/producao/procedimentos" },
     ]
   },
-  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
   { 
     label: "Comissionamento", 
     href: "/gestor-pf/comissionamento", 

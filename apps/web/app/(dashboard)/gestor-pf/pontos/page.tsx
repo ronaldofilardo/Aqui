@@ -9,10 +9,12 @@ import { ConfiguracaoPontos } from "./components/configuracao-pontos";
 import { PremiosPontos } from "./components/premios-pontos";
 import { RankingPontos } from "./components/ranking-pontos";
 import { ResgatePontos } from "./components/resgate-pontos";
+import { ParceirosPontos } from "./components/parceiros-pontos";
 
-type TabType = "ciclos" | "configuracao" | "premios" | "ranking" | "resgates" | "distribuir";
+type TabType = "parceiros" | "ciclos" | "configuracao" | "premios" | "ranking" | "resgates" | "distribuir";
 
 const TABS: { id: TabType; label: string; icon: string }[] = [
+  { id: "parceiros", label: "Parceiros", icon: "🤝" },
   { id: "ciclos", label: "Ciclos", icon: "📅" },
   { id: "configuracao", label: "Configuração", icon: "⚙️" },
   { id: "distribuir", label: "Distribuir Pontos", icon: "💰" },
@@ -65,6 +67,7 @@ export default function GestorPFPontosPage() {
               {activeTab === "ciclos" && <CiclosPontos data={data.ciclos} />}
               {activeTab === "configuracao" && <ConfiguracaoPontos data={data.configuracao} />}
               {activeTab === "distribuir" && <DistribuirPontos data={data.distribuir} ciclo={data.ciclo} />}
+              {activeTab === "parceiros" && <ParceirosPontos />}
               {activeTab === "premios" && <PremiosPontos data={data.premios} />}
               {activeTab === "ranking" && <RankingPontos data={data.ranking} />}
               {activeTab === "resgates" && <ResgatePontos data={data.resgates} />}
