@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { RegrasComerciais, RegrasGestores } from "../types";
+import type { RegrasComerciais, RegrasGestores } from "../comissoes-gestao/types";
 import { RegrasComerciaisForm } from "@/app/(dashboard)/gestor-pf/configuracoes/comissoes-gestao/components/regras-comerciais-form";
 import { RegrasGestoresForm } from "@/app/(dashboard)/gestor-pf/configuracoes/comissoes-gestao/components/regras-gestores-form";
 

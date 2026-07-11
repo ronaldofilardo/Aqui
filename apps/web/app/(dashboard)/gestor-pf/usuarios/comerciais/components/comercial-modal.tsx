@@ -14,7 +14,7 @@ export function ComercialModal({ comercial, onSave, onClose }: ComercialModalPro
     ...comercial,
     telefone: comercial.telefone || "",
     funcao: comercial.funcao || "",
-    lideranca: comercial.lideranca || "",
+    lideranca: comercial.lideranca,
   });
 
   const [lideranca, setLideranca] = useState(comercial.lideranca || "");

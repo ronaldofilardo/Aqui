@@ -31,7 +31,7 @@ export async function processarUploadPlanilhaPF(
     await prisma.uploadPlanilhaPF.update({
       where: { id: uploadId },
       data: {
-        status: "PROCESSADO",
+        status: "CONCLUIDO",
         totalRows: 0,
         processedRows: 0,
         rejectedRows: 0,
