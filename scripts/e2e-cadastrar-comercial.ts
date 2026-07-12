@@ -20,6 +20,8 @@ import { criarComercialSchema } from "@asa/shared";
 const prisma = new PrismaClient();
 
 const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+const uniqueCpf = () =>
+  `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
 // Gera CPF válido com algoritmo de verificação
 function gerarCPFValido(): string {
@@ -154,7 +156,33 @@ async function cadastrarComercial(gestorPfId: string, payload: any) {
     return null;
   }
 
-  // 4. Create user and comercial
+  // 4. Find or create Lideranca
+  let lideranca = await prisma.lideranca.findFirst({
+    where: { gestorPfId, tipo: "COMERCIAL" },
+  });
+
+  if (!lideranca) {
+    const usuarioLideranca = await prisma.usuario.create({
+      data: {
+        nome: "Lideranca Comercial",
+        email: `lideranca-${unique()}@test.com`,
+        senhaHash: await hash("x", 4),
+        tipo: "GESTOR",
+      },
+    });
+
+    lideranca = await prisma.lideranca.create({
+      data: {
+        usuarioId: usuarioLideranca.id,
+        nome: "Lideranca Comercial",
+        cpf: uniqueCpf(),
+        gestorPfId,
+        tipo: "COMERCIAL",
+      },
+    });
+  }
+
+  // 5. Create user and comercial
   const senhaTemporaria = cpfClean.substring(0, 5);
   const senhaHash = await hash(senhaTemporaria, 12);
 
@@ -177,7 +205,7 @@ async function cadastrarComercial(gestorPfId: string, payload: any) {
         cpf: cpfClean,
         percentualComissao: percentualNum,
         status: "ATIVO",
-        gestorPfId,
+        liderancaId: lideranca.id,
       },
     });
 
@@ -291,8 +319,8 @@ async function main() {
 
     // Step 2: Schema Validation
     await validateSchema(
-      { nome: "Test", email, cpf, telefone: "11999999999", percentualComissao: "5.5" },
-      { nome: "Test", email: "invalid-email", cpf, telefone: "11999999999", percentualComissao: "5.5" }
+      { nome: "Test", email, cpf, telefone: "11999999999" },
+      { nome: "Test", email: "invalid-email", cpf, telefone: "11999999999" }
     );
 
     // Step 3: Simulate API
@@ -301,7 +329,6 @@ async function main() {
       email,
       cpf,
       telefone: "11999999999",
-      percentualComissao: 7.5,
     });
 
     if (!result) {

@@ -595,9 +595,9 @@ describe("criarComercialSchema", () => {
       nome: "Mariana Comercial",
       email: "mariana@empresa.com",
       cpf: "530.511.739-91",
-      percentualComissao: 2.5,
     });
     expect(result.success).toBe(true);
+    expect((result as any).data.percentualComissao).toBe(0);
   });
 
   it("deve aceitar percentual como string numérica", () => {
@@ -616,7 +616,6 @@ describe("criarComercialSchema", () => {
       email: "mariana@empresa.com",
       cpf: "530.511.739-91",
       telefone: "11999998888",
-      percentualComissao: 1,
     });
     expect(result.success).toBe(true);
   });
@@ -646,7 +645,6 @@ describe("criarComercialSchema", () => {
       nome: "X",
       email: "x@y.com",
       cpf: "12345678900",
-      percentualComissao: 1,
     });
     expect(result.success).toBe(false);
   });
@@ -656,7 +654,6 @@ describe("criarComercialSchema", () => {
       nome: "Mariana",
       email: "email-sem-arroba",
       cpf: "530.511.739-91",
-      percentualComissao: 1,
     });
     expect(result.success).toBe(false);
   });
@@ -675,7 +672,6 @@ describe("criarComercialSchema", () => {
       nome: "Ma",
       email: "mariana@empresa.com",
       cpf: "530.511.739-91",
-      percentualComissao: 1,
     });
     expect(result.success).toBe(false);
   });

@@ -13,7 +13,6 @@ export function NovoComercialForm({ onCreated }: NovoComercialFormProps) {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [funcao, setFuncao] = useState("");
-  const [percentualComissao, setPercentualComissao] = useState("5");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -30,7 +29,7 @@ export function NovoComercialForm({ onCreated }: NovoComercialFormProps) {
           email: email.toLowerCase().trim(),
           telefone: telefone || undefined,
           funcao: funcao || undefined,
-          percentualComissao: parseFloat(percentualComissao),
+          percentualComissao: 0,
         }),
       });
 
@@ -46,7 +45,6 @@ export function NovoComercialForm({ onCreated }: NovoComercialFormProps) {
       setEmail("");
       setTelefone("");
       setFuncao("");
-      setPercentualComissao("5");
       onCreated();
     } catch {
       toast.error("Erro ao criar comercial");
@@ -126,21 +124,6 @@ export function NovoComercialForm({ onCreated }: NovoComercialFormProps) {
             <option value="SUPERVISOR_ATIVO">Supervisor Ativo</option>
             <option value="SUPERVISOR_RECEPTIVO">Supervisor Receptivo</option>
           </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            % Comissão
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="100"
-            value={percentualComissao}
-            onChange={(e) => setPercentualComissao(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-primary-500"
-            required
-          />
         </div>
       </div>
       <button

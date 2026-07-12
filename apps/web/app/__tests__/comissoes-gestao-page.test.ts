@@ -6,6 +6,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 describe("Comissões Gestão - Página e Funcionalidades", () => {
   let gestorPfId: string;
   let gestorPfUsuarioId: string;
+  let liderancaId: string;
   let comercialId: string;
   let comercialUsuarioId: string;
 
@@ -32,11 +33,32 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       },
     });
     gestorPfId = gestorPf.id;
+
+    // Criar liderança COMERCIAL
+    const liderancaUsuario = await prisma.usuario.create({
+      data: {
+        nome: "Lideranca Comercial",
+        email: `lideranca.${Date.now()}@test.com`,
+        senhaHash: await hash("123456", 12),
+        tipo: "GESTOR",
+      },
+    });
+
+    const lideranca = await prisma.lideranca.create({
+      data: {
+        usuarioId: liderancaUsuario.id,
+        nome: "Lideranca Comercial",
+        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        gestorPfId,
+        tipo: "COMERCIAL",
+      },
+    });
+    liderancaId = lideranca.id;
   });
 
   beforeEach(async () => {
     // Limpar comerciais existentes antes de cada teste
-    await prisma.comercial.deleteMany({ where: { gestorPfId } }).catch(() => {});
+    await prisma.comercial.deleteMany({ where: { liderancaId } }).catch(() => {});
 
     // Criar comercial para testes
     const comercialUsuario = await prisma.usuario.create({
@@ -53,7 +75,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     const comercial = await prisma.comercial.create({
       data: {
         usuarioId: comercialUsuario.id,
-        gestorPfId,
+        liderancaId,
         nome: "Comercial Teste",
         cpf: `${Date.now()}00000000000`.slice(0, 11),
         percentualComissao: 3.0,
@@ -84,8 +106,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const novoComercial = await prisma.comercial.create({
         data: {
           usuarioId: usuario.id,
-          gestorPfId,
-          nome: "Novo Comercial",
+          liderancaId, nome: "Novo Comercial",
           cpf: "99988877766",
           funcao: "SUPERVISOR_COMERCIAL",
           percentualComissao: 4.0,
@@ -103,7 +124,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
 
     it("deve listar todos os comerciais do gestor PF", async () => {
       const comerciais = await prisma.comercial.findMany({
-        where: { gestorPfId },
+        where: { liderancaId },
         include: { usuario: true },
       });
 
@@ -226,8 +247,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const comercialTemp = await prisma.comercial.create({
         data: {
           usuarioId: usuarioTemp.id,
-          gestorPfId,
-          nome: "Comercial Temp",
+          liderancaId, nome: "Comercial Temp",
           cpf: `${Date.now()}00000000000`.slice(0, 11),
           percentualComissao: 3.0,
           status: "ATIVO",
@@ -261,8 +281,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const comercialTemp = await prisma.comercial.create({
         data: {
           usuarioId: usuarioTemp.id,
-          gestorPfId,
-          nome: "Comercial Com Comissao",
+          liderancaId, nome: "Comercial Com Comissao",
           cpf: `${Date.now()}11111111111`.slice(0, 11),
           percentualComissao: 3.0,
           status: "ATIVO",
@@ -307,8 +326,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const comercialTemp = await prisma.comercial.create({
         data: {
           usuarioId: usuarioTemp.id,
-          gestorPfId,
-          nome: "Comercial Com Meta",
+          liderancaId, nome: "Comercial Com Meta",
           cpf: `${Date.now()}22222222222`.slice(0, 11),
           percentualComissao: 3.0,
           status: "ATIVO",

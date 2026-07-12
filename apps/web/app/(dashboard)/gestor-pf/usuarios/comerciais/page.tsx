@@ -307,7 +307,6 @@ function NovoComercialForm({ onCreated }: { onCreated: () => void }) {
   const [telefone, setTelefone] = useState("");
   const [lideranca, setLideranca] = useState("");
   const [funcao, setFuncao] = useState("");
-  const [percentualComissao, setPercentualComissao] = useState("5");
   const [loading, setLoading] = useState(false);
 
   const funcoesComercial = [
@@ -342,7 +341,7 @@ function NovoComercialForm({ onCreated }: { onCreated: () => void }) {
           telefone: telefone || undefined,
           lideranca: lideranca || undefined,
           funcao: funcao || undefined,
-          percentualComissao: parseFloat(percentualComissao),
+          percentualComissao: 0,
         }),
       });
 
@@ -359,7 +358,6 @@ function NovoComercialForm({ onCreated }: { onCreated: () => void }) {
       setTelefone("");
       setLideranca("");
       setFuncao("");
-      setPercentualComissao("5");
       onCreated();
     } catch {
       toast.error("Erro ao criar comercial");
@@ -459,21 +457,6 @@ function NovoComercialForm({ onCreated }: { onCreated: () => void }) {
               <option key={f} value={f}>{f.replace(/_/g, " ")}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            % Comissão
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="100"
-            value={percentualComissao}
-            onChange={(e) => setPercentualComissao(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-primary-500"
-            required
-          />
         </div>
         <div className="flex items-end">
           <button

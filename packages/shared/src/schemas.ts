@@ -328,7 +328,8 @@ export const criarComercialSchema = z.object({
       },
       { message: "Deve estar entre 0 e 100" },
     )
-    .optional(),
+    .optional()
+    .default(0),
   funcao: z.enum([
     "GERENTE_CIRE",
     "SUPERVISOR_ATIVO",

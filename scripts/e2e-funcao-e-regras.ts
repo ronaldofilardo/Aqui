@@ -73,7 +73,7 @@ async function main() {
         cpf: gerarCPFValido(),
         gestorPfId: gestorPf.id,
         funcao: "GERENTE_CIRE",
-        percentualComissao: 5.0,
+        percentualComissao: 0,
       },
     });
     if (comercial.funcao === "GERENTE_CIRE") {
