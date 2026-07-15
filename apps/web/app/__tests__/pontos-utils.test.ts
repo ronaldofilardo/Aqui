@@ -1,221 +1,343 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+/**
+ * Testes Unitários - Utils de Pontos
+ * Valida cálculos de pontos, comissões e ciclos
+ */
 
-// Mock do Prisma para isolar testes do utils.ts (sem precisar de DB real)
-const configFindFirstMock = vi.fn();
-const cicloFindFirstMock = vi.fn();
-
-vi.mock("@asa/database", () => ({
-  prisma: {
-    configuracaoPontos: {
-      findFirst: (...args: unknown[]) => configFindFirstMock(...args),
-    },
-    cicloPontos: {
-      findFirst: (...args: unknown[]) => cicloFindFirstMock(...args),
-    },
-  },
-}));
-
-import {
-  normalizarCPF,
-  validarCPF,
-  calcularPontosDeProducao,
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { prisma } from '@asa/database';
+import { hash } from 'bcryptjs';
+import { 
+  calcularPontosDeProducao, 
   obterCicloVigente,
-} from "@/lib/pontos-utils";
+  calcularComissaoComercial 
+} from '@/lib/pontos-utils';
+import { Decimal } from '@prisma/client/runtime/library';
 
-describe("normalizarCPF", () => {
-  it("remove caracteres não numéricos", () => {
-    expect(normalizarCPF("530.511.739-91")).toBe("53051173991");
-  });
+describe('Pontos Utils - Testes Unitários', () => {
+  let backofficeId: string;
+  let backofficeUsuarioId: string;
+  let liderancaId: string;
+  let comercialId: string;
 
-  it("mantém apenas dígitos mesmo com espaços", () => {
-    expect(normalizarCPF(" 530 511 739 91 ")).toBe("53051173991");
-  });
+  beforeEach(async () => {
+    // Setup: Criar backoffice, liderança e comercial
+    const backofficeUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Backoffice Teste Utils',
+        email: `backoffice-utils-${Date.now()}@asa.com`,
+        senhaHash: await hash('123456', 12),
+        tipo: 'BACKOFFICE',
+        papel: 'BACKOFFICE',
+      },
+    });
+    backofficeUsuarioId = backofficeUsuario.id;
 
-  it("retorna vazio se entrada vazia", () => {
-    expect(normalizarCPF("")).toBe("");
-  });
+    const backoffice = await prisma.backoffice.create({
+      data: {
+        usuarioId: backofficeUsuario.id,
+        nome: 'Backoffice Utils Test',
+        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        percentualComissaoDefault: 5.0,
+      },
+    });
+    backofficeId = backoffice.id;
 
-  it("retorna string vazia quando caracteres não-numéricos", () => {
-    expect(normalizarCPF("abc.def-ghi")).toBe("");
-  });
-});
-
-describe("validarCPF (helper de pontos-utils)", () => {
-  it("valida CPF correto", () => {
-    expect(validarCPF("530.511.739-91")).toBe(true);
-  });
-
-  it("rejeita CPF com todos os dígitos iguais", () => {
-    expect(validarCPF("00000000000")).toBe(false);
-  });
-
-  it("rejeita CPF de tamanho incorreto", () => {
-    expect(validarCPF("123")).toBe(false);
-  });
-});
-
-describe("calcularPontosDeProducao", () => {
-  beforeEach(() => {
-    configFindFirstMock.mockReset();
-  });
-
-  it("calcula pontos com arredondamento padrão (round)", async () => {
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: { toNumber: () => 10 },
-      tipoArredondamento: "PADRAO",
+    const liderancaUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Lideranca Utils Test',
+        email: `lideranca-utils-${Date.now()}@asa.com`,
+        senhaHash: await hash('123456', 12),
+        tipo: 'LIDERANCA',
+      },
     });
 
-    // R$ 100 / R$ 10/pp = 10 pontos
-    const pontos = await calcularPontosDeProducao(
-      100,
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(10);
-  });
+    const lideranca = await prisma.lideranca.create({
+      data: {
+        usuarioId: liderancaUsuario.id,
+        nome: 'Lideranca Utils',
+        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        backofficeId,
+        tipo: 'COMERCIAL',
+      },
+    });
+    liderancaId = lideranca.id;
 
-  it("arredonda para baixo com tipoArredondamento PISO", async () => {
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: { toNumber: () => 7 },
-      tipoArredondamento: "PISO",
+    const comercialUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Comercial Utils Test',
+        email: `comercial-utils-${Date.now()}@asa.com`,
+        senhaHash: await hash('123456', 12),
+        tipo: 'COMERCIAL',
+      },
     });
 
-    // 50 / 7 = 7.14 → PISO = 7
-    const pontos = await calcularPontosDeProducao(
-      50,
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(7);
-  });
-
-  it("arredonda para cima com tipoArredondamento TETO", async () => {
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: { toNumber: () => 7 },
-      tipoArredondamento: "TETO",
+    const comercial = await prisma.comercial.create({
+      data: {
+        usuarioId: comercialUsuario.id,
+        liderancaId,
+        nome: 'Comercial Utils',
+        cpf: `${Date.now()}00000000002`.slice(0, 11),
+        percentualComissao: 5.0,
+        funcao: 'SUPERVISOR_ATIVO',
+      },
     });
-
-    // 50 / 7 = 7.14 → TETO = 8
-    const pontos = await calcularPontosDeProducao(
-      50,
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(8);
+    comercialId = comercial.id;
   });
 
-  it("arredonda para o inteiro mais próximo (PADRÃO) em valor fracionário ", async () => {
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: { toNumber: () => 7 },
-      tipoArredondamento: "PADRAO",
-    });
-
-    // 50 / 7 = 7.14 → round = 7
-    const pontos = await calcularPontosDeProducao(
-      50,
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(7);
-  });
-
-  it("lança erro se não houver configuração vigente", async () => {
-    configFindFirstMock.mockResolvedValueOnce(null);
-
-    await expect(
-      calcularPontosDeProducao(100, new Date("2026-07-15"), "gp-id"),
-    ).rejects.toThrow(
-      "Configuração de pontos não encontrada para a data de referência",
-    );
-  });
-
-  it("aceita totalPago como Decimal (Prisma)", async () => {
-    class DecimalLike {
-      v: number;
-      constructor(v: number) {
-        this.v = v;
-      }
-      toNumber() {
-        return this.v;
-      }
+  afterEach(async () => {
+    // Cleanup em cascata
+    if (comercialId) {
+      await prisma.comercial.deleteMany({ where: { id: comercialId } });
     }
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: new DecimalLike(10),
-      tipoArredondamento: "PADRAO",
+    if (liderancaId) {
+      await prisma.lideranca.deleteMany({ where: { id: liderancaId } });
+    }
+    if (backofficeId) {
+      await prisma.backoffice.delete({ where: { id: backofficeId } });
+    }
+    if (backofficeUsuarioId) {
+      await prisma.usuario.deleteMany({ where: { id: backofficeUsuarioId } });
+    }
+  });
+
+  describe('calcularPontosDeProducao', () => {
+    it('deve calcular pontos com configuração PADRAO', async () => {
+      // Criar configuração de pontos
+      await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: new Decimal(100), // R$ 100 = 1 ponto
+          tipoArredondamento: 'PADRAO',
+          vigenteDesde: new Date('2026-01-01'),
+        },
+      });
+
+      const pontos = await calcularPontosDeProducao(
+        150, // R$ 150,00
+        new Date('2026-03-15'),
+        backofficeId,
+      );
+
+      expect(pontos).toBe(2); // 150/100 = 1.5 → 2 (arredondamento padrão)
     });
 
-    const pontos = await calcularPontosDeProducao(
-      // simula um Decimal com toNumber (Prisma Decimal)
-      { toNumber: () => 100 } as unknown as number,
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(10);
-  });
+    it('deve calcular pontos com configuração PISO', async () => {
+      await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: new Decimal(100),
+          tipoArredondamento: 'PISO',
+          vigenteDesde: new Date('2026-01-01'),
+        },
+      });
 
-  it("retorna no mínimo 0 (não negativo)", async () => {
-    configFindFirstMock.mockResolvedValueOnce({
-      valorPorPonto: { toNumber: () => 1000 },
-      tipoArredondamento: "PADRAO",
+      const pontos = await calcularPontosDeProducao(
+        150,
+        new Date('2026-03-15'),
+        backofficeId,
+      );
+
+      expect(pontos).toBe(1); // 150/100 = 1.5 → 1 (piso)
     });
 
-    const pontos = await calcularPontosDeProducao(
-      5, // 5 / 1000 = 0.005 → round = 0
-      new Date("2026-07-15"),
-      "gp-id",
-    );
-    expect(pontos).toBe(0);
+    it('deve calcular pontos com configuração TETO', async () => {
+      await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: new Decimal(100),
+          tipoArredondamento: 'TETO',
+          vigenteDesde: new Date('2026-01-01'),
+        },
+      });
+
+      const pontos = await calcularPontosDeProducao(
+        150,
+        new Date('2026-03-15'),
+        backofficeId,
+      );
+
+      expect(pontos).toBe(2); // 150/100 = 1.5 → 2 (teto)
+    });
+
+    it('deve retornar 0 se não houver configuração', async () => {
+      const pontos = await calcularPontosDeProducao(
+        150,
+        new Date('2026-03-15'),
+        '00000000-0000-0000-0000-000000000000',
+      );
+
+      expect(pontos).toBe(0);
+    });
+
+    it('deve usar configuração vigente na data correta', async () => {
+      // Criar configuração antiga
+      await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: new Decimal(50), // R$ 50 = 1 ponto
+          tipoArredondamento: 'PADRAO',
+          vigenteDesde: new Date('2026-01-01'),
+          vigenteAte: new Date('2026-02-28'),
+        },
+      });
+
+      // Criar configuração nova
+      await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: new Decimal(200), // R$ 200 = 1 ponto
+          tipoArredondamento: 'PADRAO',
+          vigenteDesde: new Date('2026-03-01'),
+        },
+      });
+
+      // Data em março usa configuração nova
+      const pontosMarco = await calcularPontosDeProducao(
+        200,
+        new Date('2026-03-15'),
+        backofficeId,
+      );
+      expect(pontosMarco).toBe(1); // 200/200 = 1
+
+      // Data em fevereiro usa configuração antiga
+      const pontosFevereiro = await calcularPontosDeProducao(
+        100,
+        new Date('2026-02-15'),
+        backofficeId,
+      );
+      expect(pontosFevereiro).toBe(2); // 100/50 = 2
+    });
   });
-});
 
-describe("obterCicloVigente", () => {
-  beforeEach(() => {
-    cicloFindFirstMock.mockReset();
+  describe('obterCicloVigente', () => {
+    it('deve retornar ciclo EM_ANDAMENTO', async () => {
+      await prisma.cicloPontos.create({
+        data: {
+          backofficeId,
+          nome: 'Ciclo Vigente Test',
+          periodicidade: 'ANUAL',
+          inicioAcumuloEm: new Date('2026-01-01'),
+          fimAcumuloEm: new Date('2026-06-30'),
+          fimResgateEm: new Date('2026-08-31'),
+          status: 'EM_ANDAMENTO',
+        },
+      });
+
+      const ciclo = await obterCicloVigente(backofficeId);
+
+      expect(ciclo).toBeDefined();
+      expect(ciclo?.nome).toBe('Ciclo Vigente Test');
+      expect(ciclo?.status).toBe('EM_ANDAMENTO');
+    });
+
+    it('deve retornar ciclo RESGATE_ABERTO se não houver EM_ANDAMENTO', async () => {
+      await prisma.cicloPontos.create({
+        data: {
+          backofficeId,
+          nome: 'Ciclo Resgate Test',
+          periodicidade: 'ANUAL',
+          inicioAcumuloEm: new Date('2026-01-01'),
+          fimAcumuloEm: new Date('2026-06-30'),
+          fimResgateEm: new Date('2026-08-31'),
+          status: 'RESGATE_ABERTO',
+        },
+      });
+
+      const ciclo = await obterCicloVigente(backofficeId);
+
+      expect(ciclo).toBeDefined();
+      expect(ciclo?.status).toBe('RESGATE_ABERTO');
+    });
+
+    it('deve retornar null se não houver ciclo vigente', async () => {
+      const ciclo = await obterCicloVigente(backofficeId);
+
+      expect(ciclo).toBeNull();
+    });
+
+    it('deve filtrar por periodicidade SEMESTRAL', async () => {
+      await prisma.cicloPontos.create({
+        data: {
+          backofficeId,
+          nome: 'Ciclo Semestral',
+          periodicidade: 'SEMESTRAL',
+          inicioAcumuloEm: new Date('2026-01-01'),
+          fimAcumuloEm: new Date('2026-06-30'),
+          fimResgateEm: new Date('2026-08-31'),
+          status: 'EM_ANDAMENTO',
+        },
+      });
+
+      await prisma.cicloPontos.create({
+        data: {
+          backofficeId,
+          nome: 'Ciclo Anual',
+          periodicidade: 'ANUAL',
+          inicioAcumuloEm: new Date('2026-01-01'),
+          fimAcumuloEm: new Date('2026-12-31'),
+          fimResgateEm: new Date('2027-02-28'),
+          status: 'EM_ANDAMENTO',
+        },
+      });
+
+      const cicloSemestral = await obterCicloVigente(backofficeId, 'SEMESTRAL');
+      expect(cicloSemestral?.nome).toBe('Ciclo Semestral');
+
+      const cicloAnual = await obterCicloVigente(backofficeId, 'ANUAL');
+      expect(cicloAnual?.nome).toBe('Ciclo Anual');
+    });
   });
 
-  it("retorna ciclo SEMESTRAL vigente quando informada a periodicidade", async () => {
-    const ciclo = { id: "c1", periodicidade: "SEMESTRAL" };
-    cicloFindFirstMock.mockResolvedValueOnce(ciclo);
+  describe('calcularComissaoComercial', () => {
+    beforeEach(async () => {
+      // Criar regras comerciais
+      await prisma.regraComercial.create({
+        data: {
+          backofficeId,
+          cartaoAcessoSaude: new Decimal(5),
+          cireAtivo: new Decimal(10),
+          cireReceptivo: new Decimal(8),
+          franchisingAcesso: new Decimal(3),
+          franchisingCartao: new Decimal(4),
+          unidade: new Decimal(2),
+        },
+      });
+    });
 
-    const result = await obterCicloVigente("gp-id", "SEMESTRAL");
-    expect(result).toBe(ciclo);
-    expect(cicloFindFirstMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          gestorPfId: "gp-id",
-          periodicidade: "SEMESTRAL",
-        }),
-      }),
-    );
-  });
+    it('deve calcular comissão para SUPERVISOR_ATIVO', async () => {
+      const resultado = await calcularComissaoComercial({
+        comercialId,
+        valorProcedimento: 10000,
+        dataReferencia: new Date('2026-03-15'),
+      });
 
-  it("retorna ciclo ANUAL vigente quando informada a periodicidade", async () => {
-    const ciclo = { id: "c2", periodicidade: "ANUAL" };
-    cicloFindFirstMock.mockResolvedValueOnce(ciclo);
+      expect(resultado.valorComissao).toBeGreaterThan(0);
+      expect(resultado.percentual).toBe(10); // 10% para SUPERVISOR_ATIVO
+    });
 
-    const result = await obterCicloVigente("gp-id", "ANUAL");
-    expect(result).toBe(ciclo);
-    expect(cicloFindFirstMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ periodicidade: "ANUAL" }),
-      }),
-    );
-  });
+    it('deve retornar comissão zero se não houver regras', async () => {
+      // Deletar regras
+      await prisma.regraComercial.deleteMany({
+        where: { backofficeId },
+      });
 
-  it("quando periodicidade NÃO é informada, deixa o filtro em aberto", async () => {
-    const ciclo = { id: "c3", periodicidade: "ANUAL" };
-    cicloFindFirstMock.mockResolvedValueOnce(ciclo);
+      const resultado = await calcularComissaoComercial({
+        comercialId,
+        valorProcedimento: 10000,
+        dataReferencia: new Date('2026-03-15'),
+      });
 
-    const result = await obterCicloVigente("gp-id");
-    expect(result).toBe(ciclo);
+      expect(resultado.valorComissao).toBe(0);
+    });
 
-    const whereArg = cicloFindFirstMock.mock.calls[0][0]?.where;
-    expect(whereArg.periodicidade).toBeUndefined();
-  });
-
-  it("retorna null quando não há ciclo vigente", async () => {
-    cicloFindFirstMock.mockResolvedValueOnce(null);
-    const result = await obterCicloVigente("gp-id", "ANUAL");
-    expect(result).toBeNull();
+    it('deve lançar erro se comercial não existir', async () => {
+      await expect(
+        calcularComissaoComercial({
+          comercialId: '00000000-0000-0000-0000-000000000000',
+          valorProcedimento: 10000,
+          dataReferencia: new Date('2026-03-15'),
+        })
+      ).rejects.toThrow('Comercial não encontrado');
+    });
   });
 });

@@ -20,39 +20,39 @@ const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 const uniqueCpf = () =>
   `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
-async function criarGestorPF() {
-  return prisma.gestorPF.create({
+async function criarBackoffice() {
+  return prisma.backoffice.create({
     data: {
       usuario: {
         create: {
-          nome: "Gestor PF",
-          email: `gestor-${unique()}@test.com`,
+          nome: "Backoffice",
+          email: `backoffice-${unique()}@test.com`,
           senhaHash: await hash("x", 4),
-          tipo: "GESTOR_PF",
+          tipo: "BACKOFFICE",
+          papel: "BACKOFFICE",
         },
       },
-      nome: `Gestor ${unique()}`,
+      nome: `Backoffice ${unique()}`,
       cpf: uniqueCpf(),
     },
   });
 }
 
 async function criarConfiguracao(
-  gestorPfId: string,
+  liderancaId: string,
   valorPorPonto: number,
   tipo: "PADRAO" | "PISO" | "TETO" = "PADRAO",
 ) {
   return prisma.configuracaoPontos.create({
     data: {
-      gestorPfId,
-      valorPorPonto,
+      liderancaId, valorPorPonto,
       tipoArredondamento: tipo,
       vigenteDesde: new Date("2026-01-01"),
     },
   });
 }
 
-async function criarParceiro(gestorPfId: string) {
+async function criarParceiro(backofficeId: string) {
   const u = await prisma.usuario.create({
     data: {
       nome: "Parceiro",
@@ -66,8 +66,7 @@ async function criarParceiro(gestorPfId: string) {
       usuarioId: u.id,
       nome: "Parceiro Teste",
       cpf: uniqueCpf(),
-      gestorPfId,
-    },
+      liderancaId, },
   });
 }
 
@@ -81,7 +80,7 @@ async function criarIndicado(parceiroId: string, cpf = uniqueCpf()) {
   });
 }
 
-async function criarComercial(gestorPfId: string, percentual: number) {
+async function criarComercial(liderancaId: string, percentual: number) {
   const u = await prisma.usuario.create({
     data: {
       nome: `Comercial ${unique()}`,
@@ -95,8 +94,7 @@ async function criarComercial(gestorPfId: string, percentual: number) {
       usuarioId: u.id,
       nome: u.nome,
       cpf: uniqueCpf(),
-      gestorPfId,
-      percentualComissao: percentual,
+      liderancaId, percentualComissao: percentual,
     },
   });
 }
@@ -110,7 +108,7 @@ function criarPlanilha(linhas: Array<Record<string, unknown>>): Buffer {
 }
 
 describe("Upload Fluxo — Pontos e Comercial por linha", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
   let parceiroId: string;
   let indicadoId: string;
   let comercialId: string;
@@ -119,25 +117,24 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
   let cicloId: string;
 
   beforeAll(async () => {
-    const gp = await criarGestorPF();
-    gestorPfId = gp.id;
+    const gp = await criarBackoffice();
+    backofficeId = gp.id;
 
-    const cfg = await criarConfiguracao(gestorPfId, 10);
+    const cfg = await criarConfiguracao(liderancaId, 10);
     configId = cfg.id;
 
-    const parceiro = await criarParceiro(gestorPfId);
+    const parceiro = await criarParceiro(backofficeId);
     parceiroId = parceiro.id;
 
     const indicado = await criarIndicado(parceiroId);
     indicadoId = indicado.id;
 
-    const comercial = await criarComercial(gestorPfId, 5);
+    const comercial = await criarComercial(liderancaId, 5);
     comercialId = comercial.id;
 
-    const upload = await prisma.uploadPlanilhaPF.create({
+    const upload = await prisma.uploadPlanilhaBackoffice.create({
       data: {
-        gestorPfId,
-        nomeArquivo: "test.xlsx",
+        liderancaId, nomeArquivo: "test.xlsx",
         mesReferencia: "2026-09",
       },
     });
@@ -145,8 +142,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
 
     const ciclo = await prisma.cicloPontos.create({
       data: {
-        gestorPfId,
-        nome: "Ciclo Upload Test",
+        liderancaId, nome: "Ciclo Upload Test",
         periodicidade: "ANUAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-12-31"),
@@ -166,10 +162,10 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     await prisma.comissaoComercial
       .deleteMany({ where: { comercialId } })
       .catch(() => {});
-    await prisma.procedimentoPF
+    await prisma.procedimentoBackoffice
       .deleteMany({ where: { uploadId } })
       .catch(() => {});
-    await prisma.uploadPlanilhaPF
+    await prisma.uploadPlanilhaBackoffice
       .delete({ where: { id: uploadId } })
       .catch(() => {});
     await prisma.cicloPontos
@@ -216,11 +212,11 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     const dataRef = new Date("2026-09-02");
     const totalPago = 100; // R$100 com config 10/pp = 10 pontos
 
-    await prisma.procedimentoPF.deleteMany({
+    await prisma.procedimentoBackoffice.deleteMany({
       where: { cpf: cpfCliente, dataReferencia: dataRef },
     });
 
-    const proc = await prisma.procedimentoPF.create({
+    const proc = await prisma.procedimentoBackoffice.create({
       data: {
         dataReferencia: dataRef,
         dataPagamento: dataRef,
@@ -259,7 +255,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     await prisma.movimentacaoPontos.deleteMany({
       where: { referenciaProcedimentoId: proc.id },
     });
-    await prisma.procedimentoPF.delete({ where: { id: proc.id } });
+    await prisma.procedimentoBackoffice.delete({ where: { id: proc.id } });
     await prisma.indicado.deleteMany({ where: { cpf: cpfCliente } });
   });
 
@@ -338,7 +334,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
       data: { nome: "SemCom", cpf: cpfCliente, parceiroId },
     });
 
-    const proc = await prisma.procedimentoPF.create({
+    const proc = await prisma.procedimentoBackoffice.create({
       data: {
         dataReferencia: new Date("2026-09-10"),
         dataPagamento: new Date("2026-09-10"),
@@ -378,7 +374,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     await prisma.movimentacaoPontos.deleteMany({
       where: { referenciaProcedimentoId: proc.id },
     });
-    await prisma.procedimentoPF.delete({ where: { id: proc.id } });
+    await prisma.procedimentoBackoffice.delete({ where: { id: proc.id } });
     await prisma.indicado.deleteMany({ where: { cpf: cpfCliente } });
   });
 
@@ -388,7 +384,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
       data: { nome: "Cliente Busca Nome", cpf: cpfCliente, parceiroId },
     });
 
-    const comercialNomeTeste = await criarComercial(gestorPfId, 5);
+    const comercialNomeTeste = await criarComercial(liderancaId, 5);
     await prisma.comercial.update({
       where: { id: comercialNomeTeste.id },
       data: { nome: "Comercial Nome Teste" },
@@ -397,7 +393,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     const dataRef = new Date("2026-09-15");
     const totalPago = 300;
 
-    const proc = await prisma.procedimentoPF.create({
+    const proc = await prisma.procedimentoBackoffice.create({
       data: {
         dataReferencia: dataRef,
         dataPagamento: dataRef,
@@ -423,7 +419,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
 
     expect(procBusca?.comercial?.nome).toBe("Comercial Nome Teste");
 
-    await prisma.procedimentoPF.delete({ where: { id: proc.id } });
+    await prisma.procedimentoBackoffice.delete({ where: { id: proc.id } });
     await prisma.comercial.delete({ where: { id: comercialNomeTeste.id } });
     await prisma.indicado.deleteMany({ where: { cpf: cpfCliente } });
   });

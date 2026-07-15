@@ -29,7 +29,7 @@ async function limparBanco() {
     console.log("✅ Comerciais limpos");
 
     // Limpar gestores PF
-    await prisma.gestorPF.deleteMany();
+    await prisma.backoffice.deleteMany();
     console.log("✅ Gestores PF limpos");
 
     // Limpar regras comerciais

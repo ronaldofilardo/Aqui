@@ -97,15 +97,33 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
     });
 
     it("deve criar GestorConsultor para relacionar gestor com consultor", async () => {
+      // Primeiro cria o consultor
+      const usuario = await prisma.usuario.create({
+        data: {
+          nome: "Consultor Para Relação",
+          email: `consultor-relation-${unique()}@test.com`,
+          senhaHash: await hash("12345", 12),
+          tipo: "CONSULTOR",
+          senhaTemporaria: true,
+        },
+      });
+
+      const consultor = await prisma.consultor.create({
+        data: {
+          usuarioId: usuario.id,
+          cpf: uniqueCpf(),
+        },
+      });
+
       const relation = await prisma.gestorConsultor.create({
         data: {
           gestorId,
-          consultorId,
+          consultorId: consultor.id,
         },
       });
 
       expect(relation.gestorId).toBe(gestorId);
-      expect(relation.consultorId).toBe(consultorId);
+      expect(relation.consultorId).toBe(consultor.id);
     });
   });
 

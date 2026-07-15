@@ -35,44 +35,35 @@ const consultorNav: NavItem[] = [
   { label: "Dados Pessoais", href: "/consultor/dados-pessoais", icon: "👤" },
 ];
 
-const gestorpFNav: NavItem[] = [
-  { label: "Pontos", href: "/gestor-pf/pontos", icon: "🎯" },
+const backofficeNav: NavItem[] = [
+  { label: "Pontos", href: "/backoffice/pontos", icon: "🎯" },
   { 
     label: "Usuários", 
-    href: "/gestor-pf/usuarios", 
+    href: "/backoffice/usuarios", 
     icon: "👥",
     subItems: [
-      { label: "Comerciais", href: "/gestor-pf/usuarios/comerciais" },
+      { label: "Comerciais", href: "/backoffice/usuarios/comerciais" },
     ]
   },
   { 
     label: "Produção", 
-    href: "/gestor-pf/producao", 
+    href: "/backoffice/producao", 
     icon: "📋",
     subItems: [
-      { label: "Upload Planilha", href: "/gestor-pf/producao/upload" },
-      { label: "Procedimentos", href: "/gestor-pf/producao/procedimentos" },
+      { label: "Upload Planilha", href: "/backoffice/producao/upload" },
+      { label: "Procedimentos", href: "/backoffice/producao/procedimentos" },
     ]
   },
   { 
     label: "Comissionamento", 
-    href: "/gestor-pf/comissionamento", 
+    href: "/backoffice/comissionamento", 
     icon: "💰",
     subItems: [
-      { label: "Relatórios", href: "/gestor-pf/comissionamento/relatorios" },
-      { label: "Pagamentos", href: "/gestor-pf/comissionamento/pagamentos" },
+      { label: "Relatórios", href: "/backoffice/comissionamento/relatorios" },
+      { label: "Pagamentos", href: "/backoffice/comissionamento/pagamentos" },
     ]
   },
-  { 
-    label: "Configurações", 
-    href: "/gestor-pf/configuracoes", 
-    icon: "⚙️",
-    subItems: [
-      { label: "Regras", href: "/gestor-pf/configuracoes/regras" },
-      { label: "Comissões", href: "/gestor-pf/configuracoes/comissoes" },
-    ]
-  },
-];
+  ];
 
 const parceiroNav: NavItem[] = [
   { label: "Cadastrar Cliente", href: "/parceiro/indicados", icon: "👥" },
@@ -98,7 +89,7 @@ const estabelecimentoNav: NavItem[] = [
 function getTipoLabel(tipo: string | undefined) {
   if (tipo === "ADMIN") return "Administrador";
   if (tipo === "GESTOR") return "Gestor";
-  if (tipo === "GESTOR_PF") return "Gestor PF";
+  if (tipo === "BACKOFFICE") return "Backoffice";
   if (tipo === "PARCEIRO") return "Parceiro";
   if (tipo === "CONSULTOR") return "Consultor";
   if (tipo === "ESTABELECIMENTO") return "Estabelecimento";
@@ -114,9 +105,9 @@ export function Sidebar() {
 
   let navItems: NavItem[];
   if (tipo === "ADMIN") navItems = adminNav;
-  else if (tipo === "GESTOR" && papel === "GESTOR_PF") navItems = gestorpFNav;
+  else if (tipo === "GESTOR" && papel === "BACKOFFICE") navItems = backofficeNav;
+  else if (tipo === "BACKOFFICE") navItems = backofficeNav;
   else if (tipo === "GESTOR") navItems = gestorNav;
-  else if (tipo === "GESTOR_PF") navItems = gestorpFNav;
   else if (tipo === "PARCEIRO") navItems = parceiroNav;
   else if (tipo === "COMERCIAL") navItems = comercialNav;
   else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;

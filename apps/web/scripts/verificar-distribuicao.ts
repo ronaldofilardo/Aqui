@@ -3,8 +3,8 @@ import { prisma } from "@asa/database";
 async function main() {
   console.log("🔍 Verificando procedimentos para distribuição...\n");
 
-  // Buscar gestor PF
-  const gestor = await prisma.gestorPF.findFirst({
+  // Buscar backoffice
+  const backoffice = await prisma.backoffice.findFirst({
     include: {
       ciclosPontos: {
         where: {
@@ -14,30 +14,40 @@ async function main() {
     },
   });
 
-  if (!gestor) {
-    console.log("❌ Nenhum gestor PF encontrado");
+  if (!backoffice) {
+    console.log("❌ Nenhum backoffice encontrado");
     return;
   }
 
-  console.log(`👤 Gestor: ${gestor.nome}`);
-  console.log(`📅 Ciclos vigentes: ${gestor.ciclosPontos.length}`);
+  console.log(`👤 Backoffice: ${backoffice.nome}`);
+  console.log(`📅 Ciclos vigentes: ${backoffice.ciclosPontos.length}`);
   
-  if (gestor.ciclosPontos.length === 0) {
+  if (backoffice.ciclosPontos.length === 0) {
     console.log("  ⚠️  Nenhum ciclo vigente!");
     return;
   }
 
-  const ciclo = gestor.ciclosPontos[0];
+  const ciclo = backoffice.ciclosPontos[0];
   console.log(`  - ${ciclo.nome} (${ciclo.status})`);
   console.log(`    Período: ${ciclo.inicioAcumuloEm.toLocaleDateString("pt-BR")} a ${ciclo.fimAcumuloEm.toLocaleDateString("pt-BR")}`);
 
-  // Buscar procedimentos do gestor
+  // Buscar procedimentos do backoffice
+  const liderancas = await prisma.lideranca.findMany({
+    where: { backofficeId: backoffice.id },
+    include: {
+      comerciais: { include: { parceiros: { select: { id: true } } } },
+      gestores: { include: { parceiros: { select: { id: true } } } }
+    }
+  });
+
+  const parceiroIds = [
+    ...liderancas.flatMap(l => l.comerciais.flatMap(c => c.parceiros.map(p => p.id))),
+    ...liderancas.flatMap(l => l.gestores.flatMap(g => g.parceiros.map(p => p.id)))
+  ];
+
   const procedimentos = await prisma.procedimentoPF.findMany({
     where: {
-      parceiro: {
-        gestorPfId: gestor.id,
-      },
-      parceiroId: { not: null },
+      parceiroId: parceiroIds.length > 0 ? { in: parceiroIds } : undefined,
     },
     include: {
       parceiro: {
@@ -68,7 +78,7 @@ async function main() {
   for (const proc of procedimentos) {
     const temPonto = movimentacoes.find(m => m.referenciaProcedimentoId === proc.id);
     console.log(`  - ${proc.paciente} | ${proc.procedimento.substring(0, 40)}...`);
-    console.log(`    Parceiro: ${proc.parceiro.nome}`);
+    console.log(`    Parceiro: ${proc.parceiro!.nome}`);
     console.log(`    Valor: R$ ${proc.totalPago}`);
     console.log(`    Data: ${proc.dataReferencia.toLocaleDateString("pt-BR")}`);
     console.log(`    Pontos: ${temPonto ? `✅ ${temPonto.quantidade}` : '❌ NÃO DISTRIBUÍDO'}`);

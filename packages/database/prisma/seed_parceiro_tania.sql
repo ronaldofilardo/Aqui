@@ -1,9 +1,9 @@
 -- Script de Seed para Parceiro Tania Kar e Indicados
 -- Executar: psql -U postgres -d asa_db -h localhost -f seed_parceiro_tania.sql
 
--- 1. Garantir que o Gestor PF existe
+-- 1. Garantir que o Backoffice existe
 INSERT INTO usuarios (id, nome, email, senha_hash, tipo, papel, status, senha_temporaria)
-VALUES (gen_random_uuid(), 'Gestor PF', 'gestor-pf@asa.com', '$2a$12$LqlvWzH1bDMSFkHnVKxG5OZqvZ8qKxLxVxKqxLxVxKqxLxVxKqxLx', 'GESTOR', 'GESTOR_PF', 'ATIVO', false)
+VALUES (gen_random_uuid(), 'Backoffice Admin', 'backoffice@asa.com', '$2a$12$LqlvWzH1bDMSFkHnVKxG5OZqvZ8qKxLxVxKqxLxVxKqxLxVxKqxLx', 'BACKOFFICE', 'BACKOFFICE', 'ATIVO', false)
 ON CONFLICT (email) DO UPDATE SET senha_hash = EXCLUDED.senha_hash, senha_temporaria = false;
 
 -- 2. Criar usuário parceiro Tania Kar
@@ -15,18 +15,18 @@ ON CONFLICT (email) DO UPDATE SET
   senha_temporaria = false,
   telefone = '41992415220';
 
--- 3. Garantir registro GestorPF
-INSERT INTO gestores_pf (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
-SELECT gen_random_uuid(), u.id, 'Gestor PF', '12345678901', 5.00, 100.00, NOW(), NOW()
-FROM usuarios u WHERE u.email = 'gestor-pf@asa.com'
+-- 3. Garantir registro Backoffice
+INSERT INTO backoffices (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
+SELECT gen_random_uuid(), u.id, 'Backoffice Admin', '12345678901', 5.00, 100.00, NOW(), NOW()
+FROM usuarios u WHERE u.email = 'backoffice@asa.com'
 ON CONFLICT (usuario_id) DO NOTHING;
 
 -- 4. Criar registro Parceiro para Tania Kar
-INSERT INTO parceiros (id, usuario_id, nome, cpf, pix_chave, status, gestor_pf_id, periodicidade_ciclo_escolhida, created_at, updated_at)
-SELECT gen_random_uuid(), u.id, 'Tania Kar', '04703084945', '04703084945', 'ATIVO', gp.id, 'ANUAL', NOW(), NOW()
+INSERT INTO parceiros (id, usuario_id, nome, cpf, pix_chave, status, backoffice_id, periodicidade_ciclo_escolhida, created_at, updated_at)
+SELECT gen_random_uuid(), u.id, 'Tania Kar', '04703084945', '04703084945', 'ATIVO', b.id, 'ANUAL', NOW(), NOW()
 FROM usuarios u
-CROSS JOIN gestores_pf gp
-WHERE u.email = 'erew@dfsfds.com' AND gp.cpf = '12345678901'
+CROSS JOIN backoffices b
+WHERE u.email = 'erew@dfsfds.com' AND b.cpf = '12345678901'
 ON CONFLICT (cpf) DO UPDATE SET
   nome = 'Tania Kar',
   usuario_id = EXCLUDED.usuario_id,

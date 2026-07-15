@@ -19,7 +19,26 @@ export async function GET(req: NextRequest) {
     include: {
       parceiro: {
         include: {
-          gestorPf: { select: { nome: true } },
+          comercial: { 
+            select: { 
+              nome: true,
+              lideranca: {
+                select: { 
+                  usuario: { select: { nome: true } }
+                }
+              }
+            } 
+          },
+          gestor: {
+            select: {
+              nome: true,
+              lideranca: {
+                select: { 
+                  usuario: { select: { nome: true } }
+                }
+              }
+            }
+          },
         },
       },
     },
@@ -37,10 +56,22 @@ export async function GET(req: NextRequest) {
     return badRequest("Este link expirou");
   }
 
+  if (!acesso.parceiro) {
+    return notFound("Parceiro não encontrado");
+  }
+
+  // Obter nome do gestor-pf através do comercial ou gestor
+  let gestorNome: string | null = null;
+  if (acesso.parceiro.comercial && acesso.parceiro.comercial.lideranca) {
+    gestorNome = acesso.parceiro.comercial.lideranca.usuario.nome;
+  } else if (acesso.parceiro.gestor && acesso.parceiro.gestor.lideranca) {
+    gestorNome = acesso.parceiro.gestor.lideranca.usuario.nome;
+  }
+
   return ok({
     parceiroId: acesso.parceiroId,
     parceiroNome: acesso.parceiro.nome,
-    gestorNome: acesso.parceiro.gestorPf.nome,
+    gestorNome: gestorNome || "Não disponível",
   });
 }
 
@@ -89,11 +120,15 @@ export async function POST(req: NextRequest) {
     return badRequest("Este link expirou");
   }
 
+  if (!acesso.parceiro || !acesso.parceiro.usuarioId) {
+    return notFound("Parceiro não encontrado");
+  }
+
   const senhaHash = await hash(senha, 12);
 
   await prisma.$transaction(async (tx) => {
     await tx.usuario.update({
-      where: { id: acesso.parceiro.usuarioId },
+      where: { id: acesso.parceiro!.usuarioId! },
       data: {
         senhaHash,
         senhaTemporaria: false,

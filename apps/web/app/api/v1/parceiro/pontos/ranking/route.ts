@@ -16,15 +16,20 @@ export async function GET(req: NextRequest) {
     // Buscar informações do parceiro
     const parceiro = await prisma.parceiro.findUnique({
       where: { id: parceiroId },
-      select: { gestorPfId: true },
+      select: { 
+        comercial: { select: { lideranca: { select: { backofficeId: true } } } },
+        gestor: { select: { lideranca: { select: { backofficeId: true } } } }
+      },
     });
+
+    const backofficeId = parceiro?.comercial?.lideranca?.backofficeId || parceiro?.gestor?.lideranca?.backofficeId;
 
     // Buscar ciclo vigente se não especificado
     let cicloId = cicloPontosId;
     if (!cicloId) {
       const cicloVigente = await prisma.cicloPontos.findFirst({
         where: {
-          gestorPfId: parceiro?.gestorPfId,
+          backofficeId,
           OR: [{ status: "EM_ANDAMENTO" }, { status: "RESGATE_ABERTO" }],
         },
       });
@@ -84,14 +89,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Gerar ranking atual do ciclo
-    const cycle = await prisma.cicloPontos.findUnique({
-      where: { id: cicloId },
+    // Buscar todas as lideranças e seus parceiros
+    const liderancas = await prisma.lideranca.findMany({
+      where: { backofficeId },
+      include: {
+        comerciais: { include: { parceiros: { select: { id: true, nome: true } } } },
+        gestores: { include: { parceiros: { select: { id: true, nome: true } } } }
+      }
     });
 
-    const parceiros = await prisma.parceiro.findMany({
-      where: { gestorPfId: parceiro?.gestorPfId },
-      select: { id: true, nome: true },
-    });
+    const parceiros = [
+      ...liderancas.flatMap(l => l.comerciais.flatMap(c => c.parceiros)),
+      ...liderancas.flatMap(l => l.gestores.flatMap(g => g.parceiros))
+    ];
 
     // Calcular pontos acumulados por parceiro no ciclo
     const rankingAtual = await Promise.all(
@@ -146,12 +156,16 @@ export async function GET(req: NextRequest) {
 
     const minhaPositionAtual = ranking.find((r) => r.euSou);
 
+    const cicloAtual = await prisma.cicloPontos.findUnique({
+      where: { id: cicloId },
+    });
+
     return ok({
       ranking: {
         ciclo: {
           id: cicloId,
-          nome: cycle?.nome,
-          status: cycle?.status,
+          nome: cicloAtual?.nome,
+          status: cicloAtual?.status,
         },
         minhaPositionNo: minhaPositionAtual?.posicao || null,
         meusPontos: minhaPositionAtual?.pontosAcumulados || 0,

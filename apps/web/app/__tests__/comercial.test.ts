@@ -11,18 +11,19 @@ const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 const uniqueCpf = () =>
   `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
-async function criarGestorPF() {
-  return prisma.gestorPF.create({
+async function criarBackoffice() {
+  return prisma.backoffice.create({
     data: {
       usuario: {
         create: {
-          nome: "Gestor PF",
-          email: `gestor-${unique()}@test.com`,
+          nome: "Backoffice",
+          email: `backoffice-${unique()}@test.com`,
           senhaHash: await hash("x", 4),
-          tipo: "GESTOR_PF",
+          tipo: "BACKOFFICE",
+          papel: "BACKOFFICE",
         },
       },
-      nome: `Gestor ${unique()}`,
+      nome: `Backoffice ${unique()}`,
       cpf: uniqueCpf(),
     },
   });
@@ -53,14 +54,14 @@ describe("Comercial - Modelo & Unicidade", () => {
   let comercialIds: string[] = [];
 
   beforeAll(async () => {
-    const gp = await criarGestorPF();
+    const gp = await criarBackoffice();
     const lideranca = await prisma.lideranca.create({
       data: {
         usuarioId: gp.usuarioId,
         nome: gp.nome,
         cpf: uniqueCpf(),
         tipo: "COMERCIAL",
-        gestorPfId: gp.id,
+        backofficeId: gp.id,
       },
     });
     liderancaId = lideranca.id;
@@ -147,20 +148,20 @@ describe("Comercial - Modelo & Unicidade", () => {
 });
 
 describe("MetaComercial - mês único por comercial", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
   let liderancaId: string;
   let comercialId: string;
 
   beforeAll(async () => {
-    const gp = await criarGestorPF();
-    gestorPfId = gp.id;
+    const gp = await criarBackoffice();
+    backofficeId = gp.id;
     const lideranca = await prisma.lideranca.create({
       data: {
         usuarioId: gp.usuarioId,
         nome: gp.nome,
         cpf: uniqueCpf(),
         tipo: "COMERCIAL",
-        gestorPfId: gp.id,
+        backofficeId: gp.id,
       },
     });
     liderancaId = lideranca.id;
@@ -251,20 +252,20 @@ describe("MetaComercial - mês único por comercial", () => {
 });
 
 describe("ComissaoComercial - cálculo idempotente", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
   let liderancaId: string;
   let comercialId: string;
 
   beforeAll(async () => {
-    const gp = await criarGestorPF();
-    gestorPfId = gp.id;
+    const gp = await criarBackoffice();
+    backofficeId = gp.id;
     const lideranca = await prisma.lideranca.create({
       data: {
         usuarioId: gp.usuarioId,
         nome: gp.nome,
         cpf: uniqueCpf(),
         tipo: "COMERCIAL",
-        gestorPfId: gp.id,
+        backofficeId: gp.id,
       },
     });
     liderancaId = lideranca.id;
@@ -275,7 +276,9 @@ describe("ComissaoComercial - cálculo idempotente", () => {
   afterAll(async () => {
     await prisma.metaComercial.deleteMany({ where: { comercialId } });
     await prisma.comissaoComercial.deleteMany({ where: { comercialId } });
-    await prisma.comercial.delete({ where: { id: comercialId } });
+    await prisma.comercial.deleteMany({ where: { id: comercialId } });
+    await prisma.lideranca.deleteMany({ where: { id: liderancaId } });
+    await prisma.backoffice.deleteMany({ where: { id: backofficeId } });
   });
 
   it("deve calcular valorComissao = valorVendas * percentual / 100", () => {
@@ -332,14 +335,14 @@ describe("ProcedimentoPF - comercialId imutável por linha", () => {
   let comercialId: string;
 
   beforeAll(async () => {
-    const gp = await criarGestorPF();
+    const gp = await criarBackoffice();
     const lideranca = await prisma.lideranca.create({
       data: {
         usuarioId: gp.usuarioId,
         nome: gp.nome,
         cpf: uniqueCpf(),
         tipo: "COMERCIAL",
-        gestorPfId: gp.id,
+        backofficeId: gp.id,
       },
     });
     const c = await criarComercial(lideranca.id);

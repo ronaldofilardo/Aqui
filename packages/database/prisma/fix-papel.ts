@@ -4,11 +4,12 @@ async function fixPapel() {
   console.log("Fixing papel for gestores...");
   
   // Update Gestor PF
-  const gestorPf = await prisma.usuario.updateMany({
-    where: { email: "gestor-pf@asa.com.br" },
-    data: { papel: "GESTOR_PF" },
+const backoffice = await prisma.usuario.updateMany({
+    where: { email: "backoffice@asa.com" },
+    data: { papel: "BACKOFFICE" },
   });
-  console.log("Updated Gestor PF:", gestorPf.count);
+
+  console.log("Updated Backoffice:", backoffice.count);
   
   // Update Gestor PJ
   const gestorPj = await prisma.usuario.updateMany({
@@ -19,9 +20,9 @@ async function fixPapel() {
   
   // Verify
   const userPf = await prisma.usuario.findFirst({
-    where: { email: "gestor-pf@asa.com.br" },
+    where: { email: "backoffice@asa.com" },
   });
-  console.log("Verified Gestor PF - Papel:", userPf?.papel);
+  console.log("Verified Backoffice - Papel:", userPf?.papel);
   
   const userPj = await prisma.usuario.findFirst({
     where: { email: "gestor-pj@asa.com.br" },

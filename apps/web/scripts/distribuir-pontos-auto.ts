@@ -4,8 +4,8 @@ import { calcularPontosDeProducao, obterCicloVigente } from "../lib/pontos-utils
 async function main() {
   console.log("🔄 Distribuindo pontos automaticamente para teste...\n");
 
-  // Buscar gestor PF
-  const gestor = await prisma.gestorPF.findFirst({
+  // Buscar backoffice
+  const backoffice = await prisma.backoffice.findFirst({
     include: {
       ciclosPontos: {
         where: {
@@ -15,30 +15,41 @@ async function main() {
     },
   });
 
-  if (!gestor) {
-    console.log("❌ Nenhum gestor PF encontrado");
+  if (!backoffice) {
+    console.log("❌ Nenhum backoffice encontrado");
     return;
   }
 
-  const ciclo = gestor.ciclosPontos[0];
+  const ciclo = backoffice.ciclosPontos[0];
   console.log(`📅 Ciclo: ${ciclo.nome}`);
 
   // Buscar procedimentos sem pontos
   const procedimentos = await prisma.procedimentoPF.findMany({
     where: {
-      parceiro: { gestorPfId: gestor.id },
       parceiroId: { not: null },
     },
     include: {
-      parceiro: { select: { nome: true } },
+      parceiro: { 
+        select: { 
+          nome: true,
+          comercial: { select: { lideranca: { select: { backofficeId: true } } } },
+          gestor: { select: { lideranca: { select: { backofficeId: true } } } }
+        } 
+      },
     },
     orderBy: { dataReferencia: "desc" },
   });
 
+  // Filtrar procedimentos deste backoffice
+  const procedimentosDoBackoffice = procedimentos.filter(p => 
+    p.parceiro?.comercial?.lideranca?.backofficeId === backoffice.id ||
+    p.parceiro?.gestor?.lideranca?.backofficeId === backoffice.id
+  );
+
   let totalDistribuido = 0;
   let totalPontos = 0;
 
-  for (const proc of procedimentos) {
+  for (const proc of procedimentosDoBackoffice) {
     // Verificar se já tem pontos
     const existente = await prisma.movimentacaoPontos.findFirst({
       where: {
@@ -57,7 +68,7 @@ async function main() {
     const pontos = await calcularPontosDeProducao(
       proc.totalPago,
       dataRef,
-      gestor.id,
+      backoffice.id,
     );
 
     // Criar movimentação

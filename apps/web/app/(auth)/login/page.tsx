@@ -81,12 +81,12 @@ export default function LoginPage() {
 
     if (tipo === "ADMIN") {
       router.push("/admin/usuarios");
-    } else if (tipo === "GESTOR" && papel === "GESTOR_PF") {
-      router.push("/gestor-pf/dashboard");
+    } else if (tipo === "GESTOR" && papel === "BACKOFFICE") {
+      router.push("/backoffice/dashboard");
     } else if (tipo === "GESTOR" && papel === "GESTOR_PJ") {
       router.push("/gestor/dashboard");
-    } else if (tipo === "GESTOR_PF") {
-      router.push("/gestor-pf/dashboard");
+    } else if (tipo === "BACKOFFICE") {
+      router.push("/backoffice/dashboard");
     } else if (tipo === "GESTOR_PJ") {
       router.push("/gestor/dashboard");
     } else if (tipo === "PARCEIRO") {

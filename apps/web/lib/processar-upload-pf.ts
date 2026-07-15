@@ -3,7 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 
-const UPLOAD_DIR = join(process.cwd(), "uploads", "gestor-pf");
+const UPLOAD_DIR = join(process.cwd(), "uploads", "backoffice");
 
 /**
  * Processa upload de planilha PF em background
@@ -28,7 +28,7 @@ export async function processarUploadPlanilhaPF(
     await writeFile(filePath, Buffer.from(bytes));
 
     // Atualizar status para processado (placeholder)
-    await prisma.uploadPlanilhaPF.update({
+await prisma.uploadPlanilhaBackoffice.update({
       where: { id: uploadId },
       data: {
         status: "CONCLUIDO",
@@ -42,7 +42,7 @@ export async function processarUploadPlanilhaPF(
     console.log(`[processarUploadPlanilhaPF] Arquivo salvo: ${fileName}`);
   } catch (error) {
     console.error("[processarUploadPlanilhaPF] Erro:", error);
-    await prisma.uploadPlanilhaPF.update({
+    await prisma.uploadPlanilhaBackoffice.update({
       where: { id: uploadId },
       data: { status: "ERRO" },
     });

@@ -4,19 +4,19 @@ async function main() {
   console.log("🔍 Testando endpoint de distribuição...\n");
 
   // Simular o que o endpoint GET faz
-  const gestor = await prisma.gestorPF.findFirst();
+  const backoffice = await prisma.backoffice.findFirst();
   
-  if (!gestor) {
-    console.log("❌ Gestor não encontrado");
+  if (!backoffice) {
+    console.log("❌ Backoffice não encontrado");
     return;
   }
 
-  console.log(`Gestor: ${gestor.nome}`);
+  console.log(`Backoffice: ${backoffice.nome}`);
 
   // Buscar ciclo vigente
   const cicloVigente = await prisma.cicloPontos.findFirst({
     where: {
-      gestorPfId: gestor.id,
+      backofficeId: backoffice.id,
       OR: [{ status: "EM_ANDAMENTO" }, { status: "RESGATE_ABERTO" }],
     },
   });
@@ -29,14 +29,22 @@ async function main() {
   console.log(`Ciclo: ${cicloVigente.nome} (${cicloVigente.status})`);
 
   // Buscar produções - MESMO CÓDIGO DO ENDPOINT
+  const liderancas = await prisma.lideranca.findMany({
+    where: { backofficeId: backoffice.id },
+    include: {
+      comerciais: { include: { parceiros: { select: { id: true } } } },
+      gestores: { include: { parceiros: { select: { id: true } } } }
+    }
+  });
+
+  const parceiroIds = [
+    ...liderancas.flatMap(l => l.comerciais.flatMap(c => c.parceiros.map(p => p.id))),
+    ...liderancas.flatMap(l => l.gestores.flatMap(g => g.parceiros.map(p => p.id)))
+  ];
+
   const producoes = await prisma.procedimentoPF.findMany({
     where: {
-      parceiro: {
-        gestorPfId: gestor.id,
-      },
-      parceiroId: {
-        not: null,
-      },
+      parceiroId: parceiroIds.length > 0 ? { in: parceiroIds } : undefined,
     },
     include: {
       parceiro: {
@@ -85,7 +93,7 @@ async function main() {
 
   console.log("\n📊 Produções para exibir na aba:");
   producoesComPontos.forEach((p, i) => {
-    console.log(`${i + 1}. ${p.paciente} - ${p.parceiro.nome} - R$ ${p.totalPago} - ${p.pontosDistribuidos ? `✅ ${p.pontosDistribuidos.pontos} pts` : '❌ Sem pontos'}`);
+    console.log(`${i + 1}. ${p.paciente} - ${p.parceiro!.nome} - R$ ${p.totalPago} - ${p.pontosDistribuidos ? `✅ ${p.pontosDistribuidos.pontos} pts` : '❌ Sem pontos'}`);
   });
 }
 

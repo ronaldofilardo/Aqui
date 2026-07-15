@@ -4,27 +4,27 @@ import { calcularPontosDeProducao } from "../lib/pontos-utils";
 async function main() {
   console.log("🔍 Simulando endpoint GET /distribuir...\n");
 
-  // Simular requireGestorPFWithScope
-  const gestor = await prisma.gestorPF.findFirst({
+  // Simular requireBackofficeWithScope
+  const backoffice = await prisma.backoffice.findFirst({
     include: { usuario: true },
   });
 
-  if (!gestor) {
-    console.log("❌ Gestor não encontrado");
+  if (!backoffice) {
+    console.log("❌ Backoffice não encontrado");
     return;
   }
 
-  console.log("✅ Gestor encontrado:", gestor.nome);
-  console.log("   ID:", gestor.id);
-  console.log("   Usuario tipo:", gestor.usuario.tipo);
-  console.log("   Usuario papel:", gestor.usuario.papel);
+  console.log("✅ Backoffice encontrado:", backoffice.nome);
+  console.log("   ID:", backoffice.id);
+  console.log("   Usuario tipo:", backoffice.usuario.tipo);
+  console.log("   Usuario papel:", backoffice.usuario.papel);
 
-  const gestorPfId = gestor.id;
+  const backofficeId = backoffice.id;
 
   // Buscar ciclo vigente
   const cicloVigente = await prisma.cicloPontos.findFirst({
     where: {
-      gestorPfId,
+      backofficeId,
       OR: [{ status: "EM_ANDAMENTO" }, { status: "RESGATE_ABERTO" }],
     },
   });
@@ -39,14 +39,22 @@ async function main() {
   console.log("   ID:", cicloVigente.id);
 
   // Buscar produções
+  const liderancas = await prisma.lideranca.findMany({
+    where: { backofficeId },
+    include: {
+      comerciais: { include: { parceiros: { select: { id: true } } } },
+      gestores: { include: { parceiros: { select: { id: true } } } }
+    }
+  });
+
+  const parceiroIds = [
+    ...liderancas.flatMap(l => l.comerciais.flatMap(c => c.parceiros.map(p => p.id))),
+    ...liderancas.flatMap(l => l.gestores.flatMap(g => g.parceiros.map(p => p.id)))
+  ];
+
   const producoes = await prisma.procedimentoPF.findMany({
     where: {
-      parceiro: {
-        gestorPfId,
-      },
-      parceiroId: {
-        not: null,
-      },
+      parceiroId: parceiroIds.length > 0 ? { in: parceiroIds } : undefined,
     },
     include: {
       parceiro: {
@@ -85,7 +93,7 @@ async function main() {
       pontosPotenciais = await calcularPontosDeProducao(
         producao.totalPago,
         producao.dataReferencia,
-        gestorPfId,
+        backofficeId,
       );
     } catch (e: any) {
       console.log(`⚠️ Erro ao calcular pontos: ${e.message}`);
@@ -93,7 +101,7 @@ async function main() {
 
     console.log(`📌 ${producao.paciente}`);
     console.log(`   Procedimento: ${producao.procedimento.substring(0, 50)}...`);
-    console.log(`   Parceiro: ${producao.parceiro.nome}`);
+    console.log(`   Parceiro: ${producao.parceiro!.nome}`);
     console.log(`   Total: R$ ${producao.totalPago}`);
     console.log(`   Data: ${producao.dataReferencia.toLocaleDateString("pt-BR")}`);
     console.log(`   Pontos potenciais: ${pontosPotenciais}`);

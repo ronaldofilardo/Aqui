@@ -3,16 +3,16 @@ import { prisma } from "@asa/database";
 async function main() {
   console.log("🏆 Verificando Ranking...\n");
 
-  const gestor = await prisma.gestorPF.findFirst();
-  if (!gestor) {
-    console.log("❌ Gestor não encontrado");
+  const backoffice = await prisma.backoffice.findFirst();
+  if (!backoffice) {
+    console.log("❌ Backoffice não encontrado");
     return;
   }
 
   // Buscar ciclo vigente
   const ciclo = await prisma.cicloPontos.findFirst({
     where: {
-      gestorPfId: gestor.id,
+      backofficeId: backoffice.id,
       OR: [{ status: "EM_ANDAMENTO" }, { status: "RESGATE_ABERTO" }],
     },
   });
@@ -25,10 +25,18 @@ async function main() {
   console.log(`Ciclo: ${ciclo.nome}`);
 
   // Buscar todos os parceiros
-  const parceiros = await prisma.parceiro.findMany({
-    where: { gestorPfId: gestor.id },
-    select: { id: true, nome: true, cpf: true },
+  const liderancas = await prisma.lideranca.findMany({
+    where: { backofficeId: backoffice.id },
+    include: {
+      comerciais: { include: { parceiros: { select: { id: true, nome: true, cpf: true } } } },
+      gestores: { include: { parceiros: { select: { id: true, nome: true, cpf: true } } } }
+    }
   });
+
+  const parceiros = [
+    ...liderancas.flatMap(l => l.comerciais.flatMap(c => c.parceiros)),
+    ...liderancas.flatMap(l => l.gestores.flatMap(g => g.parceiros))
+  ];
 
   console.log(`\n📊 Ranking de Parceiros:\n`);
 

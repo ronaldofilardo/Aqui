@@ -12,7 +12,20 @@ export async function GET(req: NextRequest) {
     const parceiro = await prisma.parceiro.findUnique({
       where: { id: parceiroId },
       select: {
-        gestorPfId: true,
+        comercial: { 
+          select: { 
+            lideranca: { 
+              select: { backofficeId: true } 
+            } 
+          } 
+        },
+        gestor: { 
+          select: { 
+            lideranca: { 
+              select: { backofficeId: true } 
+            } 
+          } 
+        },
         periodicidadeCicloEscolhida: true,
         _count: {
           select: { movimentacoesPontos: true },
@@ -31,13 +44,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Obter backofficeId através do comercial ou gestor
+    const backofficeId = parceiro.comercial?.lideranca?.backofficeId || parceiro.gestor?.lideranca?.backofficeId;
+
     const periodicidadeEscolhida =
       parceiro.periodicidadeCicloEscolhida ?? null;
     const temMovimentacoes = parceiro._count.movimentacoesPontos > 0;
 
     const cicloVigente = await prisma.cicloPontos.findFirst({
       where: {
-        gestorPfId: parceiro.gestorPfId,
+        backofficeId,
         ...(periodicidadeEscolhida
           ? { periodicidade: periodicidadeEscolhida }
           : {}),

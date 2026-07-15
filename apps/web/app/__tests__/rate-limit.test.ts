@@ -1,130 +1,195 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
+/**
+ * Testes Unitários - Rate Limiting
+ * Valida implementação de rate limiting
+ */
 
-function setNodeEnv(value: string) {
-  // Node 22+ marca process.env como readonly; usar string-index bypassa o check.
-  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { 
+  checkRateLimit, 
+  getRateLimitOptions, 
+  cleanupRateLimitStore,
+  withRateLimit,
+} from '@/lib/rate-limit';
+import { NextRequest } from 'next/server';
+
+interface RateLimitOptions {
+  limit: number;
+  windowMs: number;
 }
 
-describe("Rate Limiting (In-Memory)", () => {
+describe('Rate Limiting', () => {
   beforeEach(() => {
-    // Reset in-memory store before each test
+    // Limpar store antes de cada teste
+    cleanupRateLimitStore();
     vi.clearAllMocks();
   });
 
-  describe("checkRateLimit - Token Bucket", () => {
-    it("deve retornar true quando NODE_ENV !== 'production'", () => {
-      setNodeEnv("development");
+  afterEach(() => {
+    cleanupRateLimitStore();
+  });
 
-      const result = checkRateLimit("test-key", {
-        max: 5,
-        windowMs: 60_000,
+  describe('checkRateLimit', () => {
+    it('deve permitir primeira requisição dentro do limite', () => {
+      const result = checkRateLimit('user-123', { 
+        limit: 10, 
+        windowMs: 60 * 1000 
       });
 
-      expect(result).toBe(true);
-
-      setNodeEnv("test");
+      expect(result.success).toBe(true);
+      expect(result.remaining).toBe(9);
+      expect(result.resetAt).toBeGreaterThan(Date.now());
     });
 
-    it("deve permitir até max requisições dentro da janela", () => {
-      setNodeEnv("production");
+    it('deve bloquear após exceder limite', () => {
+      const options: RateLimitOptions = { 
+        limit: 3, 
+        windowMs: 60 * 1000 
+      };
 
-      for (let i = 0; i < 5; i++) {
-        const result = checkRateLimit("test-key-2", {
-          max: 5,
-          windowMs: 60_000,
-        });
-        expect(result).toBe(true);
-      }
+      // Fazer 3 requisições
+      checkRateLimit('user-456', options);
+      checkRateLimit('user-456', options);
+      checkRateLimit('user-456', options);
 
-      setNodeEnv("test");
+      // 4ª requisição deve ser bloqueada
+      const result = checkRateLimit('user-456', options);
+      
+      expect(result.success).toBe(false);
+      expect(result.remaining).toBe(0);
+      expect(result.resetAt).toBeGreaterThan(Date.now());
     });
 
-    it("deve bloquear requisição quando limite é atingido", () => {
-      setNodeEnv("production");
+    it('deve resetar contador após janela de tempo', async () => {
+      const options: RateLimitOptions = { 
+        limit: 2, 
+        windowMs: 100 // 100ms para teste rápido
+      };
 
-      for (let i = 0; i < 5; i++) {
-        checkRateLimit("test-key-3", { max: 5, windowMs: 60_000 });
-      }
+      // Exceder limite
+      checkRateLimit('user-789', options);
+      checkRateLimit('user-789', options);
+      let result = checkRateLimit('user-789', options);
+      expect(result.success).toBe(false);
 
-      const result = checkRateLimit("test-key-3", {
-        max: 5,
-        windowMs: 60_000,
-      });
+      // Aguardar janela expirar
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-      expect(result).toBe(false);
-
-      setNodeEnv("test");
+      // Nova requisição deve ser permitida
+      result = checkRateLimit('user-789', options);
+      expect(result.success).toBe(true);
+      expect(result.remaining).toBe(1);
     });
 
-    it("deve usar chaves diferentes para cada cliente", () => {
-      setNodeEnv("production");
+    it('deve tratar identificadores diferentes separadamente', () => {
+      const options: RateLimitOptions = { limit: 2, windowMs: 60 * 1000 };
 
-      for (let i = 0; i < 5; i++) {
-        checkRateLimit("client-a", { max: 5, windowMs: 60_000 });
-      }
+      // User 1 excede limite
+      checkRateLimit('user-A', options);
+      checkRateLimit('user-A', options);
+      const resultA = checkRateLimit('user-A', options);
+      expect(resultA.success).toBe(false);
 
-      // client-b tem sua própria quota
-      const result = checkRateLimit("client-b", {
-        max: 5,
-        windowMs: 60_000,
-      });
-
-      expect(result).toBe(true);
-
-      setNodeEnv("test");
+      // User 2 ainda deve ter limite disponível
+      const resultB = checkRateLimit('user-B', options);
+      expect(resultB.success).toBe(true);
+      expect(resultB.remaining).toBe(1);
     });
   });
 
-  describe("tooManyRequests", () => {
-    it("deve retornar 429 com Retry-After header", () => {
-      const response = tooManyRequests(60_000);
-
-      expect(response.status).toBe(429);
-      expect(response.headers.get("Retry-After")).toBe("60");
+  describe('getRateLimitOptions', () => {
+    it('deve retornar opções padrão para rotas não especificadas', () => {
+      const options = getRateLimitOptions('/api/v1/backoffice/rota-desconhecida');
+      
+      expect(options.limit).toBe(100);
+      expect(options.windowMs).toBe(60 * 1000);
     });
 
-    it("deve conter mensagem de erro em português", async () => {
-      const response = tooManyRequests(60_000);
-      const body = await response.json();
+    it('deve retornar opções específicas para /pontos/distribuir', () => {
+      const options = getRateLimitOptions('/api/v1/backoffice/pontos/distribuir');
+      
+      expect(options.limit).toBe(10);
+      expect(options.windowMs).toBe(60 * 1000);
+    });
 
-      expect(body.error).toContain("Muitas tentativas");
+    it('deve retornar opções específicas para /uploads', () => {
+      const options = getRateLimitOptions('/api/v1/backoffice/uploads');
+      
+      expect(options.limit).toBe(5);
+      expect(options.windowMs).toBe(60 * 1000);
+    });
+
+    it('deve retornar opções específicas para /pontos/ranking', () => {
+      const options = getRateLimitOptions('/api/v1/backoffice/pontos/ranking');
+      
+      expect(options.limit).toBe(30);
+      expect(options.windowMs).toBe(60 * 1000);
+    });
+
+    it('deve corresponder rotas com prefixo', () => {
+      const options = getRateLimitOptions('/api/v1/backoffice/pontos/ranking/extra');
+      
+      expect(options.limit).toBe(30);
     });
   });
 
-  describe("getClientIp", () => {
-    it("deve extrair IP do header x-forwarded-for", () => {
-      const request = new Request("http://localhost", {
-        headers: { "x-forwarded-for": "203.0.113.42, 198.51.100.178" },
-      });
-
-      const ip = getClientIp(request);
-      expect(ip).toBe("203.0.113.42");
+  describe('cleanupRateLimitStore', () => {
+    it('deve remover entradas expiradas', async () => {
+      // Criar entrada com janela curta
+      checkRateLimit('user-cleanup', { limit: 5, windowMs: 50 });
+      
+      // Aguardar expiração
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Cleanup deve remover entrada
+      cleanupRateLimitStore();
+      
+      // Nova requisição deve começar do zero
+      const result = checkRateLimit('user-cleanup', { limit: 5, windowMs: 50 });
+      expect(result.remaining).toBe(4); // 5 - 1
     });
 
-    it("deve usar x-real-ip se x-forwarded-for não estiver presente", () => {
-      const request = new Request("http://localhost", {
-        headers: { "x-real-ip": "192.0.2.1" },
-      });
+    it('deve manter entradas válidas', () => {
+      // Criar entrada com janela longa
+      checkRateLimit('user-keep', { limit: 5, windowMs: 60000 });
+      
+      // Cleanup não deve remover
+      cleanupRateLimitStore();
+      
+      // Contador deve ser mantido
+      const result = checkRateLimit('user-keep', { limit: 5, windowMs: 60000 });
+      expect(result.remaining).toBe(3); // 5 - 2
+    });
+  });
 
-      const ip = getClientIp(request);
-      expect(ip).toBe("192.0.2.1");
+  describe('withRateLimit', () => {
+    it('deve permitir requisição dentro do limite', () => {
+      const mockRequest = {
+        headers: new Map([['x-forwarded-for', '192.168.1.1']]),
+        nextUrl: { pathname: '/api/v1/backoffice/pontos/ranking' },
+      } as unknown as NextRequest;
+
+      const result = withRateLimit(mockRequest, { limit: 10, windowMs: 60 * 1000 });
+      
+      expect(result.success).toBe(true);
+      expect(result.response).toBeUndefined();
     });
 
-    it("deve retornar 'unknown' se nenhum IP header for encontrado", () => {
-      const request = new Request("http://localhost", { headers: {} });
+    it('deve bloquear requisição excedendo limite', () => {
+      const mockRequest = {
+        headers: new Map([['x-forwarded-for', '10.0.0.1']]),
+        nextUrl: { pathname: '/api/v1/backoffice/uploads' },
+      } as unknown as NextRequest;
 
-      const ip = getClientIp(request);
-      expect(ip).toBe("unknown");
-    });
+      // Exceder limite (5 req/min)
+      for (let i = 0; i < 5; i++) {
+        withRateLimit(mockRequest, { limit: 5, windowMs: 60 * 1000 });
+      }
 
-    it("deve limpar whitespace do x-forwarded-for", () => {
-      const request = new Request("http://localhost", {
-        headers: { "x-forwarded-for": "  203.0.113.42  , 198.51.100.178" },
-      });
-
-      const ip = getClientIp(request);
-      expect(ip).toBe("203.0.113.42");
+      const result = withRateLimit(mockRequest, { limit: 5, windowMs: 60 * 1000 });
+      
+      expect(result.success).toBe(false);
+      expect(result.response).toBeDefined();
+      expect(result.response!.status).toBe(429);
     });
   });
 });

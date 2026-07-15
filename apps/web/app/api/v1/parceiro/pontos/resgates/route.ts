@@ -94,12 +94,17 @@ export async function POST(req: NextRequest) {
     // Buscar ciclo vigente do gestor do parceiro
     const parceiro = await prisma.parceiro.findUnique({
       where: { id: parceiroId },
-      select: { gestorPfId: true },
+      select: { 
+        comercial: { select: { lideranca: { select: { backofficeId: true } } } },
+        gestor: { select: { lideranca: { select: { backofficeId: true } } } }
+      },
     });
+
+    const backofficeId = parceiro?.comercial?.lideranca?.backofficeId || parceiro?.gestor?.lideranca?.backofficeId;
 
     const cicloVigente = await prisma.cicloPontos.findFirst({
       where: {
-        gestorPfId: parceiro?.gestorPfId,
+        backofficeId,
         status: "RESGATE_ABERTO",
       },
     });

@@ -4,7 +4,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { calcularPontosDeProducao, obterCicloVigente } from "@/lib/pontos-utils";
 
 describe("Endpoint de Distribuição de Pontos", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
   let parceiroId: string;
   let usuarioId: string;
   let cicloId: string;
@@ -16,19 +16,20 @@ describe("Endpoint de Distribuição de Pontos", () => {
         nome: "Usuario Teste Distribuição",
         email: `teste.distribuicao.${Date.now()}@teste.com`,
         senhaHash: "hash123",
-        tipo: "GESTOR_PF",
+        tipo: "BACKOFFICE",
+        papel: "BACKOFFICE",
       },
     });
     usuarioId = usuario.id;
 
-    const gestor = await prisma.gestorPF.create({
+    const backoffice = await prisma.backoffice.create({
       data: {
         usuarioId,
-        nome: "Gestor PF Teste",
+        nome: "Backoffice Teste",
         cpf: `123456789${Date.now()}`,
       },
     });
-    gestorPfId = gestor.id;
+    backofficeId = backoffice.id;
 
     const parceiroUsuario = await prisma.usuario.create({
       data: {
@@ -44,15 +45,13 @@ describe("Endpoint de Distribuição de Pontos", () => {
         usuarioId: parceiroUsuario.id,
         nome: "Parceiro Teste",
         cpf: `987654321${Date.now()}`,
-        gestorPfId,
-      },
+        liderancaId, },
     });
     parceiroId = parceiro.id;
 
     const ciclo = await prisma.cicloPontos.create({
       data: {
-        gestorPfId,
-        nome: "Ciclo Teste Distribuição",
+        liderancaId, nome: "Ciclo Teste Distribuição",
         periodicidade: "SEMESTRAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-06-30"),
@@ -64,8 +63,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
 
     await prisma.configuracaoPontos.create({
       data: {
-        gestorPfId,
-        valorPorPonto: new Decimal(100),
+        liderancaId, valorPorPonto: new Decimal(100),
         tipoArredondamento: "PADRAO",
         vigenteDesde: new Date("2026-01-01"),
       },
@@ -74,11 +72,11 @@ describe("Endpoint de Distribuição de Pontos", () => {
 
   afterEach(async () => {
     await prisma.movimentacaoPontos.deleteMany();
-    await prisma.procedimentoPF.deleteMany();
+    await prisma.procedimentoBackoffice.deleteMany();
     await prisma.cicloPontos.deleteMany();
     await prisma.configuracaoPontos.deleteMany();
     await prisma.parceiro.deleteMany();
-    await prisma.gestorPF.deleteMany();
+    await prisma.backoffice.deleteMany();
     await prisma.usuario.deleteMany();
   });
 
@@ -96,37 +94,34 @@ describe("Endpoint de Distribuição de Pontos", () => {
         const pontos = await calcularPontosDeProducao(
           teste.totalPago,
           new Date("2026-03-15"),
-          gestorPfId,
-        );
+          liderancaId, );
         expect(pontos).toBe(teste.pontosEsperados);
       }
     });
 
     it("deve calcular pontos com arredondamento PISO", async () => {
       await prisma.configuracaoPontos.update({
-        where: { gestorPfId },
+        where: { backofficeId },
         data: { tipoArredondamento: "PISO" },
       });
 
       const pontos = await calcularPontosDeProducao(
         150,
         new Date("2026-03-15"),
-        gestorPfId,
-      );
+        liderancaId, );
       expect(pontos).toBe(1); // 1.5 → 1 (piso)
     });
 
     it("deve calcular pontos com arredondamento TETO", async () => {
       await prisma.configuracaoPontos.update({
-        where: { gestorPfId },
+        where: { backofficeId },
         data: { tipoArredondamento: "TETO" },
       });
 
       const pontos = await calcularPontosDeProducao(
         150,
         new Date("2026-03-15"),
-        gestorPfId,
-      );
+        liderancaId, );
       expect(pontos).toBe(2); // 1.5 → 2 (teto)
     });
 
@@ -134,15 +129,14 @@ describe("Endpoint de Distribuição de Pontos", () => {
       const pontos = await calcularPontosDeProducao(
         10,
         new Date("2026-03-15"),
-        gestorPfId,
-      );
+        liderancaId, );
       expect(pontos).toBe(0);
     });
   });
 
   describe("obterCicloVigente", () => {
     it("deve retornar ciclo EM_ANDAMENTO", async () => {
-      const ciclo = await obterCicloVigente(gestorPfId);
+      const ciclo = await obterCicloVigente(backofficeId);
       expect(ciclo).toBeTruthy();
       expect(ciclo?.status).toBe("EM_ANDAMENTO");
       expect(ciclo?.id).toBe(cicloId);
@@ -154,7 +148,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
         data: { status: "RESGATE_ABERTO" },
       });
 
-      const ciclo = await obterCicloVigente(gestorPfId);
+      const ciclo = await obterCicloVigente(backofficeId);
       expect(ciclo).toBeTruthy();
       expect(ciclo?.status).toBe("RESGATE_ABERTO");
     });
@@ -165,7 +159,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
         data: { status: "ENCERRADO" },
       });
 
-      const ciclo = await obterCicloVigente(gestorPfId);
+      const ciclo = await obterCicloVigente(backofficeId);
       expect(ciclo).toBeNull();
     });
 
@@ -173,8 +167,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
       // Criar ciclo ANUAL
       await prisma.cicloPontos.create({
         data: {
-          gestorPfId,
-          nome: "Ciclo Anual",
+          liderancaId, nome: "Ciclo Anual",
           periodicidade: "ANUAL",
           inicioAcumuloEm: new Date("2026-01-01"),
           fimAcumuloEm: new Date("2026-12-31"),
@@ -184,11 +177,11 @@ describe("Endpoint de Distribuição de Pontos", () => {
       });
 
       // Buscar apenas SEMESTRAL
-      const cicloSemestral = await obterCicloVigente(gestorPfId, "SEMESTRAL");
+      const cicloSemestral = await obterCicloVigente(liderancaId, "SEMESTRAL");
       expect(cicloSemestral?.periodicidade).toBe("SEMESTRAL");
 
       // Buscar apenas ANUAL
-      const cicloAnual = await obterCicloVigente(gestorPfId, "ANUAL");
+      const cicloAnual = await obterCicloVigente(liderancaId, "ANUAL");
       expect(cicloAnual?.periodicidade).toBe("ANUAL");
     });
   });
@@ -208,10 +201,9 @@ describe("Endpoint de Distribuição de Pontos", () => {
           unidade: "Unidade Teste",
           parceiroId,
           uploadId: (
-            await prisma.uploadPlanilhaPF.create({
+            await prisma.uploadPlanilhaBackoffice.create({
               data: {
-                gestorPfId,
-                nomeArquivo: "teste.xlsx",
+                liderancaId, nomeArquivo: "teste.xlsx",
                 mesReferencia: "2026-03",
               },
             })
@@ -222,8 +214,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
       const pontos = await calcularPontosDeProducao(
         procedimento.totalPago,
         procedimento.dataReferencia,
-        gestorPfId,
-      );
+        liderancaId, );
 
       const movimentacao = await prisma.movimentacaoPontos.create({
         data: {
@@ -257,10 +248,9 @@ describe("Endpoint de Distribuição de Pontos", () => {
           unidade: "Unidade Teste",
           parceiroId,
           uploadId: (
-            await prisma.uploadPlanilhaPF.create({
+            await prisma.uploadPlanilhaBackoffice.create({
               data: {
-                gestorPfId,
-                nomeArquivo: "teste.xlsx",
+                liderancaId, nomeArquivo: "teste.xlsx",
                 mesReferencia: "2026-03",
               },
             })
@@ -309,8 +299,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
             uploadId: (
               await prisma.uploadPlanilhaPF.create({
                 data: {
-                  gestorPfId,
-                  nomeArquivo: `teste${i}.xlsx`,
+                  liderancaId, nomeArquivo: `teste${i}.xlsx`,
                   mesReferencia: "2026-03",
                 },
               })
@@ -325,8 +314,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
         const pontos = await calcularPontosDeProducao(
           proc.totalPago,
           proc.dataReferencia,
-          gestorPfId,
-        );
+          liderancaId, );
 
         await prisma.movimentacaoPontos.create({
           data: {

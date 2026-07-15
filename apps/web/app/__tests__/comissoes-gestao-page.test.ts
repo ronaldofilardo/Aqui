@@ -4,35 +4,35 @@ import { hash } from "bcryptjs";
 import { Decimal } from "@prisma/client/runtime/library";
 
 describe("Comissões Gestão - Página e Funcionalidades", () => {
-  let gestorPfId: string;
-  let gestorPfUsuarioId: string;
+  let backofficeId: string;
+  let backofficeUsuarioId: string;
   let liderancaId: string;
   let comercialId: string;
   let comercialUsuarioId: string;
 
   beforeAll(async () => {
-    // Criar usuário Gestor PF
-    const gestorUsuario = await prisma.usuario.create({
+    // Criar usuário Backoffice
+    const backofficeUsuario = await prisma.usuario.create({
       data: {
-        nome: "Gestor PF Teste",
-        email: `gestor.pf.${Date.now()}@test.com`,
+        nome: "Backoffice Teste",
+        email: `backoffice.${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
         tipo: "GESTOR",
         senhaTemporaria: false,
       },
     });
-    gestorPfUsuarioId = gestorUsuario.id;
+    backofficeUsuarioId = backofficeUsuario.id;
 
-    // Criar registro Gestor PF
-    const gestorPf = await prisma.gestorPF.create({
+    // Criar registro Backoffice
+    const backoffice = await prisma.backoffice.create({
       data: {
-        usuarioId: gestorUsuario.id,
-        nome: "Gestor PF Teste",
+        usuarioId: backofficeUsuario.id,
+        nome: "Backoffice Teste",
         cpf: `${Date.now()}00000000000`.slice(0, 11),
         percentualComissaoDefault: 5.0,
       },
     });
-    gestorPfId = gestorPf.id;
+    backofficeId = backoffice.id;
 
     // Criar liderança COMERCIAL
     const liderancaUsuario = await prisma.usuario.create({
@@ -87,8 +87,8 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
 
   afterAll(async () => {
     // Limpeza em cascata já remove registros relacionados
-    await prisma.gestorPF.delete({ where: { id: gestorPfId } }).catch(() => {});
-    await prisma.usuario.delete({ where: { id: gestorPfUsuarioId } }).catch(() => {});
+    await prisma.backoffice.delete({ where: { id: backofficeId } }).catch(() => {});
+    await prisma.usuario.delete({ where: { id: backofficeUsuarioId } }).catch(() => {});
   });
 
   describe("Cadastro de Comerciais", () => {
@@ -122,7 +122,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       await prisma.usuario.delete({ where: { id: usuario.id } }).catch(() => {});
     });
 
-    it("deve listar todos os comerciais do gestor PF", async () => {
+    it("deve listar todos os comerciais do backoffice", async () => {
       const comerciais = await prisma.comercial.findMany({
         where: { liderancaId },
         include: { usuario: true },
@@ -362,7 +362,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     it("deve criar regras comerciais", async () => {
       const regrasComerciais = await prisma.regraComercial.create({
         data: {
-          gestorPfId,
+          backofficeId,
           cartaoAcessoSaude: 5.0,
           cireAtivo: 3.0,
           cireReceptivo: 2.5,
@@ -379,7 +379,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     it("deve criar regras de gestores", async () => {
       const regrasGestores = await prisma.regraGestor.create({
         data: {
-          gestorPfId,
+          backofficeId,
           gerenteCire: 2.0,
           supervisorAtivo: 1.5,
           supervisorReceptivo: 1.0,
@@ -397,13 +397,13 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     it("deve atualizar regras existentes", async () => {
       // Criar regras apenas se não existir
       let regras = await prisma.regraComercial.findUnique({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!regras) {
-        regras = await prisma.regraComercial.create({
-          data: {
-            gestorPfId,
+regras = await prisma.regraComercial.create({
+        data: {
+          backofficeId,
             cartaoAcessoSaude: 5.0,
             cireAtivo: 3.0,
             cireReceptivo: 2.5,

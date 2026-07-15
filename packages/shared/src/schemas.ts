@@ -271,7 +271,7 @@ export const indicarClienteSchema = z.object({
   telefoneIndicado: z.string().optional(),
 });
 
-export const criarGestorPFSchema = z.object({
+export const criarBackofficeSchema = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   email: z.string().email("Email inválido"),
   cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }),
@@ -298,7 +298,7 @@ export const desligarParceiroSchema = z.object({
   confirmar: z.literal(true),
 });
 
-export const atualizarGestorPFSchema = z.object({
+export const atualizarBackofficeSchema = z.object({
   nome: z.string().min(3).optional(),
   percentualComissaoDefault: z.number().min(0).max(100).optional(),
   percentualComissaoMax: z.number().min(0).max(100).optional(),
@@ -379,11 +379,11 @@ export const preferenciaCicloParceiroSchema = z.object({
 });
 
 export type IndicarClienteInput = z.infer<typeof indicarClienteSchema>;
-export type CriarGestorPFInput = z.infer<typeof criarGestorPFSchema>;
+export type CriarBackofficeInput = z.infer<typeof criarBackofficeSchema>;
 export type CriarParceiroInput = z.infer<typeof criarParceiroSchema>;
 export type AtualizarParceiroInput = z.infer<typeof atualizarParceiroSchema>;
 export type DesligarParceiroInput = z.infer<typeof desligarParceiroSchema>;
-export type AtualizarGestorPFInput = z.infer<typeof atualizarGestorPFSchema>;
+export type AtualizarBackofficeInput = z.infer<typeof atualizarBackofficeSchema>;
 export type CadastrarIndicadoInput = z.infer<typeof cadastrarIndicadoSchema>;
 export type ProcessarPlanilhaInput = z.infer<typeof processarPlanilhaSchema>;
 export type CriarComercialInput = z.infer<typeof criarComercialSchema>;

@@ -29,7 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email },
             include: {
               consultor: true,
-              gestorPf: true,
+              backoffice: true,
               parceiro: true,
               comercial: true,
             },
@@ -61,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 papel: user.papel,
                 consultorId: user.consultor?.id ?? null,
                 estabelecimentoId: null,
-                gestorPfId: user.gestorPf?.id ?? null,
+                backofficeId: user.backoffice?.id ?? null,
                 parceiroId: user.parceiro?.id ?? null,
                 comercialId: user.comercial?.id ?? null,
               };
@@ -104,7 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 papel: null,
                 consultorId: null,
                 estabelecimentoId: usuarioEstab.estabelecimentoId,
-                gestorPfId: null,
+                backofficeId: null,
                 parceiroId: null,
                 comercialId: null,
               };
@@ -130,7 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.papel = (user as any).papel;
         token.consultorId = (user as any).consultorId;
         token.estabelecimentoId = (user as any).estabelecimentoId;
-        token.gestorPfId = (user as any).gestorPfId;
+        token.backofficeId = (user as any).backofficeId;
         token.parceiroId = (user as any).parceiroId;
         token.comercialId = (user as any).comercialId;
       }
@@ -143,7 +143,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).papel = token.papel;
         (session.user as any).consultorId = token.consultorId;
         (session.user as any).estabelecimentoId = token.estabelecimentoId;
-        (session.user as any).gestorPfId = token.gestorPfId;
+        (session.user as any).backofficeId = token.backofficeId;
         (session.user as any).parceiroId = token.parceiroId;
         (session.user as any).comercialId = token.comercialId;
       }

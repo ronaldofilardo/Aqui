@@ -13,17 +13,18 @@ const uniqueCpf = () =>
   `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
 async function criarParceiroCompleto() {
-  const gestorPf = await prisma.gestorPF.create({
+  const backoffice = await prisma.backoffice.create({
     data: {
       usuario: {
         create: {
-          nome: "Gestor PF",
-          email: `gestor-${unique()}@test.com`,
+          nome: "Backoffice",
+          email: `backoffice-${unique()}@test.com`,
           senhaHash: await hash("x", 4),
-          tipo: "GESTOR_PF",
+          tipo: "BACKOFFICE",
+          papel: "BACKOFFICE",
         },
       },
-      nome: `Gestor ${unique()}`,
+      nome: `Backoffice ${unique()}`,
       cpf: uniqueCpf(),
     },
   });
@@ -42,11 +43,11 @@ async function criarParceiroCompleto() {
       usuarioId: parceiroUsuario.id,
       nome: "Parceiro Teste",
       cpf: uniqueCpf(),
-      gestorPfId: gestorPf.id,
+      gestorId: backoffice.id,
     },
   });
 
-  return { gestorPf, parceiro };
+  return { backoffice, parceiro };
 }
 
 describe("Parceiro - Preferência de Ciclo (Periodicidade)", () => {
@@ -102,19 +103,18 @@ describe("Parceiro - Preferência de Ciclo (Periodicidade)", () => {
   });
 
   describe("Bloqueio por movimentações existentes", () => {
-    let gestorPfId: string;
+    let backofficeId: string;
     let parceiroId: string;
     let cicloId: string;
 
     beforeAll(async () => {
-      const { gestorPf, parceiro } = await criarParceiroCompleto();
-      gestorPfId = gestorPf.id;
+      const { backoffice, parceiro } = await criarParceiroCompleto();
+      backofficeId = backoffice.id;
       parceiroId = parceiro.id;
 
       const ciclo = await prisma.cicloPontos.create({
         data: {
-          gestorPfId,
-          nome: "Ciclo lock test",
+          liderancaId, nome: "Ciclo lock test",
           periodicidade: "ANUAL",
           inicioAcumuloEm: new Date(),
           fimAcumuloEm: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -167,26 +167,25 @@ describe("Parceiro - Preferência de Ciclo (Periodicidade)", () => {
 });
 
 describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
 
   beforeAll(async () => {
-    const { gestorPf } = await criarParceiroCompleto();
-    gestorPfId = gestorPf.id;
+    const { backoffice } = await criarParceiroCompleto();
+    backofficeId = backoffice.id;
   });
 
   afterAll(async () => {
     await prisma.cicloPontos
-      .deleteMany({ where: { gestorPfId } })
+      .deleteMany({ where: { backofficeId } })
       .catch(() => {});
   });
 
   it("deve permitir dois ciclos ativos, um SEMESTRAL e um ANUAL", async () => {
-    await prisma.cicloPontos.deleteMany({ where: { gestorPfId } }).catch(() => {});
+    await prisma.cicloPontos.deleteMany({ where: { backofficeId } }).catch(() => {});
 
     const semestral = await prisma.cicloPontos.create({
       data: {
-        gestorPfId,
-        nome: "1S/2026",
+        liderancaId, nome: "1S/2026",
         periodicidade: "SEMESTRAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-06-30"),
@@ -197,8 +196,7 @@ describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
 
     const anual = await prisma.cicloPontos.create({
       data: {
-        gestorPfId,
-        nome: "2026",
+        liderancaId, nome: "2026",
         periodicidade: "ANUAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-12-31"),
@@ -212,7 +210,7 @@ describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
     expect(anual.periodicidade).toBe("ANUAL");
 
     const count = await prisma.cicloPontos.count({
-      where: { gestorPfId, status: "EM_ANDAMENTO" },
+      where: { liderancaId, status: "EM_ANDAMENTO" },
     });
     expect(count).toBe(2);
   });

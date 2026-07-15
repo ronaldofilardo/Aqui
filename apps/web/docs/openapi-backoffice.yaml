@@ -1,0 +1,1058 @@
+/**
+ * OpenAPI/Swagger Documentation - API Backoffice
+ * 
+ * Para visualizar a documentação:
+ * 1. Instale: npm install -g swagger-ui-watcher
+ * 2. Execute: swagger-ui-watcher openapi-backoffice.yaml
+ * 
+ * Ou use o Swagger Hub: https://app.swaggerhub.com/
+ */
+
+openapi: 3.0.3
+info:
+  title: API Backoffice - ASA
+  description: |
+    API para gestão do Backoffice ASA
+    - Gestão de comerciais e lideranças
+    - Configuração de pontos e prêmios
+    - Upload e processamento de planilhas
+    - Relatórios de comissões e produção
+  version: 2.0.0
+  contact:
+    name: ASA Development Team
+    email: dev@asa.com
+
+servers:
+  - url: https://api.asa.com/api/v1/backoffice
+    description: Produção
+  - url: http://localhost:3000/api/v1/backoffice
+    description: Desenvolvimento
+
+tags:
+  - name: Config
+    description: Configurações do backoffice
+  - name: Lideranças
+    description: Gestão de lideranças (Comercial e Gestor)
+  - name: Comerciais
+    description: Gestão de comerciais e comissões
+  - name: Parceiros
+    description: Gestão de parceiros e indicações
+  - name: Pontos
+    description: Sistema de pontos (ciclos, prêmios, ranking, resgates)
+  - name: Produção
+    description: Upload e processamento de planilhas
+  - name: Regras
+    description: Regras de comissionamento
+  - name: Relatórios
+    description: Relatórios de comissões e produção
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido via login
+
+  schemas:
+    Backoffice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        cpf:
+          type: string
+          pattern: '^\d{11}$'
+        percentualComissaoDefault:
+          type: number
+          minimum: 0
+          maximum: 100
+        percentualComissaoMax:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    Lideranca:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+          pattern: '^\d{11}$'
+        tipo:
+          type: string
+          enum: [COMERCIAL, GESTOR]
+        status:
+          type: string
+          enum: [ATIVO, INATIVO]
+        totalComerciais:
+          type: integer
+        totalGestores:
+          type: integer
+
+    Comercial:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+          pattern: '^\d{11}$'
+        funcao:
+          type: string
+          enum: [GERENTE_CIRE, SUPERVISOR_ATIVO, SUPERVISOR_RECEPTIVO, SUPERVISOR_FRANQUIA, SUPERVISOR_ATENDIMENTO, GERENTE_ATENDIMENTO, SUPERVISOR_COMERCIAL]
+        percentualComissao:
+          type: number
+          minimum: 0
+          maximum: 100
+        status:
+          type: string
+          enum: [ATIVO, INATIVO]
+        liderancaId:
+          type: string
+          format: uuid
+
+    Parceiro:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+          pattern: '^\d{11}$'
+        pixChave:
+          type: string
+        status:
+          type: string
+          enum: [ATIVO, DESLIGADO, DESVINCULADO]
+        totalIndicados:
+          type: integer
+
+    CicloPontos:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        periodicidade:
+          type: string
+          enum: [SEMESTRAL, ANUAL]
+        inicioAcumuloEm:
+          type: string
+          format: date-time
+        fimAcumuloEm:
+          type: string
+          format: date-time
+        fimResgateEm:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [EM_ANDAMENTO, RESGATE_ABERTO, ENCERRADO]
+
+    Premio:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        descricao:
+          type: string
+        custoPontos:
+          type: integer
+          minimum: 1
+        imagemUrl:
+          type: string
+          format: uri
+        ativo:
+          type: boolean
+
+    ConfiguracaoPontos:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        valorPorPonto:
+          type: number
+          format: decimal
+        tipoArredondamento:
+          type: string
+          enum: [PISO, TETO, PADRAO]
+        vigenteDesde:
+          type: string
+          format: date-time
+        vigenteAte:
+          type: string
+          format: date-time
+          nullable: true
+        vigente:
+          type: boolean
+
+    RegraComercial:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cartaoAcessoSaude:
+          type: number
+        cireAtivo:
+          type: number
+        cireReceptivo:
+          type: number
+        franchisingAcesso:
+          type: number
+        franchisingCartao:
+          type: number
+        unidade:
+          type: number
+
+    RegraGestor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        gerenteCire:
+          type: number
+        supervisorAtivo:
+          type: number
+        supervisorReceptivo:
+          type: number
+        supervisorFranquia:
+          type: number
+        supervisorAtendimento:
+          type: number
+        gerenteAtendimento:
+          type: number
+        supervisorComercial:
+          type: number
+
+    UploadPlanilha:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nomeArquivo:
+          type: string
+        mesReferencia:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+        status:
+          type: string
+          enum: [PROCESSANDO, CONCLUIDO, ERRO]
+        totalRows:
+          type: integer
+        processedRows:
+          type: integer
+        rejectedRows:
+          type: integer
+        orphanedRows:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+
+security:
+  - BearerAuth: []
+
+paths:
+  /config:
+    get:
+      tags: [Config]
+      summary: Obter configurações do backoffice
+      responses:
+        '200':
+          description: Configurações do backoffice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Backoffice'
+        '404':
+          description: Backoffice não encontrado
+    put:
+      tags: [Config]
+      summary: Atualizar configurações do backoffice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                percentualComissaoDefault:
+                  type: number
+                percentualComissaoMax:
+                  type: number
+      responses:
+        '200':
+          description: Configurações atualizadas
+        '400':
+          description: Dados inválidos
+
+  /liderancas:
+    get:
+      tags: [Lideranças]
+      summary: Listar lideranças
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [COMERCIAL, GESTOR]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ATIVO, INATIVO]
+      responses:
+        '200':
+          description: Lista de lideranças
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lideranca'
+    post:
+      tags: [Lideranças]
+      summary: Criar nova liderança
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, cpf, tipo]
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                cpf:
+                  type: string
+                telefone:
+                  type: string
+                tipo:
+                  type: string
+                  enum: [COMERCIAL, GESTOR]
+      responses:
+        '201':
+          description: Liderança criada
+        '400':
+          description: Dados inválidos ou email/CPF já cadastrado
+
+  /liderancas/{id}:
+    get:
+      tags: [Lideranças]
+      summary: Obter detalhes da liderança
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes da liderança
+        '404':
+          description: Liderança não encontrada
+    put:
+      tags: [Lideranças]
+      summary: Atualizar status da liderança
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ATIVO, INATIVO]
+      responses:
+        '200':
+          description: Liderança atualizada
+        '404':
+          description: Liderança não encontrada
+    delete:
+      tags: [Lideranças]
+      summary: Desativar liderança
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liderança desativada
+        '400':
+          description: Liderança possui equipe vinculada
+
+  /liderancas/{id}/equipe:
+    get:
+      tags: [Lideranças]
+      summary: Obter equipe da liderança
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Equipe da liderança (comerciais, gestores e parceiros)
+
+  /comerciais:
+    get:
+      tags: [Comerciais]
+      summary: Listar comerciais
+      responses:
+        '200':
+          description: Lista de comerciais
+    post:
+      tags: [Comerciais]
+      summary: Criar novo comercial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, cpf, percentualComissao]
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                cpf:
+                  type: string
+                telefone:
+                  type: string
+                funcao:
+                  type: string
+                  enum: [GERENTE_CIRE, SUPERVISOR_ATIVO, SUPERVISOR_RECEPTIVO, SUPERVISOR_FRANQUIA, SUPERVISOR_ATENDIMENTO, GERENTE_ATENDIMENTO, SUPERVISOR_COMERCIAL]
+                lideranca:
+                  type: string
+                  enum: [COMERCIAL, GESTOR]
+                percentualComissao:
+                  type: number
+      responses:
+        '201':
+          description: Comercial criado
+        '400':
+          description: Dados inválidos
+
+  /comerciais/{id}:
+    get:
+      tags: [Comerciais]
+      summary: Obter comercial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalhes do comercial
+        '404':
+          description: Comercial não encontrado
+    patch:
+      tags: [Comerciais]
+      summary: Atualizar comercial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comercial atualizado
+        '404':
+          description: Comercial não encontrado
+    delete:
+      tags: [Comerciais]
+      summary: Deletar comercial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comercial deletado
+        '404':
+          description: Comercial não encontrado
+
+  /comerciais/{id}/comissoes:
+    get:
+      tags: [Comerciais]
+      summary: Listar comissões do comercial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de comissões (últimos 24 meses)
+
+  /comerciais/{id}/metas:
+    get:
+      tags: [Comerciais]
+      summary: Listar metas do comercial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de metas
+    post:
+      tags: [Comerciais]
+      summary: Criar/atualizar meta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mesReferencia, valorMeta]
+              properties:
+                mesReferencia:
+                  type: string
+                  pattern: '^\d{4}-\d{2}$'
+                valorMeta:
+                  type: number
+      responses:
+        '200':
+          description: Meta criada/atualizada
+
+  /comerciais/calcular-comissao:
+    post:
+      tags: [Comerciais]
+      summary: Simular cálculo de comissão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comercialId, valorProcedimento, dataReferencia]
+              properties:
+                comercialId:
+                  type: string
+                  format: uuid
+                valorProcedimento:
+                  type: number
+                dataReferencia:
+                  type: string
+                  format: date
+                tipoProcedimento:
+                  type: string
+      responses:
+        '200':
+          description: Resultado do cálculo
+        '400':
+          description: Parâmetros inválidos
+
+  /parceiros:
+    get:
+      tags: [Parceiros]
+      summary: Listar parceiros
+      responses:
+        '200':
+          description: Lista de parceiros
+
+  /parceiros/check-cpf:
+    get:
+      tags: [Parceiros]
+      summary: Validar CPF
+      parameters:
+        - name: cpf
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CPF válido e disponível
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+
+  /pontos/ciclos:
+    get:
+      tags: [Pontos]
+      summary: Listar ciclos de pontos
+      responses:
+        '200':
+          description: Lista de ciclos
+    post:
+      tags: [Pontos]
+      summary: Criar novo ciclo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, periodicidade, inicioAcumuloEm, fimAcumuloEm, fimResgateEm]
+              properties:
+                nome:
+                  type: string
+                periodicidade:
+                  type: string
+                  enum: [SEMESTRAL, ANUAL]
+                inicioAcumuloEm:
+                  type: string
+                  format: date-time
+                fimAcumuloEm:
+                  type: string
+                  format: date-time
+                fimResgateEm:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Ciclo criado
+        '400':
+          description: Dados inválidos ou ciclo já existe
+
+  /pontos/ciclos/{id}:
+    patch:
+      tags: [Pontos]
+      summary: Atualizar status do ciclo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [novoStatus]
+              properties:
+                novoStatus:
+                  type: string
+                  enum: [EM_ANDAMENTO, RESGATE_ABERTO, ENCERRADO]
+      responses:
+        '200':
+          description: Ciclo atualizado
+        '400':
+          description: Transição inválida
+
+  /pontos/configuracao:
+    get:
+      tags: [Pontos]
+      summary: Listar configurações de pontos
+      responses:
+        '200':
+          description: Lista de configurações
+    post:
+      tags: [Pontos]
+      summary: Criar nova configuração
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [valorPorPonto, tipoArredondamento]
+              properties:
+                valorPorPonto:
+                  type: number
+                tipoArredondamento:
+                  type: string
+                  enum: [PISO, TETO, PADRAO]
+      responses:
+        '200':
+          description: Configuração criada
+    patch:
+      tags: [Pontos]
+      summary: Atualizar configuração
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                valorPorPonto:
+                  type: number
+                tipoArredondamento:
+                  type: string
+      responses:
+        '200':
+          description: Configuração atualizada
+
+  /pontos/premios:
+    get:
+      tags: [Pontos]
+      summary: Listar prêmios
+      responses:
+        '200':
+          description: Lista de prêmios
+    post:
+      tags: [Pontos]
+      summary: Criar prêmio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, descricao, custoPontos]
+              properties:
+                nome:
+                  type: string
+                descricao:
+                  type: string
+                custoPontos:
+                  type: integer
+                imagemUrl:
+                  type: string
+                  format: uri
+      responses:
+        '201':
+          description: Prêmio criado
+    patch:
+      tags: [Pontos]
+      summary: Atualizar prêmio
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Prêmio atualizado
+    delete:
+      tags: [Pontos]
+      summary: Deletar prêmio
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Prêmio deletado
+
+  /pontos/ranking:
+    get:
+      tags: [Pontos]
+      summary: Obter ranking
+      parameters:
+        - name: cicloPontosId
+          in: query
+          schema:
+            type: string
+        - name: referenciaMes
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ranking do ciclo
+
+  /pontos/resgates:
+    get:
+      tags: [Pontos]
+      summary: Listar resgates
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SOLICITADO, EM_ANALISE, APROVADO, REJEITADO, ENTREGUE, CANCELADO]
+        - name: cicloPontosId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de resgates
+
+  /pontos/resgates/{id}:
+    patch:
+      tags: [Pontos]
+      summary: Atualizar resgate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [novoStatus]
+              properties:
+                novoStatus:
+                  type: string
+                  enum: [EM_ANALISE, APROVADO, REJEITADO, ENTREGUE]
+                observacao:
+                  type: string
+      responses:
+        '200':
+          description: Resgate atualizado
+
+  /producao:
+    post:
+      tags: [Produção]
+      summary: Upload de planilha
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                mesReferencia:
+                  type: string
+      responses:
+        '201':
+          description: Upload processado
+        '400':
+          description: Arquivo inválido
+
+  /uploads:
+    get:
+      tags: [Produção]
+      summary: Listar uploads
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de uploads ou detalhes do upload
+    post:
+      tags: [Produção]
+      summary: Upload e processamento de planilha
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Planilha processada
+
+  /uploads/preview:
+    post:
+      tags: [Produção]
+      summary: Preview de planilha
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Preview dos dados
+
+  /regras-comerciais:
+    get:
+      tags: [Regras]
+      summary: Obter regras comerciais
+      responses:
+        '200':
+          description: Regras comerciais
+    post:
+      tags: [Regras]
+      summary: Atualizar regras comerciais
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegraComercial'
+      responses:
+        '200':
+          description: Regras atualizadas
+
+  /regras-gestores:
+    get:
+      tags: [Regras]
+      summary: Obter regras de gestores
+      responses:
+        '200':
+          description: Regras de gestores
+    post:
+      tags: [Regras]
+      summary: Atualizar regras de gestores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegraGestor'
+      responses:
+        '200':
+          description: Regras atualizadas
+
+  /relatorio-comissoes:
+    get:
+      tags: [Relatórios]
+      summary: Relatório de comissões
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+        - name: comercialId
+          in: query
+          schema:
+            type: string
+        - name: funcao
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Relatório de comissões
+
+  /reprocessar-comissoes:
+    get:
+      tags: [Relatórios]
+      summary: Informações para reprocessamento
+      parameters:
+        - name: mes
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Procedimentos sem comercial
+    post:
+      tags: [Relatórios]
+      summary: Reprocessar comissões
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comercialId, mesReferencia]
+              properties:
+                comercialId:
+                  type: string
+                  format: uuid
+                mesReferencia:
+                  type: string
+      responses:
+        '200':
+          description: Comissões reprocessadas

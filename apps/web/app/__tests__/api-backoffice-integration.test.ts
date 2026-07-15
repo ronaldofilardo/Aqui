@@ -1,0 +1,484 @@
+/**
+ * Testes de Integração - API Backoffice End-to-End
+ * Testa fluxos completos da API
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { prisma } from '@asa/database';
+import { hash } from 'bcryptjs';
+
+describe('API Backoffice - Testes de Integração', () => {
+  let backofficeId: string;
+  let backofficeUsuarioId: string;
+  let liderancaId: string;
+
+  beforeEach(async () => {
+    // Setup completo para testes de integração
+    const backofficeUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Backoffice Integration Test',
+        email: `backoffice-integration-${Date.now()}@asa.com`,
+        senhaHash: await hash('123456', 12),
+        tipo: 'BACKOFFICE',
+        papel: 'BACKOFFICE',
+      },
+    });
+    backofficeUsuarioId = backofficeUsuario.id;
+
+    const backoffice = await prisma.backoffice.create({
+      data: {
+        usuarioId: backofficeUsuario.id,
+        nome: 'Backoffice Integration',
+        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        percentualComissaoDefault: 5.0,
+      },
+    });
+    backofficeId = backoffice.id;
+
+    const liderancaUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Lideranca Integration Test',
+        email: `lideranca-integration-${Date.now()}@asa.com`,
+        senhaHash: await hash('123456', 12),
+        tipo: 'LIDERANCA',
+      },
+    });
+
+    const lideranca = await prisma.lideranca.create({
+      data: {
+        usuarioId: liderancaUsuario.id,
+        nome: 'Lideranca Integration',
+        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        backofficeId,
+        tipo: 'COMERCIAL',
+      },
+    });
+    liderancaId = lideranca.id;
+  });
+
+  afterEach(async () => {
+    // Cleanup em cascata
+    await prisma.lideranca.deleteMany({ where: { backofficeId } });
+    await prisma.backoffice.delete({ where: { id: backofficeId } });
+    await prisma.usuario.deleteMany({ 
+      where: { id: { in: [backofficeUsuarioId] } } 
+    });
+  });
+
+  describe('Fluxo Completo - Gestão de Comerciais', () => {
+    it('deve criar, listar, atualizar e deletar comercial', async () => {
+      // 1. Criar comercial
+      const comercialUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Comercial Full Cycle',
+          email: `comercial-fullcycle-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'COMERCIAL',
+        },
+      });
+
+      const comercial = await prisma.comercial.create({
+        data: {
+          usuarioId: comercialUsuario.id,
+          liderancaId,
+          nome: 'Comercial Full Cycle',
+          cpf: `${Date.now()}00000000002`.slice(0, 11),
+          percentualComissao: 7.5,
+          status: 'ATIVO',
+        },
+      });
+
+      expect(comercial.id).toBeDefined();
+      expect(comercial.nome).toBe('Comercial Full Cycle');
+      expect(comercial.percentualComissao).toBe(7.5);
+
+      // 2. Listar comerciais
+      const liderancas = await prisma.lideranca.findMany({
+        where: { backofficeId },
+        include: {
+          comerciais: {
+            include: {
+              usuario: { select: { email: true, status: true } },
+            },
+          },
+        },
+      });
+
+      const comerciais = liderancas.flatMap(l => l.comerciais);
+      expect(comerciais.length).toBeGreaterThan(0);
+      expect(comerciais.some(c => c.id === comercial.id)).toBe(true);
+
+      // 3. Atualizar comercial
+      const updated = await prisma.comercial.update({
+        where: { id: comercial.id },
+        data: { percentualComissao: 10.0 },
+      });
+
+      expect(Number(updated.percentualComissao)).toBe(10.0);
+
+      // 4. Deletar comercial
+      await prisma.comercial.delete({ where: { id: comercial.id } });
+      await prisma.usuario.delete({ where: { id: comercialUsuario.id } });
+
+      const deleted = await prisma.comercial.findUnique({
+        where: { id: comercial.id },
+      });
+      expect(deleted).toBeNull();
+    });
+  });
+
+  describe('Fluxo Completo - Sistema de Pontos', () => {
+    it('deve criar ciclo, configuração, prêmio e resgate', async () => {
+      // 1. Criar configuração de pontos
+      const config = await prisma.configuracaoPontos.create({
+        data: {
+          backofficeId,
+          valorPorPonto: 150,
+          tipoArredondamento: 'PADRAO',
+          vigenteDesde: new Date('2026-01-01'),
+        },
+      });
+
+      expect(config.id).toBeDefined();
+      expect(Number(config.valorPorPonto)).toBe(150);
+
+      // 2. Criar ciclo de pontos
+      const ciclo = await prisma.cicloPontos.create({
+        data: {
+          backofficeId,
+          nome: 'Ciclo Integration 2026',
+          periodicidade: 'ANUAL',
+          inicioAcumuloEm: new Date('2026-01-01'),
+          fimAcumuloEm: new Date('2026-06-30'),
+          fimResgateEm: new Date('2026-08-31'),
+          status: 'EM_ANDAMENTO',
+        },
+      });
+
+      expect(ciclo.id).toBeDefined();
+      expect(ciclo.status).toBe('EM_ANDAMENTO');
+
+      // 3. Criar prêmio
+      const premio = await prisma.premio.create({
+        data: {
+          backofficeId,
+          nome: 'Prêmio Integration',
+          descricao: 'Prêmio para teste de integração',
+          custoPontos: 5000,
+          ativo: true,
+        },
+      });
+
+      expect(premio.id).toBeDefined();
+      expect(premio.custoPontos).toBe(5000);
+
+      // 4. Criar parceiro e movimentação de pontos
+      const parceiroUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Parceiro Pontos',
+          email: `parceiro-pontos-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'PARCEIRO',
+        },
+      });
+
+      const comercialUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Comercial Pontos',
+          email: `comercial-pontos-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'COMERCIAL',
+        },
+      });
+
+      const comercial = await prisma.comercial.create({
+        data: {
+          usuarioId: comercialUsuario.id,
+          liderancaId,
+          nome: 'Comercial Pontos',
+          cpf: `${Date.now()}00000000003`.slice(0, 11),
+          percentualComissao: 5.0,
+        },
+      });
+
+      const parceiro = await prisma.parceiro.create({
+        data: {
+          usuarioId: parceiroUsuario.id,
+          comercialId: comercial.id,
+          nome: 'Parceiro Pontos',
+          cpf: `${Date.now()}00000000004`.slice(0, 11),
+          status: 'ATIVO',
+        },
+      });
+
+      // 5. Creditar pontos
+      const movimentacao = await prisma.movimentacaoPontos.create({
+        data: {
+          cicloPontosId: ciclo.id,
+          parceiroId: parceiro.id,
+          tipo: 'CREDITO',
+          origem: 'PRODUCAO_IMPORTADA',
+          quantidade: 6000,
+          descricao: 'Pontos de teste',
+        },
+      });
+
+      expect(movimentacao.id).toBeDefined();
+      expect(movimentacao.quantidade).toBe(6000);
+
+      // 6. Solicitar resgate
+      const resgate = await prisma.solicitacaoResgate.create({
+        data: {
+          cicloPontosId: ciclo.id,
+          parceiroId: parceiro.id,
+          premioId: premio.id,
+          pontosDebitados: 5000,
+          status: 'SOLICITADO',
+        },
+      });
+
+      expect(resgate.id).toBeDefined();
+      expect(resgate.status).toBe('SOLICITADO');
+
+      // 7. Aprovar resgate
+      const resgateAprovado = await prisma.solicitacaoResgate.update({
+        where: { id: resgate.id },
+        data: {
+          status: 'APROVADO',
+          processadoEm: new Date(),
+        },
+      });
+
+      expect(resgateAprovado.status).toBe('APROVADO');
+
+      // Cleanup
+      await prisma.solicitacaoResgate.deleteMany({ where: { cicloPontosId: ciclo.id } });
+      await prisma.movimentacaoPontos.deleteMany({ where: { cicloPontosId: ciclo.id } });
+      await prisma.premio.delete({ where: { id: premio.id } });
+      await prisma.cicloPontos.delete({ where: { id: ciclo.id } });
+      await prisma.configuracaoPontos.delete({ where: { id: config.id } });
+      await prisma.parceiro.deleteMany({ where: { comercialId: comercial.id } });
+      await prisma.comercial.delete({ where: { id: comercial.id } });
+      await prisma.usuario.deleteMany({ 
+        where: { id: { in: [parceiroUsuario.id, comercialUsuario.id] } } 
+      });
+    });
+  });
+
+  describe('Fluxo Completo - Comissões e Regras', () => {
+    it('deve criar regras, comercial e calcular comissão', async () => {
+      // 1. Criar regras comerciais
+      const regraComercial = await prisma.regraComercial.create({
+        data: {
+          backofficeId,
+          cartaoAcessoSaude: 5,
+          cireAtivo: 10,
+          cireReceptivo: 8,
+          franchisingAcesso: 3,
+          franchisingCartao: 4,
+          unidade: 2,
+        },
+      });
+
+      expect(regraComercial.id).toBeDefined();
+      expect(Number(regraComercial.cireAtivo)).toBe(10);
+
+      // 2. Criar regras de gestores
+      const regraGestor = await prisma.regraGestor.create({
+        data: {
+          backofficeId,
+          gerenteCire: 15,
+          supervisorAtivo: 10,
+          supervisorReceptivo: 8,
+          supervisorFranquia: 5,
+          supervisorAtendimento: 7,
+          gerenteAtendimento: 12,
+          supervisorComercial: 20,
+        },
+      });
+
+      expect(regraGestor.id).toBeDefined();
+      expect(Number(regraGestor.gerenteCire)).toBe(15);
+
+      // 3. Criar comercial com as regras
+      const comercialUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Comercial Comissao',
+          email: `comercial-comissao-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'COMERCIAL',
+        },
+      });
+
+      const comercial = await prisma.comercial.create({
+        data: {
+          usuarioId: comercialUsuario.id,
+          liderancaId,
+          nome: 'Comercial Comissao',
+          cpf: `${Date.now()}00000000005`.slice(0, 11),
+          percentualComissao: 8.0,
+          funcao: 'SUPERVISOR_ATIVO',
+        },
+      });
+
+      // 4. Criar comissão
+      const comissao = await prisma.comissaoComercial.create({
+        data: {
+          comercialId: comercial.id,
+          mesReferencia: '2026-03',
+          valorVendas: 100000,
+          valorComissao: 8000, // 8%
+          status: 'CALCULADA',
+        },
+      });
+
+      expect(comissao.id).toBeDefined();
+      expect(Number(comissao.valorVendas)).toBe(100000);
+      expect(Number(comissao.valorComissao)).toBe(8000);
+
+      // 5. Criar meta
+      const meta = await prisma.metaComercial.create({
+        data: {
+          comercialId: comercial.id,
+          mesReferencia: '2026-03',
+          valorMeta: 120000,
+          valorAtingido: 100000,
+        },
+      });
+
+      expect(meta.id).toBeDefined();
+      expect(Number(meta.valorAtingido) / Number(meta.valorMeta)).toBeCloseTo(0.833, 2);
+
+      // Cleanup
+      await prisma.metaComercial.deleteMany({ where: { comercialId: comercial.id } });
+      await prisma.comissaoComercial.deleteMany({ where: { comercialId: comercial.id } });
+      await prisma.comercial.delete({ where: { id: comercial.id } });
+      await prisma.regraGestor.delete({ where: { id: regraGestor.id } });
+      await prisma.regraComercial.delete({ where: { id: regraComercial.id } });
+      await prisma.usuario.deleteMany({ 
+        where: { id: { in: [comercialUsuario.id] } } 
+      });
+    });
+  });
+
+  describe('Fluxo Completo - Upload e Processamento', () => {
+    it('deve criar upload e procedimentos associados', async () => {
+      // 1. Criar upload
+      const upload = await prisma.uploadPlanilhaBackoffice.create({
+        data: {
+          backofficeId,
+          nomeArquivo: 'teste-integracao.xlsx',
+          mesReferencia: '2026-03',
+          status: 'PROCESSANDO',
+          totalRows: 100,
+        },
+      });
+
+      expect(upload.id).toBeDefined();
+      expect(upload.nomeArquivo).toBe('teste-integracao.xlsx');
+
+      // 2. Criar indicado (cliente)
+      const indicado = await prisma.indicado.create({
+        data: {
+          nome: 'Cliente Teste',
+          cpf: `${Date.now()}00000000006`.slice(0, 11),
+          telefone: '11999999999',
+          status: 'ATIVO' as any,
+        },
+      });
+
+      // 3. Criar parceiro
+      const parceiroUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Parceiro Upload',
+          email: `parceiro-upload-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'PARCEIRO',
+        },
+      });
+
+      const comercialUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Comercial Upload',
+          email: `comercial-upload-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'COMERCIAL',
+        },
+      });
+
+      const comercial = await prisma.comercial.create({
+        data: {
+          usuarioId: comercialUsuario.id,
+          liderancaId,
+          nome: 'Comercial Upload',
+          cpf: `${Date.now()}00000000007`.slice(0, 11),
+          percentualComissao: 5.0,
+        },
+      });
+
+      const parceiro = await prisma.parceiro.create({
+        data: {
+          usuarioId: parceiroUsuario.id,
+          comercialId: comercial.id,
+          nome: 'Parceiro Upload',
+          cpf: `${Date.now()}00000000008`.slice(0, 11),
+          status: 'ATIVO',
+        },
+      });
+
+      // 4. Vincular indicado ao parceiro
+      const indicadoVinculado = await prisma.indicado.update({
+        where: { id: indicado.id },
+        data: { parceiroId: parceiro.id },
+      });
+
+      expect(indicadoVinculado.parceiroId).toBe(parceiro.id);
+
+      // 5. Criar procedimento do upload
+      const procedimento = await prisma.procedimentoPF.create({
+        data: {
+          dataReferencia: new Date('2026-03-15'),
+          dataPagamento: new Date('2026-03-20'),
+          formaPagamento: 'CARTAO_CREDITO',
+          totalPago: 1500,
+          paciente: 'Paciente Teste',
+          procedimento: 'Consulta',
+          cpf: indicado.cpf,
+          tipoProcedimento: 'CIRE',
+          unidade: 'Unidade Central',
+          uploadId: upload.id,
+          parceiroId: parceiro.id,
+          indicadoId: indicado.id,
+          comercialId: comercial.id,
+          valorComissao: 75, // 5%
+          statusComissao: 'CALCULADA',
+        },
+      });
+
+      expect(procedimento.id).toBeDefined();
+      expect(Number(procedimento.totalPago)).toBe(1500);
+      expect(Number(procedimento.valorComissao)).toBe(75);
+
+      // 6. Atualizar upload como concluído
+      const uploadConcluido = await prisma.uploadPlanilhaBackoffice.update({
+        where: { id: upload.id },
+        data: {
+          status: 'CONCLUIDO',
+          processedRows: 1,
+        },
+      });
+
+      expect(uploadConcluido.status).toBe('CONCLUIDO');
+
+      // Cleanup
+      await prisma.procedimentoPF.deleteMany({ where: { uploadId: upload.id } });
+      await prisma.indicado.delete({ where: { id: indicado.id } });
+      await prisma.parceiro.deleteMany({ where: { comercialId: comercial.id } });
+      await prisma.comercial.delete({ where: { id: comercial.id } });
+      await prisma.uploadPlanilhaBackoffice.delete({ where: { id: upload.id } });
+      await prisma.usuario.deleteMany({ 
+        where: { id: { in: [parceiroUsuario.id, comercialUsuario.id] } } 
+      });
+    });
+  });
+});

@@ -3,7 +3,7 @@ import { prisma } from "@asa/database";
 import { Decimal } from "@prisma/client/runtime/library";
 
 describe("Sistema de Pontos - Gestor PF", () => {
-  let gestorPfId: string;
+  let backofficeId: string;
   let parceiroId: string;
   let usuarioId: string;
   let cicloId: string;
@@ -15,20 +15,21 @@ describe("Sistema de Pontos - Gestor PF", () => {
         nome: "Usuario Teste Pontos",
         email: `teste.pontos.${Date.now()}@teste.com`,
         senhaHash: "hash123",
-        tipo: "GESTOR_PF",
+        tipo: "BACKOFFICE",
+        papel: "BACKOFFICE",
       },
     });
     usuarioId = usuario.id;
 
-    // Criar Gestor PF
-    const gestor = await prisma.gestorPF.create({
+    // Criar Backoffice
+    const backoffice = await prisma.backoffice.create({
       data: {
         usuarioId,
-        nome: "Gestor PF Teste",
+        nome: "Backoffice Teste",
         cpf: `123456789${Date.now()}`,
       },
     });
-    gestorPfId = gestor.id;
+    backofficeId = backoffice.id;
 
     // Criar parceiro
     const parceiroUsuario = await prisma.usuario.create({
@@ -45,16 +46,14 @@ describe("Sistema de Pontos - Gestor PF", () => {
         usuarioId: parceiroUsuario.id,
         nome: "Parceiro Teste",
         cpf: `987654321${Date.now()}`,
-        gestorPfId,
-      },
+        liderancaId, },
     });
     parceiroId = parceiro.id;
 
     // Criar ciclo de pontos vigente
     const ciclo = await prisma.cicloPontos.create({
       data: {
-        gestorPfId,
-        nome: "Ciclo Teste 2026",
+        liderancaId, nome: "Ciclo Teste 2026",
         periodicidade: "SEMESTRAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-06-30"),
@@ -67,8 +66,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
     // Criar configuração de pontos
     await prisma.configuracaoPontos.create({
       data: {
-        gestorPfId,
-        valorPorPonto: new Decimal(100),
+        liderancaId, valorPorPonto: new Decimal(100),
         tipoArredondamento: "PADRAO",
         vigenteDesde: new Date("2026-01-01"),
       },
@@ -81,14 +79,14 @@ describe("Sistema de Pontos - Gestor PF", () => {
     await prisma.cicloPontos.deleteMany();
     await prisma.configuracaoPontos.deleteMany();
     await prisma.parceiro.deleteMany();
-    await prisma.gestorPF.deleteMany();
+    await prisma.backoffice.deleteMany();
     await prisma.usuario.deleteMany();
   });
 
   describe("Configuração de Pontos", () => {
     it("deve criar configuração de pontos corretamente", async () => {
       const config = await prisma.configuracaoPontos.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       expect(config).toBeTruthy();
@@ -99,7 +97,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
 
     it("deve atualizar configuração de pontos", async () => {
       const config = await prisma.configuracaoPontos.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (config) {
@@ -120,15 +118,14 @@ describe("Sistema de Pontos - Gestor PF", () => {
       // Criar segunda configuração
       await prisma.configuracaoPontos.create({
         data: {
-          gestorPfId,
-          valorPorPonto: new Decimal(150),
+          liderancaId, valorPorPonto: new Decimal(150),
           tipoArredondamento: "PISO",
           vigenteDesde: new Date("2026-07-01"),
         },
       });
 
       const configs = await prisma.configuracaoPontos.findMany({
-        where: { gestorPfId },
+        where: { backofficeId },
         orderBy: { vigenteDesde: "desc" },
       });
 
@@ -154,10 +151,9 @@ describe("Sistema de Pontos - Gestor PF", () => {
           unidade: "Unidade Teste",
           parceiroId,
           uploadId: (
-            await prisma.uploadPlanilhaPF.create({
+            await prisma.uploadPlanilhaBackoffice.create({
               data: {
-                gestorPfId,
-                nomeArquivo: "teste.xlsx",
+                liderancaId, nomeArquivo: "teste.xlsx",
                 mesReferencia: "2026-03",
               },
             })
@@ -200,10 +196,9 @@ describe("Sistema de Pontos - Gestor PF", () => {
           unidade: "Unidade Teste",
           parceiroId,
           uploadId: (
-            await prisma.uploadPlanilhaPF.create({
+            await prisma.uploadPlanilhaBackoffice.create({
               data: {
-                gestorPfId,
-                nomeArquivo: "teste.xlsx",
+                liderancaId, nomeArquivo: "teste.xlsx",
                 mesReferencia: "2026-03",
               },
             })
@@ -251,7 +246,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
 
     it("deve aplicar arredondamento PISO corretamente", async () => {
       const config = await prisma.configuracaoPontos.update({
-        where: { gestorPfId: (await prisma.gestorPF.findFirst({ where: { id: gestorPfId } }))!.id },
+        where: { backofficeId: (await prisma.backoffice.findFirst({ where: { id: backofficeId } }))!.id },
         data: { tipoArredondamento: "PISO" },
       });
 
@@ -265,7 +260,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
 
     it("deve aplicar arredondamento TETO corretamente", async () => {
       const config = await prisma.configuracaoPontos.update({
-        where: { gestorPfId: (await prisma.gestorPF.findFirst({ where: { id: gestorPfId } }))!.id },
+        where: { backofficeId: (await prisma.backoffice.findFirst({ where: { id: backofficeId } }))!.id },
         data: { tipoArredondamento: "TETO" },
       });
 
@@ -348,8 +343,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
             usuarioId: usuario.id,
             nome: `Parceiro ${i}`,
             cpf: `111222333${i}${Date.now()}`,
-            gestorPfId,
-          },
+            liderancaId, },
         });
         parceiros.push(parceiro.id);
 
@@ -367,7 +361,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
 
       // Buscar ranking
       const todosParceiros = await prisma.parceiro.findMany({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       const ranking = await Promise.all(
@@ -413,8 +407,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
       // Tentar criar outro ciclo SEMESTRAL enquanto o primeiro está ativo
       const cicloExistente = await prisma.cicloPontos.findFirst({
         where: {
-          gestorPfId,
-          status: "EM_ANDAMENTO",
+          liderancaId, status: "EM_ANDAMENTO",
         },
       });
 
@@ -429,8 +422,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
       // Criar ciclo ANUAL enquanto SEMESTRAL está ativo
       const novoCiclo = await prisma.cicloPontos.create({
         data: {
-          gestorPfId,
-          nome: "Ciclo Anual 2026",
+          liderancaId, nome: "Ciclo Anual 2026",
           periodicidade: "ANUAL",
           inicioAcumuloEm: new Date("2026-01-01"),
           fimAcumuloEm: new Date("2026-12-31"),
@@ -444,8 +436,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
 
       const ciclosAtivos = await prisma.cicloPontos.findMany({
         where: {
-          gestorPfId,
-          status: "EM_ANDAMENTO",
+          liderancaId, status: "EM_ANDAMENTO",
         },
       });
 

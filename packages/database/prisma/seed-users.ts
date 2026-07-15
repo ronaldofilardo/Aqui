@@ -21,34 +21,34 @@ async function main() {
   });
   console.log("OK Admin:", admin.email);
 
-  // 2. Gestor PF (Pessoa Fisica) - tipo GESTOR_PF
-  const gestorPfUsuario = await prisma.usuario.upsert({
-    where: { email: "gestor-pf@asa.com" },
+  // 2. Backoffice (Pessoa Fisica) - tipo BACKOFFICE
+  const backofficeUsuario = await prisma.usuario.upsert({
+    where: { email: "backoffice@asa.com" },
     update: {
       senhaHash: senhaPadrao,
       senhaTemporaria: false,
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
     },
     create: {
-      nome: "Gestor PF",
-      email: "gestor-pf@asa.com",
+      nome: "Backoffice Admin",
+      email: "backoffice@asa.com",
       senhaHash: senhaPadrao,
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
       senhaTemporaria: false,
     },
   });
-  await prisma.gestorPF.upsert({
-    where: { usuarioId: gestorPfUsuario.id },
+  await prisma.backoffice.upsert({
+    where: { usuarioId: backofficeUsuario.id },
     update: { cpf: "12345678901" },
     create: {
-      usuarioId: gestorPfUsuario.id,
-      nome: gestorPfUsuario.nome,
+      usuarioId: backofficeUsuario.id,
+      nome: backofficeUsuario.nome,
       cpf: "12345678901",
     },
   });
-  console.log("OK Gestor PF:", gestorPfUsuario.email, "papel=GESTOR_PF");
+  console.log("OK Backoffice:", backofficeUsuario.email, "papel=BACKOFFICE");
 
   // 3. Gestor PJ (Pessoa Juridica) - tipo GESTOR
   const gestorPjUsuario = await prisma.usuario.upsert({
@@ -94,10 +94,10 @@ async function main() {
   console.log("OK Consultor:", consultorUsuario.email);
 
   console.log("\n4 usuarios semeados com senha 123456");
-  console.log("   Admin      -> /admin/usuarios");
-  console.log("   Gestor PF  -> /gestor-pf/dashboard  (papel=GESTOR_PF)");
-  console.log("   Gestor PJ  -> /gestor/dashboard     (papel=GESTOR_PJ)");
-  console.log("   Consultor  -> /consultor/estabelecimentos");
+  console.log("   Admin       -> /admin/usuarios");
+  console.log("   Backoffice  -> /backoffice/dashboard  (papel=BACKOFFICE)");
+  console.log("   Gestor PJ   -> /gestor/dashboard      (papel=GESTOR_PJ)");
+  console.log("   Consultor   -> /consultor/estabelecimentos");
 }
 
 main()

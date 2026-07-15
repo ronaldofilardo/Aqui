@@ -7,11 +7,11 @@ import { Decimal } from "@prisma/client/runtime/library";
 export async function calcularPontosDeProducao(
   totalPago: number | Decimal,
   dataReferencia: Date,
-  gestorPfId: string,
+  backofficeId: string,
 ): Promise<number> {
   const config = await prisma.configuracaoPontos.findFirst({
     where: {
-      gestorPfId,
+      backofficeId,
       vigenteDesde: { lte: dataReferencia },
       OR: [{ vigenteAte: null }, { vigenteAte: { gte: dataReferencia } }],
     },
@@ -46,14 +46,14 @@ export async function calcularPontosDeProducao(
  * SEMESTRAL e ANUAL possam coexistir.
  */
 export async function obterCicloVigente(
-  gestorPfId: string,
+  backofficeId: string,
   periodicidade?: "SEMESTRAL" | "ANUAL",
 ) {
   const agora = new Date();
 
   return prisma.cicloPontos.findFirst({
     where: {
-      gestorPfId,
+      backofficeId,
       ...(periodicidade ? { periodicidade } : {}),
       OR: [
         { status: "EM_ANDAMENTO" },
@@ -226,7 +226,11 @@ export async function calcularComissaoComercial(params: {
     where: { id: comercialId },
     select: {
       funcao: true,
-      gestorPfId: true,
+      lideranca: {
+        select: {
+          backofficeId: true
+        }
+      }
     },
   });
 
@@ -234,16 +238,17 @@ export async function calcularComissaoComercial(params: {
     throw new Error("Comercial não encontrado");
   }
 
-  const { funcao, gestorPfId } = comercial;
+  const { funcao, lideranca } = comercial;
+  const backofficeId = lideranca?.backofficeId;
 
   // Busca regras comerciais
   const regraComercial = await prisma.regraComercial.findUnique({
-    where: { gestorPfId },
+    where: { backofficeId },
   });
 
   // Busca regras de gestores
   const regraGestor = await prisma.regraGestor.findUnique({
-    where: { gestorPfId },
+    where: { backofficeId },
   });
 
   // Se não houver regras, retorna comissão zero

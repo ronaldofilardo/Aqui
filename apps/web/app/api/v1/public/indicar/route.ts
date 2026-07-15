@@ -20,16 +20,34 @@ export async function POST(req: NextRequest) {
 
     const parceiro = await prisma.parceiro.findUnique({
       where: { cpf: cpfParceiroClean },
-      include: {
-        gestorPf: {
-          select: { id: true, nome: true },
+      include: { 
+        comercial: { 
+          include: {
+            lideranca: {
+              include: {
+                backoffice: { select: { id: true, nome: true } }
+              }
+            }
+          }
         },
+        gestor: {
+          include: {
+            lideranca: {
+              include: {
+                backoffice: { select: { id: true, nome: true } }
+              }
+            }
+          }
+        }
       },
     });
 
     if (!parceiro) {
       return notFound("Parceiro não encontrado");
     }
+
+    // Obter backoffice através do comercial ou gestor
+    const backoffice = parceiro.comercial?.lideranca?.backoffice || parceiro.gestor?.lideranca?.backoffice;
 
     if (parceiro.status === "DESLIGADO") {
       return badRequest(
@@ -111,11 +129,23 @@ export async function GET(req: NextRequest) {
       nome: true,
       cpf: true,
       status: true,
-      gestorPf: {
+      comercial: { 
         select: {
-          id: true,
-          nome: true,
-        },
+          lideranca: {
+            select: {
+              backoffice: { select: { id: true, nome: true } }
+            }
+          }
+        }
+      },
+      gestor: {
+        select: {
+          lideranca: {
+            select: {
+              backoffice: { select: { id: true, nome: true } }
+            }
+          }
+        }
       },
       _count: {
         select: { indicacoes: true },
@@ -126,6 +156,8 @@ export async function GET(req: NextRequest) {
   if (!parceiro) {
     return notFound("Parceiro não encontrado");
   }
+
+  const backoffice = parceiro.comercial?.lideranca?.backoffice || parceiro.gestor?.lideranca?.backoffice;
 
   return ok(parceiro);
 }

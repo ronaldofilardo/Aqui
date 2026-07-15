@@ -28,7 +28,6 @@ export async function PATCH(req: NextRequest) {
     where: { id: parceiroId },
     select: {
       periodicidadeCicloEscolhida: true,
-      gestorPfId: true,
       _count: {
         select: { movimentacoesPontos: true },
       },
@@ -67,7 +66,6 @@ export async function GET() {
     where: { id: parceiroId },
     select: {
       periodicidadeCicloEscolhida: true,
-      gestorPfId: true,
     },
   });
 

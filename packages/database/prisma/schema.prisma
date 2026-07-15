@@ -24,7 +24,7 @@ model Usuario {
   consultor           Consultor?
   cupomConfig         CupomConfig[]
   gestoresConsultores GestorConsultor[]    @relation("gestor_atribuicoes")
-  gestorPf            GestorPF?
+  backoffice          Backoffice?
   lideranca           Lideranca?
   gestor              Gestor?
   parceiro            Parceiro?
@@ -205,7 +205,7 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
-model GestorPF {
+model Backoffice {
   id                        String               @id @default(uuid()) @db.Uuid
   usuarioId                 String               @unique @map("usuario_id") @db.Uuid
   nome                      String               @db.VarChar(255)
@@ -221,9 +221,9 @@ model GestorPF {
   premios                   Premio[]
   regraComercial            RegraComercial?
   regraGestor               RegraGestor?
-  uploads                   UploadPlanilhaPF[]
+  uploads                   UploadPlanilhaBackoffice[]
 
-  @@map("gestores_pf")
+  @@map("backoffices")
 }
 
 model Lideranca {
@@ -231,18 +231,18 @@ model Lideranca {
   usuarioId     String         @unique @map("usuario_id") @db.Uuid
   nome          String         @db.VarChar(255)
   cpf           String         @unique @db.VarChar(14)
-  gestorPfId    String         @map("gestor_pf_id") @db.Uuid
+  backofficeId  String         @map("backoffice_id") @db.Uuid
   tipo          TipoLideranca
   status        StatusUsuario  @default(ATIVO)
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
   usuario       Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  gestorPf      GestorPF       @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice    Backoffice     @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
   comerciais    Comercial[]
   gestores      Gestor[]
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@index([tipo])
   @@map("liderancas")
 }
@@ -325,7 +325,7 @@ model ComissaoComercial {
 
 model RegraComercial {
   id                String   @id @default(uuid()) @db.Uuid
-  gestorPfId        String   @unique @map("gestor_pf_id") @db.Uuid
+  backofficeId      String   @unique @map("backoffice_id") @db.Uuid
   cartaoAcessoSaude Decimal  @default(0) @map("cartao_acesso_saude") @db.Decimal(5, 2)
   cireAtivo         Decimal  @default(0) @map("cire_ativo") @db.Decimal(5, 2)
   cireReceptivo     Decimal  @default(0) @map("cire_receptivo") @db.Decimal(5, 2)
@@ -334,15 +334,15 @@ model RegraComercial {
   unidade           Decimal  @default(0) @map("unidade") @db.Decimal(5, 2)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
-  gestorPf          GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice        Backoffice @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@map("regras_comerciais")
 }
 
 model RegraGestor {
   id                    String   @id @default(uuid()) @db.Uuid
-  gestorPfId            String   @unique @map("gestor_pf_id") @db.Uuid
+  backofficeId          String   @unique @map("backoffice_id") @db.Uuid
   gerenteCire           Decimal  @default(0) @map("gerente_cire") @db.Decimal(5, 2)
   supervisorAtivo       Decimal  @default(0) @map("supervisor_ativo") @db.Decimal(5, 2)
   supervisorReceptivo   Decimal  @default(0) @map("supervisor_receptivo") @db.Decimal(5, 2)
@@ -352,9 +352,9 @@ model RegraGestor {
   supervisorComercial   Decimal  @default(0) @map("supervisor_comercial") @db.Decimal(5, 2)
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
-  gestorPf              GestorPF @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice            Backoffice @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@map("regras_gestores")
 }
 
@@ -407,9 +407,9 @@ model Indicado {
   @@map("indicados")
 }
 
-model UploadPlanilhaPF {
+model UploadPlanilhaBackoffice {
   id            String           @id @default(uuid()) @db.Uuid
-  gestorPfId    String           @map("gestor_pf_id") @db.Uuid
+  backofficeId  String           @map("backoffice_id") @db.Uuid
   nomeArquivo   String           @db.VarChar(255)
   mesReferencia String           @map("mes_referencia")
   status        StatusUpload     @default(PROCESSANDO)
@@ -420,11 +420,11 @@ model UploadPlanilhaPF {
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   procedimentos ProcedimentoPF[]
-  gestorPf      GestorPF         @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice    Backoffice       @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@index([mesReferencia])
-  @@map("uploads_planilha_pf")
+  @@map("uploads_planilha_backoffice")
 }
 
 model ProcedimentoPF {
@@ -451,7 +451,7 @@ model ProcedimentoPF {
   gestor           Gestor?            @relation(fields: [gestorId], references: [id])
   indicado         Indicado?          @relation(fields: [indicadoId], references: [id])
   parceiro         Parceiro?          @relation(fields: [parceiroId], references: [id])
-  upload           UploadPlanilhaPF   @relation(fields: [uploadId], references: [id])
+  upload           UploadPlanilhaBackoffice @relation(fields: [uploadId], references: [id])
 
   @@unique([dataReferencia, cpf, procedimento, unidade])
   @@index([cpf])
@@ -484,7 +484,7 @@ model BaseClientesAcessoSaude {
 
 model ConfiguracaoPontos {
   id                 String             @id @default(uuid()) @db.Uuid
-  gestorPfId         String             @map("gestor_pf_id") @db.Uuid
+  backofficeId       String             @map("backoffice_id") @db.Uuid
   valorPorPonto      Decimal            @map("valor_por_ponto") @db.Decimal(10, 2)
   tipoArredondamento TipoArredondamento @default(PADRAO) @map("tipo_arredondamento")
   vigenteDesde       DateTime           @map("vigente_desde")
@@ -492,16 +492,16 @@ model ConfiguracaoPontos {
   criadoPor          String?            @map("criado_por") @db.Uuid
   criadoEm           DateTime           @default(now()) @map("criado_em")
   atualizadoEm       DateTime           @updatedAt @map("atualizado_em")
-  gestorPf           GestorPF           @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice         Backoffice         @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@index([vigenteDesde])
   @@map("configuracoes_pontos")
 }
 
 model CicloPontos {
   id                    String               @id @default(uuid()) @db.Uuid
-  gestorPfId            String               @map("gestor_pf_id") @db.Uuid
+  backofficeId          String               @map("backoffice_id") @db.Uuid
   nome                  String               @db.VarChar(255)
   inicioAcumuloEm       DateTime             @map("inicio_acumulo_em")
   fimAcumuloEm          DateTime             @map("fim_acumulo_em")
@@ -511,13 +511,13 @@ model CicloPontos {
   criadoEm              DateTime             @default(now()) @map("criado_em")
   atualizadoEm          DateTime             @updatedAt @map("atualizado_em")
   periodicidade         PeriodicidadeCiclo   @default(ANUAL) @map("periodicidade")
-  gestorPf              GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice            Backoffice           @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
   movimentacoes         MovimentacaoPontos[]
   rankingSnapshots      RankingSnapshot[]
   solicitacoesResgate   SolicitacaoResgate[]
 
-  @@index([gestorPfId, status])
-  @@index([gestorPfId])
+  @@index([backofficeId, status])
+  @@index([backofficeId])
   @@index([status])
   @@map("ciclos_pontos")
 }
@@ -577,7 +577,7 @@ model RankingPosicao {
 
 model Premio {
   id           String               @id @default(uuid()) @db.Uuid
-  gestorPfId   String               @map("gestor_pf_id") @db.Uuid
+  backofficeId String               @map("backoffice_id") @db.Uuid
   nome         String               @db.VarChar(255)
   descricao    String
   custoPontos  Int                  @map("custo_pontos")
@@ -585,10 +585,10 @@ model Premio {
   imagemUrl    String?              @map("imagem_url")
   criadoEm     DateTime             @default(now()) @map("criado_em")
   atualizadoEm DateTime             @updatedAt @map("atualizado_em")
-  gestorPf     GestorPF             @relation(fields: [gestorPfId], references: [id], onDelete: Cascade)
+  backoffice   Backoffice           @relation(fields: [backofficeId], references: [id], onDelete: Cascade)
   solicitacoes SolicitacaoResgate[]
 
-  @@index([gestorPfId])
+  @@index([backofficeId])
   @@index([ativo])
   @@map("premios")
 }
@@ -621,7 +621,7 @@ enum TipoUsuario {
   GESTOR
   CONSULTOR
   ADMIN
-  GESTOR_PF
+  BACKOFFICE
   PARCEIRO
   COMERCIAL
   LIDERANCA
@@ -650,6 +650,7 @@ enum TipoLideranca {
 enum PapelGestor {
   GESTOR_PF
   GESTOR_PJ
+  BACKOFFICE
 }
 
 enum TipoAcessoEstabelecimento {

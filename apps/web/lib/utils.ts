@@ -2,6 +2,11 @@ export function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+export function gerarSenhaProvisoria(cpf: string): string {
+  const cpfClean = cpf.replace(/\D/g, "");
+  return cpfClean.substring(0, 5);
+}
+
 export function getBaseUrl(req?: {
   nextUrl?: { protocol: string; host: string };
 }): string {

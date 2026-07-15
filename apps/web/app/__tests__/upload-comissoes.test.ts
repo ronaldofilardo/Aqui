@@ -3,35 +3,57 @@ import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
 
 describe("Upload de Planilha e Comissões", () => {
-  let gestorPfId: string;
-  let gestorPfUsuarioId: string;
+  let backofficeId: string;
+  let backofficeUsuarioId: string;
+  let liderancaId: string;
   let parceiroId: string;
   let indicadoId: string;
   let comercialId: string;
 
   beforeAll(async () => {
-    // Criar usuário Gestor PF
-    const gestorUsuario = await prisma.usuario.create({
+    // Criar usuário Backoffice
+    const backofficeUsuario = await prisma.usuario.create({
       data: {
-        nome: "Gestor PF Upload Test",
-        email: `gestor.pf.upload.${Date.now()}@test.com`,
+        nome: "Backoffice Upload Test",
+        email: `backoffice.upload.${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
-        tipo: "GESTOR",
-        papel: "GESTOR_PF",
+        tipo: "BACKOFFICE",
+        papel: "BACKOFFICE",
         senhaTemporaria: false,
       },
     });
-    gestorPfUsuarioId = gestorUsuario.id;
+    backofficeUsuarioId = backofficeUsuario.id;
 
-    const gestorPf = await prisma.gestorPF.create({
+    const backoffice = await prisma.backoffice.create({
       data: {
-        usuarioId: gestorUsuario.id,
-        nome: "Gestor PF Upload Test",
+        usuarioId: backofficeUsuario.id,
+        nome: "Backoffice Upload Test",
         cpf: `${Date.now()}00000000000`.slice(0, 11),
         percentualComissaoDefault: 5.0,
       },
     });
-    gestorPfId = gestorPf.id;
+    backofficeId = backoffice.id;
+
+    // Criar liderança COMERCIAL
+    const liderancaUsuario = await prisma.usuario.create({
+      data: {
+        nome: "Lideranca Upload Test",
+        email: `lideranca.upload.${Date.now()}@test.com`,
+        senhaHash: await hash("123456", 12),
+        tipo: "GESTOR",
+      },
+    });
+
+    const lideranca = await prisma.lideranca.create({
+      data: {
+        usuarioId: liderancaUsuario.id,
+        nome: "Lideranca Upload Test",
+        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        backofficeId,
+        tipo: "COMERCIAL",
+      },
+    });
+    liderancaId = lideranca.id;
 
     // Criar parceiro
     const parceiroUsuario = await prisma.usuario.create({
@@ -47,9 +69,9 @@ describe("Upload de Planilha e Comissões", () => {
     const parceiro = await prisma.parceiro.create({
       data: {
         usuarioId: parceiroUsuario.id,
-        gestorPfId,
         nome: "Parceiro Upload Test",
-        cpf: "98765432100",
+        cpf: `${Date.now()}00000000002`.slice(0, 11),
+        gestorId: backofficeId,
         status: "ATIVO",
       },
     });
@@ -80,9 +102,10 @@ describe("Upload de Planilha e Comissões", () => {
     const comercial = await prisma.comercial.create({
       data: {
         usuarioId: comercialUsuario.id,
-        gestorPfId,
+        liderancaId,
         nome: "Comercial Upload Test",
         cpf: "22233344455",
+        percentualComissao: 5.0,
         status: "ATIVO",
       },
     });
@@ -91,15 +114,14 @@ describe("Upload de Planilha e Comissões", () => {
 
   afterAll(async () => {
     // Limpeza em cascata
-    await prisma.gestorPF.delete({ where: { id: gestorPfId } }).catch(() => {});
+    await prisma.backoffice.delete({ where: { id: backofficeId } }).catch(() => {});
   });
 
   describe("Regras de Comissão", () => {
     it("deve criar regras comerciais para cálculo de comissões", async () => {
       const regras = await prisma.regraComercial.create({
         data: {
-          gestorPfId,
-          cartaoAcessoSaude: 5.0,
+          liderancaId, cartaoAcessoSaude: 5.0,
           cireAtivo: 3.0,
           cireReceptivo: 2.5,
           franchisingAcesso: 4.0,
@@ -115,8 +137,7 @@ describe("Upload de Planilha e Comissões", () => {
     it("deve criar regras de gestores para cálculo de comissões", async () => {
       const regras = await prisma.regraGestor.create({
         data: {
-          gestorPfId,
-          gerenteCire: 2.0,
+          liderancaId, gerenteCire: 2.0,
           supervisorAtivo: 1.5,
           supervisorReceptivo: 1.0,
           supervisorFranquia: 1.5,
@@ -132,7 +153,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve atualizar regras comerciais existentes", async () => {
       const regras = await prisma.regraComercial.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!regras) {
@@ -163,8 +184,7 @@ describe("Upload de Planilha e Comissões", () => {
       const comercial = await prisma.comercial.create({
         data: {
           usuarioId: comercialUsuario.id,
-          gestorPfId,
-          nome: "Comercial Comissão Test",
+          liderancaId, nome: "Comercial Comissão Test",
           cpf: "33344455566",
           funcao: "SUPERVISOR_COMERCIAL",
           status: "ATIVO",
@@ -175,9 +195,9 @@ describe("Upload de Planilha e Comissões", () => {
       expect(comercial.funcao).toBe("SUPERVISOR_COMERCIAL");
     });
 
-    it("deve listar todos os comerciais do gestor PF", async () => {
+    it("deve listar todos os comerciais do backoffice", async () => {
       const comerciais = await prisma.comercial.findMany({
-        where: { gestorPfId },
+        where: { backofficeId },
         include: { usuario: true },
       });
 
@@ -186,7 +206,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve atualizar dados do comercial via modal de edição", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!comercial) {
@@ -215,8 +235,7 @@ describe("Upload de Planilha e Comissões", () => {
       const comercialTemp = await prisma.comercial.create({
         data: {
           usuarioId: comercialUsuario.id,
-          gestorPfId,
-          nome: "Comercial Temp",
+          liderancaId, nome: "Comercial Temp",
           cpf: `${Date.now()}11111111111`.slice(0, 11),
           status: "ATIVO",
         },
@@ -252,7 +271,7 @@ describe("Upload de Planilha e Comissões", () => {
   describe("Metas Mensais de Comissões", () => {
     it("deve criar meta mensal para comercial", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!comercial) {
@@ -274,7 +293,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve atualizar meta atingida automaticamente", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!comercial) {
@@ -304,8 +323,7 @@ describe("Upload de Planilha e Comissões", () => {
       const metas = await prisma.metaComercial.findMany({
         where: {
           comercial: {
-            gestorPfId,
-          },
+            liderancaId, },
         },
         include: {
           comercial: {
@@ -440,8 +458,7 @@ describe("Upload de Planilha e Comissões", () => {
       const usuarioDaConta = "Comercial Upload Test";
       const comercial = await prisma.comercial.findFirst({
         where: {
-          gestorPfId,
-          nome: {
+          liderancaId, nome: {
             contains: usuarioDaConta,
             mode: "insensitive",
           },
@@ -456,8 +473,7 @@ describe("Upload de Planilha e Comissões", () => {
       const usuarioDaConta = "Comercial Inexistente";
       const comercial = await prisma.comercial.findFirst({
         where: {
-          gestorPfId,
-          nome: {
+          liderancaId, nome: {
             contains: usuarioDaConta,
             mode: "insensitive",
           },
@@ -495,7 +511,7 @@ describe("Upload de Planilha e Comissões", () => {
   describe("Comissões - Cálculo e Pagamento", () => {
     it("deve calcular comissão para comercial", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { gestorPfId },
+        where: { backofficeId },
       });
 
       if (!comercial) {

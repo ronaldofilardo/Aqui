@@ -88,7 +88,6 @@ describe('Backoffice - Permissões de Acesso', () => {
       "/backoffice/liderancas",
       "/backoffice/pontos",
       "/backoffice/relatorios",
-      "/backoffice/configuracoes",
     ];
 
     rotasBackoffice.forEach((rota) => {

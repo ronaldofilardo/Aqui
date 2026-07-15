@@ -19,36 +19,36 @@ async function main() {
     },
   });
 
-  // Gestor PF
-  const senhaGestorPf = await hash("123456", 12);
+  // Backoffice
+  const senhaBackoffice = await hash("123456", 12);
   await prisma.usuario.upsert({
-    where: { email: "gestor-pf@asa.com" },
+    where: { email: "backoffice@asa.com" },
     update: {
-      senhaHash: senhaGestorPf,
+      senhaHash: senhaBackoffice,
       senhaTemporaria: false,
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
     },
     create: {
-      nome: "Gestor Pessoa Física",
-      email: "gestor-pf@asa.com",
-      senhaHash: senhaGestorPf,
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
+      nome: "Backoffice Admin",
+      email: "backoffice@asa.com",
+      senhaHash: senhaBackoffice,
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
       senhaTemporaria: false,
     },
   });
 
-  const gestorPfUsuario = await prisma.usuario.findUnique({
-    where: { email: "gestor-pf@asa.com" },
+  const backofficeUsuario = await prisma.usuario.findUnique({
+    where: { email: "backoffice@asa.com" },
   });
-  if (gestorPfUsuario) {
-    await prisma.gestorPF.upsert({
-      where: { usuarioId: gestorPfUsuario.id },
+  if (backofficeUsuario) {
+    await prisma.backoffice.upsert({
+      where: { usuarioId: backofficeUsuario.id },
       update: { cpf: "12345678901" },
       create: {
-        usuarioId: gestorPfUsuario.id,
-        nome: "Gestor PF",
+        usuarioId: backofficeUsuario.id,
+        nome: "Backoffice Admin",
         cpf: "12345678901",
         percentualComissaoDefault: 5.0,
         percentualComissaoMax: 100.0,

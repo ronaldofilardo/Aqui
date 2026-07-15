@@ -1,4 +1,4 @@
-export type TipoUsuario = "GESTOR" | "CONSULTOR";
+export type TipoUsuario = "GESTOR" | "CONSULTOR" | "BACKOFFICE";
 export type TipoPix = "CPF" | "CNPJ" | "EMAIL" | "TELEFONE";
 export type TipoDocumento = "CNPJ" | "CPF_RESPONSAVEL";
 export type StatusCupomImportado =
