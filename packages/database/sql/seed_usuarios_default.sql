@@ -21,20 +21,20 @@ VALUES (
 ON CONFLICT (email) DO UPDATE SET
   senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
   tipo = 'ADMIN',
-  papel = 'GESTOR_PF',
+  papel = NULL,
   atualizado_em = NOW();
 
 -- ============================================================
--- 2. GESTOR PF
+-- 2. BackOffice Admin
 -- ============================================================
 INSERT INTO usuarios (id, nome, email, senha_hash, tipo, papel, telefone, status, senha_temporaria, criado_em, atualizado_em)
 VALUES (
   '00000000-0000-0000-0002-000000000001',
-  'Gestor PF',
-  'gestor-pf@asa.com',
+  'BackOffice Admin',
+  'back@asa.com',
   '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
   'GESTOR',
-  'GESTOR_PF',
+  'BACKOFFICE',
   NULL,
   'ATIVO',
   false,
@@ -44,14 +44,14 @@ VALUES (
 ON CONFLICT (email) DO UPDATE SET
   senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
   tipo = 'GESTOR',
-  papel = 'GESTOR_PF',
+  papel = 'BACKOFFICE',
   atualizado_em = NOW();
 
-INSERT INTO gestores_pf (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
+INSERT INTO backoffices (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0002-000000000002',
   '00000000-0000-0000-0002-000000000001',
-  'Gestor PF',
+  'BackOffice Admin',
   '12345678901',
   5.00,
   100.00,
@@ -63,7 +63,7 @@ ON CONFLICT (cpf) DO UPDATE SET
   updated_at = NOW();
 
 -- ============================================================
--- 3. GESTOR PJ (sem tabela gestor_pj ainda, cria apenas usuario)
+-- 3. GESTOR PJ
 -- ============================================================
 INSERT INTO usuarios (id, nome, email, senha_hash, tipo, papel, telefone, status, senha_temporaria, criado_em, atualizado_em)
 VALUES (
@@ -84,6 +84,21 @@ ON CONFLICT (email) DO UPDATE SET
   tipo = 'GESTOR',
   papel = 'GESTOR_PJ',
   atualizado_em = NOW();
+
+INSERT INTO backoffices (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0003-000000000002',
+  '00000000-0000-0000-0003-000000000001',
+  'Gestor PJ',
+  '12345678902',
+  5.00,
+  100.00,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (cpf) DO UPDATE SET
+  usuario_id = '00000000-0000-0000-0003-000000000001',
+  updated_at = NOW();
 
 -- ============================================================
 -- 4. CONSULTOR
@@ -128,5 +143,6 @@ ON CONFLICT (cpf) DO UPDATE SET
 -- ============================================================
 SELECT 'Usuarios seed executado com sucesso!' AS status;
 SELECT id, nome, email, tipo, papel FROM usuarios ORDER BY email;
-SELECT id, nome, cpf, percentual_comissao_default FROM gestores_pf WHERE cpf = '12345678901';
+SELECT id, nome, cpf, percentual_comissao_default FROM backoffices WHERE cpf = '12345678901';
 SELECT id, cpf FROM consultores WHERE cpf = '12345678903';
+
