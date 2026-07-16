@@ -31,23 +31,26 @@ describe('Sidebar - Testes de Validação', () => {
           id: '1',
           name: 'Backoffice User',
           email: 'backoffice@asa.com',
-          tipo: 'BACKOFFICE' as const,
-          papel: 'BACKOFFICE' as const,
+          tipo: 'BACKOFFICE',
+          papel: 'BACKOFFICE',
         },
       };
 
-      // Validar estrutura do menu
+      // Validar estrutura do menu - Pontas, Upload, Produção e Comissionamento na raiz
       const menuBackoffice = {
         label: 'Backoffice',
         items: [
           { label: 'Pontos', href: '/backoffice/pontos' },
+          { label: 'Upload', href: '/backoffice/producao/upload' },
           { label: 'Produção', href: '/backoffice/producao' },
+          { label: 'Comissionamento', href: '/backoffice/comissionamento' },
         ],
       };
 
       expect(menuBackoffice.label).toBe('Backoffice');
-      expect(menuBackoffice.items.length).toBe(2);
+      expect(menuBackoffice.items.length).toBe(4);
       expect(menuBackoffice.items[0].href).toBe('/backoffice/pontos');
+      expect(menuBackoffice.items[1].href).toBe('/backoffice/producao/upload');
     });
 
     it('deve redirecionar para /backoffice/dashboard', () => {
@@ -73,17 +76,13 @@ describe('Sidebar - Testes de Validação', () => {
         label: 'Produção',
         href: '/backoffice/producao',
         subItems: [
-          { label: 'Upload Planilha', href: '/backoffice/producao/upload' },
           { label: 'Procedimentos', href: '/backoffice/producao/procedimentos' },
           { label: 'Usuários', href: '/backoffice/usuarios' },
           { label: 'Comerciais', href: '/backoffice/usuarios/comerciais' },
-          { label: 'Comissionamento', href: '/backoffice/comissionamento' },
-          { label: 'Relatórios', href: '/backoffice/comissionamento/relatorios' },
-          { label: 'Pagamentos', href: '/backoffice/comissionamento/pagamentos' },
         ],
       };
 
-      expect(estruturaProducao.subItems.length).toBe(7);
+      expect(estruturaProducao.subItems.length).toBe(3);
     });
 
     it('deve ter sidebar Upload com apenas Procedimentos', () => {
@@ -109,18 +108,18 @@ describe('Sidebar - Testes de Validação', () => {
       expect(estruturaComerciais.href).toBe('/backoffice/usuarios/comerciais');
     });
 
-    it('deve ter Comissionamento como sub-item de Produção', () => {
+    it('deve ter Comissionamento na raiz com sub-itens', () => {
       const estruturaComissionamento = {
         label: 'Comissionamento',
         href: '/backoffice/comissionamento',
-        parent: 'Produção',
+        parent: 'Raiz',
         subItems: [
           { label: 'Relatórios', href: '/backoffice/comissionamento/relatorios' },
           { label: 'Pagamentos', href: '/backoffice/comissionamento/pagamentos' },
         ],
       };
 
-      expect(estruturaComissionamento.parent).toBe('Produção');
+      expect(estruturaComissionamento.parent).toBe('Raiz');
       expect(estruturaComissionamento.subItems.length).toBe(2);
     });
   });

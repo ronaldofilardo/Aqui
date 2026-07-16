@@ -37,16 +37,22 @@ const consultorNav: NavItem[] = [
 
 const backofficeNav: NavItem[] = [
   { label: "Pontos", href: "/backoffice/pontos", icon: "🎯" },
+  { label: "Upload", href: "/backoffice/producao/upload", icon: "📤" },
   { 
     label: "Produção", 
     href: "/backoffice/producao", 
     icon: "📋",
     subItems: [
-      { label: "Upload Planilha", href: "/backoffice/producao/upload" },
       { label: "Procedimentos", href: "/backoffice/producao/procedimentos" },
       { label: "Usuários", href: "/backoffice/usuarios" },
       { label: "Comerciais", href: "/backoffice/usuarios/comerciais" },
-      { label: "Comissionamento", href: "/backoffice/comissionamento" },
+    ]
+  },
+  { 
+    label: "Comissionamento", 
+    href: "/backoffice/comissionamento", 
+    icon: "💰",
+    subItems: [
       { label: "Relatórios", href: "/backoffice/comissionamento/relatorios" },
       { label: "Pagamentos", href: "/backoffice/comissionamento/pagamentos" },
     ]
@@ -103,11 +109,11 @@ export function Sidebar() {
   if (tipo === "ADMIN") navItems = adminNav;
   else if (tipo === "GESTOR" && papel === "BACKOFFICE") navItems = backofficeNav;
   else if (tipo === "BACKOFFICE") navItems = backofficeNav;
+  else if (pathname.startsWith("/backoffice/producao/upload")) navItems = uploadNav;
   else if (tipo === "GESTOR") navItems = gestorNav;
   else if (tipo === "PARCEIRO") navItems = parceiroNav;
   else if (tipo === "COMERCIAL") navItems = comercialNav;
   else if (tipo === "ESTABELECIMENTO") navItems = estabelecimentoNav;
-  else if (pathname.startsWith("/backoffice/producao/upload")) navItems = uploadNav;
   else navItems = consultorNav;
 
   const initials = session?.user?.name
