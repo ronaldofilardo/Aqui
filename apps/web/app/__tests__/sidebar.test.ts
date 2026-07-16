@@ -41,14 +41,12 @@ describe('Sidebar - Testes de Validação', () => {
         label: 'Backoffice',
         items: [
           { label: 'Pontos', href: '/backoffice/pontos' },
-          { label: 'Usuários', href: '/backoffice/usuarios' },
           { label: 'Produção', href: '/backoffice/producao' },
-          { label: 'Comissionamento', href: '/backoffice/comissionamento' },
         ],
       };
 
       expect(menuBackoffice.label).toBe('Backoffice');
-      expect(menuBackoffice.items.length).toBe(4);
+      expect(menuBackoffice.items.length).toBe(2);
       expect(menuBackoffice.items[0].href).toBe('/backoffice/pontos');
     });
 
@@ -70,20 +68,6 @@ describe('Sidebar - Testes de Validação', () => {
   });
 
   describe('Estrutura de Navegação', () => {
-    it('deve ter sub-itens em Usuários', () => {
-      const estruturaUsuarios = {
-        label: 'Usuários',
-        href: '/backoffice/usuarios',
-        subItems: [
-          { label: 'Comerciais', href: '/backoffice/usuarios/comerciais' },
-        ],
-      };
-
-      expect(estruturaUsuarios.subItems).toBeDefined();
-      expect(estruturaUsuarios.subItems.length).toBe(1);
-      expect(estruturaUsuarios.subItems[0].href).toBe('/backoffice/usuarios/comerciais');
-    });
-
     it('deve ter sub-itens em Produção', () => {
       const estruturaProducao = {
         label: 'Produção',
@@ -91,22 +75,52 @@ describe('Sidebar - Testes de Validação', () => {
         subItems: [
           { label: 'Upload Planilha', href: '/backoffice/producao/upload' },
           { label: 'Procedimentos', href: '/backoffice/producao/procedimentos' },
+          { label: 'Usuários', href: '/backoffice/usuarios' },
+          { label: 'Comerciais', href: '/backoffice/usuarios/comerciais' },
+          { label: 'Comissionamento', href: '/backoffice/comissionamento' },
+          { label: 'Relatórios', href: '/backoffice/comissionamento/relatorios' },
+          { label: 'Pagamentos', href: '/backoffice/comissionamento/pagamentos' },
         ],
       };
 
-      expect(estruturaProducao.subItems.length).toBe(2);
+      expect(estruturaProducao.subItems.length).toBe(7);
     });
 
-    it('deve ter sub-itens em Comissionamento', () => {
+    it('deve ter sidebar Upload com apenas Procedimentos', () => {
+      const estruturaUpload = {
+        label: 'Upload',
+        items: [
+          { label: 'Procedimentos', href: '/backoffice/producao/procedimentos' },
+        ],
+      };
+
+      expect(estruturaUpload.items.length).toBe(1);
+      expect(estruturaUpload.items[0].href).toBe('/backoffice/producao/procedimentos');
+    });
+
+    it('deve ter Comerciais como sub-item de Produção', () => {
+      const estruturaComerciais = {
+        label: 'Comerciais',
+        href: '/backoffice/usuarios/comerciais',
+        parent: 'Produção',
+      };
+
+      expect(estruturaComerciais.parent).toBe('Produção');
+      expect(estruturaComerciais.href).toBe('/backoffice/usuarios/comerciais');
+    });
+
+    it('deve ter Comissionamento como sub-item de Produção', () => {
       const estruturaComissionamento = {
         label: 'Comissionamento',
         href: '/backoffice/comissionamento',
+        parent: 'Produção',
         subItems: [
           { label: 'Relatórios', href: '/backoffice/comissionamento/relatorios' },
           { label: 'Pagamentos', href: '/backoffice/comissionamento/pagamentos' },
         ],
       };
 
+      expect(estruturaComissionamento.parent).toBe('Produção');
       expect(estruturaComissionamento.subItems.length).toBe(2);
     });
   });
