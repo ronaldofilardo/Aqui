@@ -4,6 +4,7 @@ import { badRequest, notFound, ok } from "@/lib/api-helpers";
 import { indicarClienteSchema } from "@asa/shared";
 
 export async function POST(req: NextRequest) {
+  console.log("[indicar] POST request received:", req.url);
   try {
     const body = await req.json();
     const parsed = indicarClienteSchema.safeParse(body);
@@ -20,34 +21,11 @@ export async function POST(req: NextRequest) {
 
     const parceiro = await prisma.parceiro.findUnique({
       where: { cpf: cpfParceiroClean },
-      include: { 
-        comercial: { 
-          include: {
-            lideranca: {
-              include: {
-                backoffice: { select: { id: true, nome: true } }
-              }
-            }
-          }
-        },
-        gestor: {
-          include: {
-            lideranca: {
-              include: {
-                backoffice: { select: { id: true, nome: true } }
-              }
-            }
-          }
-        }
-      },
     });
 
     if (!parceiro) {
       return notFound("Parceiro não encontrado");
     }
-
-    // Obter backoffice através do comercial ou gestor
-    const backoffice = parceiro.comercial?.lideranca?.backoffice || parceiro.gestor?.lideranca?.backoffice;
 
     if (parceiro.status === "DESLIGADO") {
       return badRequest(
@@ -109,6 +87,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  console.log("[indicar] GET request received:", req.url);
   const { searchParams } = new URL(req.url);
   const cpf = searchParams.get("cpf");
 
