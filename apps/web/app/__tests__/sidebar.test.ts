@@ -36,21 +36,20 @@ describe('Sidebar - Testes de Validação', () => {
         },
       };
 
-      // Validar estrutura do menu - Pontas, Upload, Produção e Comissionamento na raiz
+      // Validar estrutura do menu - Pontos, Produção e Comissionamento na raiz
       const menuBackoffice = {
         label: 'Backoffice',
         items: [
           { label: 'Pontos', href: '/backoffice/pontos' },
-          { label: 'Upload', href: '/backoffice/producao/upload' },
           { label: 'Produção', href: '/backoffice/producao' },
           { label: 'Comissionamento', href: '/backoffice/comissionamento' },
         ],
       };
 
       expect(menuBackoffice.label).toBe('Backoffice');
-      expect(menuBackoffice.items.length).toBe(4);
+      expect(menuBackoffice.items.length).toBe(3);
       expect(menuBackoffice.items[0].href).toBe('/backoffice/pontos');
-      expect(menuBackoffice.items[1].href).toBe('/backoffice/producao/upload');
+      expect(menuBackoffice.items[1].href).toBe('/backoffice/producao');
     });
 
     it('deve redirecionar para /backoffice/dashboard', () => {
@@ -71,40 +70,26 @@ describe('Sidebar - Testes de Validação', () => {
   });
 
   describe('Estrutura de Navegação', () => {
-    it('deve ter sub-itens em Produção', () => {
+    it('deve ter sub-itens em Produção incluindo Upload', () => {
       const estruturaProducao = {
         label: 'Produção',
         href: '/backoffice/producao',
         subItems: [
-          { label: 'Procedimentos', href: '/backoffice/producao/procedimentos' },
-          { label: 'Usuários', href: '/backoffice/usuarios' },
-          { label: 'Comerciais', href: '/backoffice/usuarios/comerciais' },
-        ],
-      };
-
-      expect(estruturaProducao.subItems.length).toBe(3);
-    });
-
-    it('deve ter sidebar Upload com apenas Procedimentos', () => {
-      const estruturaUpload = {
-        label: 'Upload',
-        items: [
+          { label: 'Upload de Planilha', href: '/backoffice/producao?tab=upload' },
           { label: 'Procedimentos', href: '/backoffice/producao/procedimentos' },
         ],
       };
 
-      expect(estruturaUpload.items.length).toBe(1);
-      expect(estruturaUpload.items[0].href).toBe('/backoffice/producao/procedimentos');
+      expect(estruturaProducao.subItems.length).toBe(2);
+      expect(estruturaProducao.subItems[0].href).toContain('tab=upload');
     });
 
-    it('deve ter Comerciais como sub-item de Produção', () => {
+    it('deve ter Comerciais como sub-item ou rota de Usuários', () => {
       const estruturaComerciais = {
         label: 'Comerciais',
         href: '/backoffice/usuarios/comerciais',
-        parent: 'Produção',
       };
 
-      expect(estruturaComerciais.parent).toBe('Produção');
       expect(estruturaComerciais.href).toBe('/backoffice/usuarios/comerciais');
     });
 
@@ -130,7 +115,7 @@ describe('Sidebar - Testes de Validação', () => {
       '/backoffice/usuarios',
       '/backoffice/usuarios/comerciais',
       '/backoffice/producao',
-      '/backoffice/producao/upload',
+      '/backoffice/producao?tab=upload',
       '/backoffice/producao/procedimentos',
       '/backoffice/comissionamento',
       '/backoffice/comissionamento/relatorios',
@@ -139,8 +124,23 @@ describe('Sidebar - Testes de Validação', () => {
 
     rotasBackoffice.forEach((rota) => {
       it(`deve ter rota válida: ${rota}`, () => {
-        expect(rota).toMatch(/^\/backoffice\/[a-z\-/]+$/);
+        expect(rota).toMatch(/^\/backoffice\/[a-z\-/?&=0-9]+$/);
       });
+    });
+  });
+
+  describe('Migração de Upload', () => {
+    it('NÃO deve mais existir rota standalone /backoffice/producao/upload', () => {
+      const rotaAntiga = '/backoffice/producao/upload';
+      
+      // Upload agora é sub-item de Produção via query param
+      const novaEstrutura = {
+        parent: '/backoffice/producao',
+        path: '/backoffice/producao?tab=upload',
+      };
+
+      expect(rotaAntiga).not.toBe(novaEstrutura.path.split('?')[0]);
+      expect(novaEstrutura.parent).toBe('/backoffice/producao');
     });
   });
 });

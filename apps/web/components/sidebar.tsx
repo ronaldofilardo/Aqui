@@ -37,15 +37,13 @@ const consultorNav: NavItem[] = [
 
 const backofficeNav: NavItem[] = [
   { label: "Pontos", href: "/backoffice/pontos", icon: "🎯" },
-  { label: "Upload", href: "/backoffice/producao/upload", icon: "📤" },
   { 
     label: "Produção", 
     href: "/backoffice/producao", 
     icon: "📋",
     subItems: [
+      { label: "Upload de Planilha", href: "/backoffice/producao?tab=upload" },
       { label: "Procedimentos", href: "/backoffice/producao/procedimentos" },
-      { label: "Usuários", href: "/backoffice/usuarios" },
-      { label: "Comerciais", href: "/backoffice/usuarios/comerciais" },
     ]
   },
   { 
@@ -56,14 +54,6 @@ const backofficeNav: NavItem[] = [
       { label: "Relatórios", href: "/backoffice/comissionamento/relatorios" },
       { label: "Pagamentos", href: "/backoffice/comissionamento/pagamentos" },
     ]
-  },
-];
-
-const uploadNav: NavItem[] = [
-  { 
-    label: "Procedimentos", 
-    href: "/backoffice/producao/procedimentos", 
-    icon: "📋"
   },
 ];
 
@@ -109,7 +99,6 @@ export function Sidebar() {
   if (tipo === "ADMIN") navItems = adminNav;
   else if (tipo === "GESTOR" && papel === "BACKOFFICE") navItems = backofficeNav;
   else if (tipo === "BACKOFFICE") navItems = backofficeNav;
-  else if (pathname.startsWith("/backoffice/producao/upload")) navItems = uploadNav;
   else if (tipo === "GESTOR") navItems = gestorNav;
   else if (tipo === "PARCEIRO") navItems = parceiroNav;
   else if (tipo === "COMERCIAL") navItems = comercialNav;
@@ -165,7 +154,11 @@ export function Sidebar() {
               {hasSubItems && (
                 <div className="ml-8 mt-1 space-y-0.5">
                   {item.subItems!.map((subItem) => {
-                    const subActive = pathname === subItem.href;
+                    const basePath = subItem.href.split("?")[0];
+                    const subActive = pathname === basePath && 
+                      (subItem.href.includes("?tab=upload") 
+                        ? typeof window !== "undefined" && window.location.search.includes("tab=upload")
+                        : !subItem.href.includes("?tab="));
                     return (
                       <Link
                         key={subItem.href}
