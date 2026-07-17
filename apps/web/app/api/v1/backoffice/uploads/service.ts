@@ -1,10 +1,6 @@
 import { prisma } from "@asa/database";
 import * as XLSX from "xlsx";
-import {
-  calcularPontosDeProducao,
-  obterCicloVigente,
-  calcularComissaoComercial,
-} from "@/lib/pontos-utils";
+import { calcularPontosDeProducao, obterCicloVigente, calcularComissaoComercial } from "@/lib/pontos-utils";
 import { parseDate, parseNumber } from "./parser";
 import { criarAuditLog } from "@/lib/audit";
 
@@ -20,12 +16,49 @@ interface ProcessUploadResult {
   };
 }
 
-const BATCH_SIZE = 100;
+interface RowData {
+  cpf: string;
+  dataRef: Date | null;
+  dataPag: Date | null;
+  formaPag: string;
+  totalPago: number | null;
+  paciente: string;
+  procedimento: string;
+  tipoProc: string;
+  unidade: string;
+  usuarioDaConta: string;
+  rowIndex: number;
+  uniqueKey: string;
+}
+
+interface ProcessedRow {
+  isOrfao: boolean;
+  comercialId: string | null;
+  gestorId: string | null;
+  dataRef: Date;
+  totalPago: number;
+  procedimento: {
+    dataReferencia: Date;
+    dataPagamento: Date;
+    formaPagamento: string;
+    totalPago: number;
+    paciente: string;
+    procedimento: string;
+    cpf: string;
+    tipoProcedimento: string;
+    unidade: string;
+    parceiroId: string | null;
+    indicadoId: string | null;
+    comercialId: string | null;
+    gestorId: string | null;
+    uploadId: string;
+  };
+}
 
 export async function processUploadPlanilha(
   backofficeId: string,
   worksheet: any,
-  fileName: string,
+  fileName: string
 ): Promise<ProcessUploadResult> {
   const COLUNAS_PLANILHA = [
     "Data de Referência",
@@ -40,12 +73,8 @@ export async function processUploadPlanilha(
     "Usuário da conta",
   ] as const;
 
-  const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-    header: 1,
-    defval: "",
-    range: 0,
-  });
-
+  const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", range: 0 });
+  
   let startRow = 0;
   const firstRow = allRows[0];
   if (!firstRow.some((cell: any) => String(cell).includes("Data de Referência"))) {
@@ -60,6 +89,7 @@ export async function processUploadPlanilha(
     throw new Error(`Colunas faltando: ${missingCols.join(", ")}`);
   }
 
+  // Parse all rows first
   const rawData = dataRows.map((row: any[]) => {
     const obj: any = {};
     headerRow.forEach((col: string, i: number) => {
@@ -68,9 +98,9 @@ export async function processUploadPlanilha(
     return obj;
   });
 
-  // Extrair mês de referência da primeira linha
+  // Extrair mês de referência
   const primeiraDataRef = rawData.length > 0 ? parseDate(rawData[0]["Data de Referência"]) : new Date();
-  const mesReferencia = primeiraDataRef
+  const mesReferencia = primeiraDataRef 
     ? `${primeiraDataRef.getFullYear()}-${String(primeiraDataRef.getMonth() + 1).padStart(2, "0")}`
     : new Date().toISOString().slice(0, 7);
 
@@ -83,35 +113,83 @@ export async function processUploadPlanilha(
     },
   });
 
-  // PASSO 1: Validar e normalizar todas as linhas (sem queries)
+  // Step 1: Parse and validate all rows, collect unique CPFs
+  const validRows: RowData[] = [];
+  const rejectedRows: number[] = [];
   const cpfsProcessados = new Set<string>();
-  const linhasValidas: any[] = [];
-  let rejectedRows = 0;
 
-  for (const row of rawData) {
-    const normalizado = normalizarLinha(row);
-    if (!normalizado) {
-      rejectedRows++;
+  for (let i = 0; i < rawData.length; i++) {
+    const row = rawData[i];
+    const rowIndex = i + startRow + 2; // Excel row (1-indexed, accounting for header)
+
+    const dataRef = parseDate(row["Data de Referência"]);
+    const dataPag = parseDate(row["Data do Pagamento"]);
+    const formaPag = String(row["Forma de Pagamento"] || "").trim();
+    const totalPago = parseNumber(row["Total Pago"]);
+    const paciente = String(row["Paciente"] || "").trim();
+    const procedimento = String(row["Procedimento"] || "").trim();
+    
+    const cpfRaw = String(row["CPF"] || "").replace(/["']/g, "").replace(/\D/g, "").trim();
+    const cpf = cpfRaw.length === 11 ? cpfRaw : cpfRaw.padStart(11, "0");
+    
+    const tipoProc = String(row["Tipo do Procedimento"] || "").trim();
+    const unidade = String(row["Unidade"] || "").trim();
+    const usuarioDaConta = String(row["Usuário da conta"] || "").trim();
+
+    const todosVazios = 
+      (!dataRef || !dataPag) && !formaPag && !totalPago &&
+      !paciente && !procedimento && !cpfRaw && !tipoProc && !unidade && !usuarioDaConta;
+    
+    if (todosVazios) {
+      rejectedRows.push(rowIndex);
       continue;
     }
 
-    const uniqueKey = `${normalizado.dataRefStr}|${normalizado.cpf}|${normalizado.procedimento}`;
+    if (!dataRef || !dataPag || !totalPago || !cpf || cpf.length !== 11 || cpf === "00000000000") {
+      rejectedRows.push(rowIndex);
+      continue;
+    }
+
+    const tipoLower = tipoProc.toLowerCase();
+    if (tipoLower.includes("cancelamento") || tipoLower.includes("devolução") || tipoLower.includes("estorno")) {
+      rejectedRows.push(rowIndex);
+      continue;
+    }
+
+    if (totalPago < 0) {
+      rejectedRows.push(rowIndex);
+      continue;
+    }
+
+    const dataRefStr = dataRef.toISOString().split("T")[0];
+    const uniqueKey = `${dataRefStr}|${cpf}|${procedimento}`;
+
     if (cpfsProcessados.has(uniqueKey)) {
-      rejectedRows++;
+      rejectedRows.push(rowIndex);
       continue;
     }
     cpfsProcessados.add(uniqueKey);
 
-    linhasValidas.push(normalizado);
+    validRows.push({
+      cpf,
+      dataRef,
+      dataPag,
+      formaPag,
+      totalPago,
+      paciente,
+      procedimento,
+      tipoProc,
+      unidade,
+      usuarioDaConta,
+      rowIndex,
+      uniqueKey,
+    });
   }
 
-  console.log(`[Upload] ${linhasValidas.length} linhas válidas de ${rawData.length}`);
-
-  // PASSO 2: Coletar todos os CPFs únicos e buscar em batch
-  const cpfsUnicos = Array.from(new Set(linhasValidas.map((l) => l.cpf)));
-
+  // Step 2: Batch fetch all indicados
+  const uniqueCpfs = [...new Set(validRows.map(r => r.cpf))];
   const indicados = await prisma.indicado.findMany({
-    where: { cpf: { in: cpfsUnicos } },
+    where: { cpf: { in: uniqueCpfs } },
     include: {
       parceiro: {
         include: {
@@ -122,62 +200,43 @@ export async function processUploadPlanilha(
     },
   });
 
-  const indicadosPorCpf = new Map(indicados.map((i) => [i.cpf, i]));
+  const indicadoMap = new Map(indicados.map(i => [i.cpf, i]));
 
-  // PASSO 3: Coletar todos os usuarios (comerciais/gestores) únicos e buscar em batch
-  const usuariosContaUnicos = Array.from(
-    new Set(linhasValidas.filter((l) => l.usuarioDaConta).map((l) => l.usuarioDaConta)),
-  );
+  // Step 3: Batch fetch all comerciais and gestores
+  const uniqueUsuariosDaConta = [...new Set(validRows.map(r => r.usuarioDaConta).filter(Boolean))];
+  
+  const [comerciais, gestores] = await Promise.all([
+    uniqueUsuariosDaConta.length > 0 ? prisma.comercial.findMany({
+      where: {
+        lideranca: { backofficeId },
+        nome: { in: uniqueUsuariosDaConta, mode: "insensitive" },
+      },
+      select: { id: true, nome: true },
+    }) : [],
+    uniqueUsuariosDaConta.length > 0 ? prisma.gestor.findMany({
+      where: {
+        lideranca: { backofficeId },
+        nome: { in: uniqueUsuariosDaConta, mode: "insensitive" },
+      },
+      select: { id: true, nome: true },
+    }) : [],
+  ]);
 
-  const comerciais = await prisma.comercial.findMany({
-    where: {
-      lideranca: { backofficeId },
-      OR: usuariosContaUnicos.map((u) => ({ nome: { contains: u, mode: "insensitive" as const } })),
-    },
-    include: { lideranca: true },
-  });
+  const comercialMap = new Map(comerciais.map(c => [c.nome.toLowerCase(), c.id]));
+  const gestorMap = new Map(gestores.map(g => [g.nome.toLowerCase(), g.id]));
 
-  const gestores = await prisma.gestor.findMany({
-    where: {
-      lideranca: { backofficeId },
-      OR: usuariosContaUnicos.map((u) => ({ nome: { contains: u, mode: "insensitive" as const } })),
-    },
-    include: { lideranca: true },
-  });
-
-  // Mapear usuariosConta para comercial/gestor usando match de substring
-  const comercialPorUsuario = new Map<string, string>();
-  const gestorPorUsuario = new Map<string, string>();
-
-  for (const usuario of usuariosContaUnicos) {
-    const comercial = comerciais.find((c) =>
-      c.nome.toLowerCase().includes(usuario.toLowerCase()),
-    );
-    if (comercial) {
-      comercialPorUsuario.set(usuario, comercial.id);
-    } else {
-      const gestor = gestores.find((g) =>
-        g.nome.toLowerCase().includes(usuario.toLowerCase()),
-      );
-      if (gestor) {
-        gestorPorUsuario.set(usuario, gestor.id);
-      }
-    }
-  }
-
-  // PASSO 4: Construir procedimentos processados
-  const procedimentos: any[] = [];
+  // Step 4: Process all rows with in-memory lookups
   let processedRows = 0;
   let orphanedRows = 0;
   let linhasComComercial = 0;
   let linhasSemComercial = 0;
+  const procedimentos: any[] = [];
   const vendasPorComercialMes: Record<string, Record<string, number>> = {};
 
-  for (const linha of linhasValidas) {
-    const indicado = indicadosPorCpf.get(linha.cpf);
+  for (const row of validRows) {
+    const indicado = indicadoMap.get(row.cpf);
 
-    const isOrfao =
-      !indicado ||
+    const isOrfao = !indicado || 
       indicado.status === "DESVINCULADO" ||
       !indicado.parceiro ||
       indicado.parceiro.status === "DESLIGADO";
@@ -191,37 +250,43 @@ export async function processUploadPlanilha(
       parceiroId = indicado.parceiro.id;
       indicadoId = indicado.id;
 
-      if (linha.usuarioDaConta) {
-        comercialId = comercialPorUsuario.get(linha.usuarioDaConta) ?? null;
-        if (!comercialId) {
-          gestorId = gestorPorUsuario.get(linha.usuarioDaConta) ?? null;
+      if (row.usuarioDaConta) {
+        const userLower = row.usuarioDaConta.toLowerCase();
+        
+        // 1. Buscar Comercial
+        if (comercialMap.has(userLower)) {
+          comercialId = comercialMap.get(userLower)!;
+        } 
+        // 2. Buscar Gestor
+        else if (gestorMap.has(userLower)) {
+          gestorId = gestorMap.get(userLower)!;
         }
       }
     }
 
-    if (isOrfao) orphanedRows++;
+    const mesRef = row.dataRef!.toISOString().split("T")[0];
 
     if (comercialId) {
       linhasComComercial++;
       if (!vendasPorComercialMes[comercialId]) {
         vendasPorComercialMes[comercialId] = {};
       }
-      vendasPorComercialMes[comercialId][linha.dataRefStr] =
-        (vendasPorComercialMes[comercialId][linha.dataRefStr] || 0) + linha.totalPago;
+      vendasPorComercialMes[comercialId][mesRef] =
+        (vendasPorComercialMes[comercialId][mesRef] || 0) + row.totalPago!;
     } else {
       linhasSemComercial++;
     }
 
     procedimentos.push({
-      dataReferencia: linha.dataRef,
-      dataPagamento: linha.dataPag,
-      formaPagamento: linha.formaPag,
-      totalPago: Number(linha.totalPago),
-      paciente: linha.paciente,
-      procedimento: linha.procedimento,
-      cpf: linha.cpf,
-      tipoProcedimento: linha.tipoProc,
-      unidade: linha.unidade,
+      dataReferencia: row.dataRef,
+      dataPagamento: row.dataPag,
+      formaPagamento: row.formaPag,
+      totalPago: Number(row.totalPago),
+      paciente: row.paciente,
+      procedimento: row.procedimento,
+      cpf: row.cpf,
+      tipoProcedimento: row.tipoProc,
+      unidade: row.unidade,
       parceiroId,
       indicadoId,
       comercialId,
@@ -229,25 +294,25 @@ export async function processUploadPlanilha(
       uploadId: upload.id,
     });
 
+    if (isOrfao) {
+      orphanedRows++;
+    }
     processedRows++;
   }
 
-  // PASSO 5: Inserir procedimentos em batch (dividindo em chunks)
+  // Step 5: Batch insert procedimentos
   if (procedimentos.length > 0) {
-    for (let i = 0; i < procedimentos.length; i += BATCH_SIZE) {
-      const batch = procedimentos.slice(i, i + BATCH_SIZE);
-      await prisma.procedimentoPF.createMany({
-        data: batch,
-        skipDuplicates: true,
-      });
-    }
+    await prisma.procedimentoPF.createMany({
+      data: procedimentos,
+      skipDuplicates: true,
+    });
   }
 
-  // PASSO 6: Processar pontos em batch (já usa cache por parceiro)
+  // Step 6: Batch process pontos (collect all needed data first, then batch create)
   await processarPontosBatch(procedimentos, backofficeId);
-
-  // PASSO 7: Processar comissões em batch (já agrega por comercial/mês)
-  await processarComissoesBatch(vendasPorComercialMes, backofficeId);
+  
+  // Step 7: Batch process comissões
+  await processarComissoesBatch(vendasPorComercialMes);
 
   await prisma.uploadPlanilhaBackoffice.update({
     where: { id: upload.id },
@@ -267,7 +332,7 @@ export async function processUploadPlanilha(
     summary: {
       totalRows: rawData.length,
       processedRows,
-      rejectedRows,
+      rejectedRows: rejectedRows.length,
       orphanedRows,
       linhasComComercial,
       linhasSemComercial,
@@ -275,145 +340,61 @@ export async function processUploadPlanilha(
   };
 }
 
-/**
- * Normaliza e valida uma linha sem fazer queries.
- * Retorna null se inválida.
- */
-function normalizarLinha(row: any):
-  | {
-      dataRef: Date;
-      dataPag: Date;
-      formaPag: string;
-      totalPago: number;
-      paciente: string;
-      procedimento: string;
-      cpf: string;
-      tipoProc: string;
-      unidade: string;
-      usuarioDaConta: string;
-      dataRefStr: string;
-    }
-  | null {
-  const dataRef = parseDate(row["Data de Referência"]);
-  const dataPag = parseDate(row["Data do Pagamento"]);
-  const formaPag = String(row["Forma de Pagamento"] || "").trim();
-  const totalPago = parseNumber(row["Total Pago"]);
-  const paciente = String(row["Paciente"] || "").trim();
-  const procedimento = String(row["Procedimento"] || "").trim();
-
-  const cpfRaw = String(row["CPF"] || "")
-    .replace(/["']/g, "")
-    .replace(/\D/g, "")
-    .trim();
-  const cpf = cpfRaw.length === 11 ? cpfRaw : cpfRaw.padStart(11, "0");
-
-  const tipoProc = String(row["Tipo do Procedimento"] || "").trim();
-  const unidade = String(row["Unidade"] || "").trim();
-  const usuarioDaConta = String(row["Usuário da conta"] || "").trim();
-
-  const todosVazios =
-    (!dataRef || !dataPag) &&
-    !formaPag &&
-    !totalPago &&
-    !paciente &&
-    !procedimento &&
-    !cpfRaw &&
-    !tipoProc &&
-    !unidade &&
-    !usuarioDaConta;
-
-  if (todosVazios) return null;
-
-  if (!dataRef || !dataPag || !totalPago || !cpf || cpf.length !== 11 || cpf === "00000000000") {
-    return null;
-  }
-
-  const tipoLower = tipoProc.toLowerCase();
-  if (
-    tipoLower.includes("cancelamento") ||
-    tipoLower.includes("devolução") ||
-    tipoLower.includes("estorno")
-  ) {
-    return null;
-  }
-
-  if (totalPago < 0) return null;
-
-  return {
-    dataRef,
-    dataPag,
-    formaPag,
-    totalPago,
-    paciente,
-    procedimento,
-    cpf,
-    tipoProc,
-    unidade,
-    usuarioDaConta,
-    dataRefStr: dataRef.toISOString().split("T")[0],
-  };
-}
-
-/**
- * Processa pontos em batch - já cacheado por parceiro.
- */
 async function processarPontosBatch(procedimentos: any[], backofficeId: string) {
-  const parceiroIds = Array.from(
-    new Set(procedimentos.filter((p) => p.parceiroId).map((p) => p.parceiroId)),
-  );
-
+  // Collect unique parceiroIds
+  const parceiroIds = [...new Set(procedimentos.filter(p => p.parceiroId).map(p => p.parceiroId!))];
+  
   if (parceiroIds.length === 0) return;
 
-  // PASSO 1: Buscar todos os parceiros em batch
+  // Batch fetch parceiros with periodicidade
   const parceiros = await prisma.parceiro.findMany({
     where: { id: { in: parceiroIds } },
     select: { id: true, periodicidadeCicloEscolhida: true },
   });
 
-  const parceiroMap = new Map(parceiros.map((p) => [p.id, p]));
+  const periodicidadeMap = new Map(parceiros.map(p => [p.id, p.periodicidadeCicloEscolhida ?? "ANUAL"]));
 
-  // PASSO 2: Buscar todos os ciclos vigentes em batch
-  const ciclosUnicos = await prisma.cicloPontos.findMany({
-    where: { backofficeId, status: { in: ["EM_ANDAMENTO", "RESGATE_ABERTO"] } },
+  // Batch fetch ciclos vigentes for each periodicidade
+  const periodicidades = [...new Set(periodicidadeMap.values())];
+  const ciclos = await Promise.all(
+    periodicidades.map(p => obterCicloVigente(backofficeId, p))
+  );
+  
+  const cicloMap = new Map<string, string | null>();
+  periodicidades.forEach((p, i) => {
+    cicloMap.set(p, ciclos[i]?.id ?? null);
   });
 
-  const cicloPorParceiro = new Map<string, { id: string }>();
-  for (const p of parceiros) {
-    const periodicidade = p.periodicidadeCicloEscolhida ?? "ANUAL";
-    const ciclo = ciclosUnicos.find(
-      (c) =>
-        c.periodicidade === periodicidade &&
-        (c.status === "EM_ANDAMENTO" || c.status === "RESGATE_ABERTO"),
-    );
-    if (ciclo) {
-      cicloPorParceiro.set(p.id, { id: ciclo.id });
-    }
-  }
+  // Collect unique ciclos
+  const cicloIds = [...new Set(cicloMap.values())].filter(Boolean) as string[];
+  
+  // Batch fetch configurações for each ciclo
+  const configs = await Promise.all(
+    cicloIds.map(cicloId => 
+      prisma.configuracaoPontos.findFirst({
+        where: { backofficeId },
+        orderBy: { vigenteDesde: "desc" },
+      })
+    )
+  );
 
-  // PASSO 3: Buscar configurações vigentes
-  const configEntries = await prisma.configuracaoPontos.findMany({
-    where: { backofficeId },
-    orderBy: { vigenteDesde: "desc" },
+  const configMap = new Map<string, string | null>();
+  cicloIds.forEach((cicloId, i) => {
+    configMap.set(cicloId, configs[i]?.id ?? null);
   });
 
-  const configPorCiclo = new Map<string, { id: string }>();
-  for (const config of configEntries) {
-    if (!configPorCiclo.has(config.id)) {
-      configPorCiclo.set(config.id, { id: config.id });
-    }
-  }
-
-  // PASSO 4: Calcular e preparar movimentações em batch
+  // Build movimentações
   const movimentacoes: any[] = [];
 
   for (const p of procedimentos) {
     if (!p.parceiroId) continue;
 
-    const ciclo = cicloPorParceiro.get(p.parceiroId);
-    if (!ciclo) continue;
+    const periodicidade = periodicidadeMap.get(p.parceiroId);
+    const cicloId = periodicidade ? cicloMap.get(periodicidade) ?? null : null;
+    if (!cicloId) continue;
 
-    const configEntry = configPorCiclo.get(ciclo.id);
-    if (!configEntry) continue;
+    const configId = configMap.get(cicloId);
+    if (!configId) continue;
 
     const pontos = await calcularPontosDeProducao(
       p.totalPago,
@@ -423,7 +404,7 @@ async function processarPontosBatch(procedimentos: any[], backofficeId: string) 
 
     if (pontos > 0) {
       movimentacoes.push({
-        cicloPontosId: ciclo.id,
+        cicloPontosId: cicloId,
         parceiroId: p.parceiroId,
         tipo: "CREDITO",
         origem: "PRODUCAO_IMPORTADA",
@@ -433,36 +414,33 @@ async function processarPontosBatch(procedimentos: any[], backofficeId: string) 
     }
   }
 
-  // PASSO 5: Inserir movimentações em batch
+  // Batch create movimentações
   if (movimentacoes.length > 0) {
-    for (let i = 0; i < movimentacoes.length; i += BATCH_SIZE) {
-      const batch = movimentacoes.slice(i, i + BATCH_SIZE);
-      await prisma.movimentacaoPontos.createMany({
-        data: batch,
-        skipDuplicates: true,
-      });
-    }
+    await prisma.movimentacaoPontos.createMany({
+      data: movimentacoes,
+      skipDuplicates: true,
+    });
   }
 }
 
-/**
- * Processa comissões em batch - já agregado por comercial/mês.
- */
 async function processarComissoesBatch(
-  vendasPorComercialMes: Record<string, Record<string, number>>,
-  backofficeId: string,
+  vendasPorComercialMes: Record<string, Record<string, number>>
 ) {
-  const promises = Object.entries(vendasPorComercialMes).flatMap(
-    ([comercialId, vendasPorMes]) =>
-      Object.entries(vendasPorMes).map(([mesRef, totalVendas]) => {
-        const [ano, mes] = mesRef.split("-");
-        return calcularComissaoComercial({
+  const promises: Promise<any>[] = [];
+
+  for (const [comercialId, vendasPorMes] of Object.entries(vendasPorComercialMes)) {
+    for (const [mesRef, totalVendas] of Object.entries(vendasPorMes)) {
+      const [ano, mes] = mesRef.split("-");
+      promises.push(
+        calcularComissaoComercial({
           comercialId,
           valorProcedimento: totalVendas,
-          dataReferencia: new Date(Number(ano), Number(mes) - 1, 1),
-        });
-      }),
-  );
+          dataReferencia: new Date(Number(ano), Number(mes) - 1, 1)
+        })
+      );
+    }
+  }
 
-  await Promise.allSettled(promises);
+  // Execute all comissão calculations in parallel
+  await Promise.all(promises);
 }
