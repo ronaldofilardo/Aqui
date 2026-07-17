@@ -37,7 +37,18 @@ interface PreviewData {
   };
 }
 
-export function UploadPlanilhaPreview() {
+interface UploadResult {
+  mensagem?: string;
+  upload?: any;
+  summary?: {
+    totalRows?: number;
+    processedRows?: number;
+    rejectedRows?: number;
+    orphanedRows?: number;
+  };
+}
+
+export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -84,32 +95,61 @@ export function UploadPlanilhaPreview() {
   }, []);
 
   const handleUpload = async () => {
-    if (!file || !previewData) return;
+    if (!file || !previewData) {
+      toast.error("Selecione um arquivo e aguarde o preview");
+      return;
+    }
 
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("[Upload] Iniciando upload do arquivo:", file.name, file.size);
+
       const res = await fetch("/api/v1/backoffice/uploads", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Erro ao fazer upload");
+      console.log("[Upload] Status:", res.status);
+
+      let responseData: UploadResult;
+      try {
+        responseData = await res.json();
+      } catch (e) {
+        console.error("[Upload] Erro ao parsear resposta:", e);
+        throw new Error(`Resposta inválida do servidor (status ${res.status})`);
       }
 
-      const data = await res.json();
-      toast.success(`Upload concluído! ${data.summary.processedRows} linhas processadas`);
+      console.log("[Upload] Resposta:", responseData);
+
+      if (!res.ok) {
+        const errorMsg = (responseData as any).error || `Erro ${res.status} ao fazer upload`;
+        toast.error(errorMsg);
+        return;
+      }
+
+      const processed = responseData.summary?.processedRows ?? 0;
+      toast.success(
+        `Upload concluído! ${processed} linhas processadas`, 
+        { duration: 6000 }
+      );
       
       // Reset
       setFile(null);
       setPreviewData(null);
       setShowAllRows(false);
+      
+      // Notificar componente pai para recarregar lista
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer upload");
+      console.error("[Upload] Erro:", error);
+      toast.error(error?.message || "Erro ao fazer upload. Verifique a conexão.", {
+        duration: 8000,
+      });
     } finally {
       setUploading(false);
     }
