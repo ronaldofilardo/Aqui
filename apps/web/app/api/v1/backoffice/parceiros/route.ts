@@ -134,15 +134,15 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const resetToken = await generateResetToken(usuario.id);
+  const resetToken = generateResetToken();
   const resetLink = `${getBaseUrl()}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-  await criarAuditLog({
-    usuarioId: session.usuarioId,
+await criarAuditLog({
+    usuarioId: session.user.id,
     acao: "CRIAR",
     entidade: "PARCEIRO",
     entidadeId: parceiro.id,
-    descricao: `Parceiro ${nome} criado`,
+    detalhes: { nome, email, cpf: cpfUnmasked },
   });
 
   return created({ link: resetLink });
@@ -160,8 +160,6 @@ export async function PUT(req: NextRequest) {
 
   const { id, nome, email, cpf, pixChave } = validation.data;
 
-  const cpfUnmasked = cpf.replace(/\D/g, "");
-
   const parceiro = await prisma.parceiro.findUnique({
     where: { id },
     include: { usuario: true },
@@ -171,15 +169,19 @@ export async function PUT(req: NextRequest) {
     return notFound("Parceiro não encontrado");
   }
 
-  const existingParceiro = await prisma.parceiro.findFirst({
-    where: {
-      cpf: cpfUnmasked,
-      id: { not: id },
-    },
-  });
+  const cpfUnmasked = cpf ? cpf.replace(/\D/g, "") : parceiro.cpf;
 
-  if (existingParceiro) {
-    return badRequest("CPF já cadastrado");
+  if (cpf && cpfUnmasked !== parceiro.cpf) {
+    const existingParceiro = await prisma.parceiro.findFirst({
+      where: {
+        cpf: cpfUnmasked,
+        id: { not: id },
+      },
+    });
+
+    if (existingParceiro) {
+      return badRequest("CPF já cadastrado");
+    }
   }
 
   const existingUser = await prisma.usuario.findFirst({
@@ -208,11 +210,11 @@ export async function PUT(req: NextRequest) {
   });
 
   await criarAuditLog({
-    usuarioId: session.usuarioId,
+    usuarioId: session.user.id,
     acao: "ATUALIZAR",
     entidade: "PARCEIRO",
     entidadeId: id,
-    descricao: `Parceiro ${nome} atualizado`,
+    detalhes: { nome, cpf: cpfUnmasked, pixChave },
   });
 
   return ok({ success: true });
@@ -240,7 +242,7 @@ export async function DELETE(req: NextRequest) {
   await prisma.parceiro.update({
     where: { id },
     data: {
-      status: "DESATIVADO",
+      status: "DESLIGADO",
       desligadoEm: new Date(),
     },
   });
@@ -251,11 +253,11 @@ export async function DELETE(req: NextRequest) {
   });
 
   await criarAuditLog({
-    usuarioId: session.usuarioId,
+    usuarioId: session.user.id,
     acao: "DESATIVAR",
     entidade: "PARCEIRO",
     entidadeId: id,
-    descricao: `Parceiro ${parceiro.nome} desativado`,
+    detalhes: { nome: parceiro.nome },
   });
 
   return ok({ success: true });
