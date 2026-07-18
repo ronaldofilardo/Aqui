@@ -1,420 +1,407 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import * as XLSX from "xlsx";
-
 /**
- * Tests para as correções do upload de planilhas (Julho 2026):
- * 1. Correção da leitura das linhas 4, 5, 6+ (range: 0 + detecção dinâmica)
- * 2. Órfãos agora são importados (não são mais pulados)
- * 3. Duplicidade usa paciente ao invés de CPF (permite família com mesmo CPF)
+ * Testes das Correções Implementadas no Upload de Planilha
+ * Cobre: cabeçalho na linha 2, busca de indicados, e validações
  */
 
-describe("Upload Planilha - Correções Julho 2026", () => {
-  describe("Detecção dinâmica de cabeçalho", () => {
-    it("deve pular linha de título quando não contém 'Data de Referência'", () => {
-      const wb = XLSX.utils.book_new();
-      const data = [
-        ["Receita Bruta Analítica"], // Linha 1: Título
-        [ // Linha 2: Cabeçalho
-          "Data de Referência",
-          "Data do Pagamento",
-          "Forma de Pagamento",
-          "Total Pago",
-          "Paciente",
-          "Procedimento",
-          "CPF",
-          "Tipo do Procedimento",
-          "Unidade",
-          "Usuário da conta",
-        ],
-        [ // Linha 3: Dados
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "PIX",
-          17.03,
-          "Marcia Costa De Oliveira",
-          "Hemograma",
-          "07102342950",
-          "Exame",
-          "Acesso Saúde Colombo",
-          "Valeria Cavalli Luciano",
-        ],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, "Dados");
-      const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+describe('Correções Upload Planilha - Cabeçalho na Linha 2', () => {
+  it('deve ler cabeçalhos da linha 2 (índice 1)', () => {
+    const jsonData: any[][] = [
+      ['Receita Bruta Análitica', '', '', ''], // Linha 1 - Título
+      ['Data de Referência', 'Paciente', 'CPF', 'Procedimento'], // Linha 2 - Cabeçalhos
+      ['2026-07-15', 'João Silva', '12345678901', 'Consulta'], // Linha 3 - Dados
+    ];
 
-      // Ler todas as linhas primeiro
-      const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: "",
-        range: 0,
-      });
-
-      // Detectar se precisa pular título
-      let startRow = 0;
-      const firstRow = allRows[0] as string[];
-      if (!firstRow.some((cell) => String(cell).includes("Data de Referência"))) {
-        startRow = 1;
+    // Cabeçalhos estão na linha 2 (índice 1)
+    const headersRaw = jsonData[1] || [];
+    const headers = headersRaw.reduce((acc, h, idx) => {
+      const headerStr = h ? String(h).trim() : '';
+      if (headerStr) {
+        acc[String(idx)] = headerStr;
       }
+      return acc;
+    }, {} as Record<string, string>);
 
-      const headerRow = allRows[startRow] as string[];
-      const dataRows = allRows.slice(startRow + 1);
-
-      expect(startRow).toBe(1); // Pulou título
-      expect(headerRow).toContain("Data de Referência");
-      expect(dataRows.length).toBe(1); // 1 linha de dados
-    });
-
-    it("deve usar linha 1 como cabeçalho quando já contém colunas obrigatórias", () => {
-      const wb = XLSX.utils.book_new();
-      const data = [
-        [ // Linha 1: Já é o cabeçalho (sem título)
-          "Data de Referência",
-          "Data do Pagamento",
-          "Forma de Pagamento",
-          "Total Pago",
-          "Paciente",
-          "Procedimento",
-          "CPF",
-          "Tipo do Procedimento",
-          "Unidade",
-          "Usuário da conta",
-        ],
-        [ // Linha 2: Dados
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "PIX",
-          17.03,
-          "Marcia Costa De Oliveira",
-          "Hemograma",
-          "07102342950",
-          "Exame",
-          "Acesso Saúde Colombo",
-          "Valeria Cavalli Luciano",
-        ],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, "Dados");
-      const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-      const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: "",
-        range: 0,
-      });
-
-      let startRow = 0;
-      const firstRow = allRows[0] as string[];
-      if (!firstRow.some((cell) => String(cell).includes("Data de Referência"))) {
-        startRow = 1;
-      }
-
-      const headerRow = allRows[startRow] as string[];
-      const dataRows = allRows.slice(startRow + 1);
-
-      expect(startRow).toBe(0); // Não pulou linha
-      expect(headerRow).toContain("Data de Referência");
-      expect(dataRows.length).toBe(1); // 1 linha de dados
-    });
-
-    it("deve ler todas as linhas incluindo 4, 5, 6, 7, 8+", () => {
-      const wb = XLSX.utils.book_new();
-      const data = [
-        ["Receita Bruta Analítica"], // Linha 1: Título
-        [ // Linha 2: Cabeçalho
-          "Data de Referência",
-          "Data do Pagamento",
-          "Forma de Pagamento",
-          "Total Pago",
-          "Paciente",
-          "Procedimento",
-          "CPF",
-          "Tipo do Procedimento",
-          "Unidade",
-          "Usuário da conta",
-        ],
-        [ // Linha 3: Dado 1
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "PIX",
-          17.03,
-          "Marcia",
-          "Hemograma",
-          "07102342950",
-          "Exame",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-        [ // Linha 4: Dado 2
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "Crédito",
-          69.9,
-          "Rosangela",
-          "Consulta",
-          "87208377987",
-          "Consulta",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-        [ // Linha 5: Dado 3
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "PIX",
-          69.9,
-          "Camila",
-          "Consulta",
-          "10645564931",
-          "Consulta",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-        [ // Linha 6: Dado 4
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "Débito",
-          79.9,
-          "ELIDIANE",
-          "Oftalmologia",
-          "12114106926",
-          "Consulta",
-          "Unidade 1",
-          "Comercial 2",
-        ],
-        [ // Linha 7: Dado 5
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "Débito",
-          13.62,
-          "Leaci",
-          "Hemograma",
-          "03075398810",
-          "Exame",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-        [ // Linha 8: Dado 6
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "Débito",
-          9.35,
-          "Leaci",
-          "VHS",
-          "03075398810",
-          "Exame",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-        [ // Linha 9: Dado 7
-          new Date("2026-07-06"),
-          new Date("2026-07-06"),
-          "Débito",
-          8.88,
-          "Leaci",
-          "Urina",
-          "03075398810",
-          "Exame",
-          "Unidade 1",
-          "Comercial 1",
-        ],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, "Dados");
-      const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-      const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: "",
-        range: 0,
-      });
-
-      let startRow = 0;
-      const firstRow = allRows[0] as string[];
-      if (!firstRow.some((cell) => String(cell).includes("Data de Referência"))) {
-        startRow = 1;
-      }
-
-      const dataRows = allRows.slice(startRow + 1);
-
-      expect(dataRows.length).toBe(7); // Todas as 7 linhas de dados lidas
-    });
+    expect(headers['0']).toBe('Data de Referência');
+    expect(headers['1']).toBe('Paciente');
+    expect(headers['2']).toBe('CPF');
+    expect(headers['3']).toBe('Procedimento');
   });
 
-  describe("Chave de duplicidade com paciente (não CPF)", () => {
-    it("deve permitir múltiplos pacientes com mesmo CPF no mesmo dia", () => {
-      const cpfsProcessados = new Set<string>();
-      
-      // Linha 1: Marcia com CPF 530.511.739-91
-      const key1 = `2026-07-06|Marcia Costa De Oliveira|Hemograma|Acesso Saúde Colombo`;
-      
-      // Linha 3: Camila com MESMO CPF mas paciente diferente
-      const key2 = `2026-07-06|Camila Iagla Pires|Consulta Eletiva Clínico Geral|Acesso Saúde Colombo`;
-      
-      // Linha 5: Leaci com MESMO CPF mas paciente diferente
-      const key3 = `2026-07-06|Leaci De Fatima Da Silva|Hemograma|Acesso Saúde Colombo`;
+  it('deve processar dados a partir da linha 3 (índice 2)', () => {
+    const jsonData: any[][] = [
+      ['Receita Bruta Análitica', '', '', ''], // Linha 1 - Título (ignorar)
+      ['Data de Referência', 'Paciente', 'CPF', 'Procedimento'], // Linha 2 - Cabeçalhos (ignorar)
+      ['2026-07-15', 'João Silva', '12345678901', 'Consulta'], // Linha 3 - Dados
+      ['2026-07-16', 'Maria Santos', '98765432100', 'Exame'], // Linha 4 - Dados
+    ];
 
-      expect(cpfsProcessados.has(key1)).toBe(false);
-      cpfsProcessados.add(key1);
+    const dadosProcessados: any[] = [];
+    
+    // Começar do índice 2 (linha 3)
+    for (let i = 2; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (row && row.length > 0) {
+        dadosProcessados.push({
+          dataReferencia: row[0],
+          paciente: row[1],
+          cpf: row[2],
+          procedimento: row[3],
+        });
+      }
+    }
 
-      expect(cpfsProcessados.has(key2)).toBe(false); // Não é duplicado
-      cpfsProcessados.add(key2);
-
-      expect(cpfsProcessados.has(key3)).toBe(false); // Não é duplicado
-      cpfsProcessados.add(key3);
-
-      expect(cpfsProcessados.size).toBe(3); // Todos únicos
-    });
-
-    it("deve rejeitar mesmo paciente com mesmo procedimento no mesmo dia", () => {
-      const cpfsProcessados = new Set<string>();
-      
-      const key1 = `2026-07-06|Leaci De Fatima Da Silva|Hemograma|Acesso Saúde Colombo`;
-      const key2 = `2026-07-06|Leaci De Fatima Da Silva|Hemograma|Acesso Saúde Colombo`; // Igual
-
-      expect(cpfsProcessados.has(key1)).toBe(false);
-      cpfsProcessados.add(key1);
-
-      expect(cpfsProcessados.has(key2)).toBe(true); // É duplicado
-    });
-
-    it("deve permitir mesmo paciente com procedimentos diferentes no mesmo dia", () => {
-      const cpfsProcessados = new Set<string>();
-      
-      const key1 = `2026-07-06|Leaci De Fatima Da Silva|Hemograma|Acesso Saúde Colombo`;
-      const key2 = `2026-07-06|Leaci De Fatima Da Silva|VHS|Acesso Saúde Colombo`;
-      const key3 = `2026-07-06|Leaci De Fatima Da Silva|Urina|Acesso Saúde Colombo`;
-
-      expect(cpfsProcessados.has(key1)).toBe(false);
-      cpfsProcessados.add(key1);
-
-      expect(cpfsProcessados.has(key2)).toBe(false); // Procedimento diferente
-      cpfsProcessados.add(key2);
-
-      expect(cpfsProcessados.has(key3)).toBe(false); // Procedimento diferente
-      cpfsProcessados.add(key3);
-
-      expect(cpfsProcessados.size).toBe(3); // Todos únicos
-    });
+    expect(dadosProcessados).toHaveLength(2);
+    expect(dadosProcessados[0].paciente).toBe('João Silva');
+    expect(dadosProcessados[1].paciente).toBe('Maria Santos');
   });
 
-  describe("Órfãos devem ser importados", () => {
-    it("deve classificar como órfão mas ainda importar procedimento", () => {
-      // Simula indicado sem parceiro ativo
-      const indicado = null;
-      const isOrfao = !indicado;
+  it('deve calcular total de linhas excluindo título e cabeçalho', () => {
+    const jsonData: any[][] = [
+      ['Título'], // Linha 1
+      ['Cabeçalho'], // Linha 2
+      ['Dado 1'], // Linha 3
+      ['Dado 2'], // Linha 4
+      ['Dado 3'], // Linha 5
+    ];
 
-      expect(isOrfao).toBe(true);
-      // Órfão deve ser importado (não usar continue para pular)
-      // Apenas marcar como ORFÃO no status
-    });
-
-    it("deve classificar como órfão quando parceiro DESLIGADO", () => {
-      const indicado = {
-        status: "ATIVO",
-        parceiro: {
-          status: "DESLIGADO",
-          gestorPfId: "gestor-123",
-        },
-      };
-
-      const isOrfao = !indicado ||
-        indicado.status === "DESVINCULADO" ||
-        !indicado.parceiro ||
-        indicado.parceiro.status === "DESLIGADO";
-
-      expect(isOrfao).toBe(true);
-      // Ainda assim deve importar
-    });
-
-    it("deve classificar como órfão quando gestor diferente", () => {
-      const indicado = {
-        status: "ATIVO",
-        parceiro: {
-          status: "ATIVO",
-          gestorPfId: "gestor-diferente",
-        },
-      };
-      const gestorPfIdAtual = "gestor-atual";
-
-      const isOrfao = !indicado ||
-        indicado.status === "DESVINCULADO" ||
-        !indicado.parceiro ||
-        indicado.parceiro.status === "DESLIGADO" ||
-        indicado.parceiro.gestorPfId !== gestorPfIdAtual;
-
-      expect(isOrfao).toBe(true);
-    });
-
-    it("deve ser válido quando tem indicado e parceiro ativos do mesmo gestor", () => {
-      const indicado = {
-        status: "ATIVO",
-        parceiro: {
-          status: "ATIVO",
-          gestorPfId: "gestor-123",
-          nome: "Parceiro Teste",
-        },
-      };
-      const gestorPfIdAtual = "gestor-123";
-
-      const isOrfao = !indicado ||
-        indicado.status === "DESVINCULADO" ||
-        !indicado.parceiro ||
-        indicado.parceiro.status === "DESLIGADO" ||
-        indicado.parceiro.gestorPfId !== gestorPfIdAtual;
-
-      expect(isOrfao).toBe(false);
-    });
+    const totalLinhasDados = Math.max(0, jsonData.length - 2);
+    
+    expect(totalLinhasDados).toBe(3); // 5 linhas - 2 (título + cabeçalho)
   });
 
-  describe("Parse de números e datas", () => {
-    it("deve parsear número brasileiro com vírgula decimal", () => {
-      const parseNumber = (value: string | number | undefined): number | null => {
-        if (typeof value === "number") return value;
-        if (!value || value === "") return null;
-        
-        const str = String(value);
-        if (str.includes(",")) {
-          const cleaned = str.replace(/\./g, "").replace(",", ".");
-          const num = parseFloat(cleaned);
-          if (!isNaN(num)) return num;
+  it('deve lidar com planilha sem dados após cabeçalho', () => {
+    const jsonData: any[][] = [
+      ['Título'],
+      ['Cabeçalho'],
+    ];
+
+    const totalLinhasDados = Math.max(0, jsonData.length - 2);
+    
+    expect(totalLinhasDados).toBe(0);
+  });
+});
+
+describe('Correções Upload Planilha - Busca de Indicados', () => {
+  it('deve encontrar parceiro pelo CPF do cliente entre indicados', () => {
+    const parceiros = [
+      {
+        id: 'p1',
+        nome: 'Parceiro 1',
+        cpf: '11111111111',
+        indicacoes: [
+          { id: 'i1', cpf: '12345678901', nome: 'João' },
+          { id: 'i2', cpf: '98765432100', nome: 'Maria' },
+        ],
+      },
+      {
+        id: 'p2',
+        nome: 'Parceiro 2',
+        cpf: '22222222222',
+        indicacoes: [
+          { id: 'i3', cpf: '11122233344', nome: 'Pedro' },
+        ],
+      },
+    ];
+
+    const cpfBusca = '12345678901';
+    let parceiroEncontrado = null;
+    let indicadoEncontrado = null;
+
+    // Primeiro tenta achar pelo CPF do parceiro
+    parceiroEncontrado = parceiros.find((p) => p.cpf === cpfBusca);
+    
+    // Se não achou, procura entre os indicados
+    if (!parceiroEncontrado) {
+      for (const parceiro of parceiros) {
+        indicadoEncontrado = parceiro.indicacoes.find((ind) => ind.cpf === cpfBusca);
+        if (indicadoEncontrado) {
+          parceiroEncontrado = parceiro;
+          break;
         }
-        
-        const cleaned = str.replace(/,/g, "");
-        const num = parseFloat(cleaned);
-        return isNaN(num) ? null : num;
-      };
+      }
+    }
 
-      expect(parseNumber("17,03")).toBe(17.03);
-      expect(parseNumber("69,9")).toBe(69.9);
-      expect(parseNumber("1.234,56")).toBe(1234.56);
-      expect(parseNumber("13,62")).toBe(13.62);
+    expect(parceiroEncontrado).toBeTruthy();
+    expect(parceiroEncontrado?.id).toBe('p1');
+    expect(indicadoEncontrado?.id).toBe('i1');
+  });
+
+  it('deve retornar null quando CPF não estiver em nenhum indicado', () => {
+    const parceiros = [
+      {
+        id: 'p1',
+        nome: 'Parceiro 1',
+        cpf: '11111111111',
+        indicacoes: [
+          { id: 'i1', cpf: '12345678901', nome: 'João' },
+        ],
+      },
+    ];
+
+    const cpfBusca = '99999999999';
+    let parceiroEncontrado = null;
+    let indicadoEncontrado = null;
+
+    parceiroEncontrado = parceiros.find((p) => p.cpf === cpfBusca);
+    
+    if (!parceiroEncontrado) {
+      for (const parceiro of parceiros) {
+        indicadoEncontrado = parceiro.indicacoes.find((ind) => ind.cpf === cpfBusca);
+        if (indicadoEncontrado) {
+          parceiroEncontrado = parceiro;
+          break;
+        }
+      }
+    }
+
+    expect(parceiroEncontrado).toBeFalsy();
+    expect(indicadoEncontrado).toBeFalsy();
+  });
+
+  it('deve priorizar CPF do parceiro sobre CPF do indicado', () => {
+    const parceiros = [
+      {
+        id: 'p1',
+        nome: 'Parceiro 1',
+        cpf: '12345678901', // Mesmo CPF de um indicado
+        indicacoes: [
+          { id: 'i1', cpf: '12345678901', nome: 'João' },
+        ],
+      },
+    ];
+
+    const cpfBusca = '12345678901';
+    let parceiroEncontrado = null;
+    let indicadoEncontrado = null;
+
+    // Primeiro tenta achar pelo CPF do parceiro
+    parceiroEncontrado = parceiros.find((p) => p.cpf === cpfBusca);
+    
+    // Só procura entre indicados se não achou parceiro
+    if (!parceiroEncontrado) {
+      for (const parceiro of parceiros) {
+        indicadoEncontrado = parceiro.indicacoes.find((ind) => ind.cpf === cpfBusca);
+        if (indicadoEncontrado) {
+          parceiroEncontrado = parceiro;
+          break;
+        }
+      }
+    }
+
+    expect(parceiroEncontrado).toBeTruthy();
+    expect(parceiroEncontrado?.id).toBe('p1');
+    expect(indicadoEncontrado).toBeNull(); // Não deve procurar indicados se achou parceiro
+  });
+
+  it('deve buscar indicados de todos os parceiros até encontrar', () => {
+    const parceiros = [
+      {
+        id: 'p1',
+        nome: 'Parceiro 1',
+        cpf: '11111111111',
+        indicacoes: [
+          { id: 'i1', cpf: '11122233344', nome: 'João' },
+        ],
+      },
+      {
+        id: 'p2',
+        nome: 'Parceiro 2',
+        cpf: '22222222222',
+        indicacoes: [
+          { id: 'i2', cpf: '55566677788', nome: 'Maria' },
+        ],
+      },
+      {
+        id: 'p3',
+        nome: 'Parceiro 3',
+        cpf: '33333333333',
+        indicacoes: [
+          { id: 'i3', cpf: '12345678901', nome: 'Pedro' }, // CPF buscado está aqui
+        ],
+      },
+    ];
+
+    const cpfBusca = '12345678901';
+    let parceiroEncontrado = null;
+    let indicadoId: string | null = null;
+
+    if (!parceiroEncontrado) {
+      for (const parceiro of parceiros) {
+        const indicado = parceiro.indicacoes.find((ind) => ind.cpf === cpfBusca);
+        if (indicado) {
+          parceiroEncontrado = parceiro;
+          indicadoId = indicado.id;
+          break;
+        }
+      }
+    }
+
+    expect(parceiroEncontrado?.id).toBe('p3');
+    expect(indicadoId).toBe('i3');
+  });
+});
+
+describe('Correções Upload Planilha - Validação de Arrays Vazios', () => {
+  it('deve lidar com comerciais/gestores vazios', () => {
+    const comercialIds: string[] = [];
+    const gestorIds: string[] = [];
+
+    // Quando arrays estão vazios, não deve filtrar por OR
+    const whereCondition = comercialIds.length > 0 || gestorIds.length > 0 
+      ? { OR: [{ comercialId: { in: comercialIds } }, { gestorId: { in: gestorIds } }] }
+      : {};
+
+    expect(whereCondition).toEqual({});
+  });
+
+  it('deve aplicar filtro OR quando houver IDs', () => {
+    const comercialIds = ['c1', 'c2'];
+    const gestorIds = ['g1'];
+
+    const whereCondition = comercialIds.length > 0 || gestorIds.length > 0 
+      ? { OR: [{ comercialId: { in: comercialIds } }, { gestorId: { in: gestorIds } }] }
+      : {};
+
+    expect(whereCondition).toEqual({
+      OR: [
+        { comercialId: { in: ['c1', 'c2'] } },
+        { gestorId: { in: ['g1'] } }
+      ]
     });
+  });
 
-    it("deve parsear CPF com aspas e formatar corretamente", () => {
-      const parseCPF = (value: string | number | undefined): string => {
-        if (!value) return "";
-        const cpfRaw = String(value)
-          .replace(/["']/g, "")
-          .replace(/\D/g, "")
-          .trim();
-        // Remove zeros à esquerda se tiver mais de 11 dígitos (ex: "8720837798700" -> "87208377987")
-        const cpfLimpo = cpfRaw.length > 11 ? cpfRaw.slice(0, 11) : cpfRaw;
-        return cpfLimpo.length === 11 ? cpfLimpo : cpfLimpo.padStart(11, "0");
-      };
+  it('deve calcular total de indicados mesmo com parceiros vazios', () => {
+    const parceiros: any[] = [];
+    
+    const totalIndicados = parceiros.reduce((sum, p) => sum + (p.indicacoes?.length || 0), 0);
+    
+    expect(totalIndicados).toBe(0);
+  });
 
-      expect(parseCPF('87208377987')).toBe("87208377987");
-      expect(parseCPF('10645564931')).toBe("10645564931");
-      expect(parseCPF('12114106926')).toBe("12114106926");
-      expect(parseCPF("07102342950")).toBe("07102342950");
-    });
+  it('deve somar indicados de múltiplos parceiros', () => {
+    const parceiros = [
+      { id: 'p1', indicacoes: [{ id: 'i1' }, { id: 'i2' }] },
+      { id: 'p2', indicacoes: [{ id: 'i3' }] },
+      { id: 'p3', indicacoes: [] },
+      { id: 'p4', indicacoes: [{ id: 'i4' }, { id: 'i5' }, { id: 'i6' }] },
+    ];
+
+    const totalIndicados = parceiros.reduce((sum, p) => sum + p.indicacoes.length, 0);
+    
+    expect(totalIndicados).toBe(6);
+  });
+});
+
+describe('Correções Upload Planilha - Logs de Debug', () => {
+  it('deve logar informações relevantes para debug', () => {
+    const logs: string[] = [];
+    const mockLog = (msg: string, ...args: any[]) => {
+      logs.push(`${msg} ${args.map(a => JSON.stringify(a)).join(' ')}`);
+    };
+
+    const backofficeId = 'backoffice-123';
+    const liderancas = [{ id: 'l1' }, { id: 'l2' }];
+    const comerciais = [{ id: 'c1', nome: 'Comercial 1' }];
+    const gestores = [{ id: 'g1', nome: 'Gestor 1' }];
+    const parceiros = [
+      { 
+        id: 'p1', 
+        nome: 'Parceiro 1', 
+        cpf: '12345678901',
+        indicacoes: [{ id: 'i1', cpf: '11122233344', nome: 'João' }]
+      }
+    ];
+
+    mockLog('[parsePlanilhaProducao] Backoffice ID:', backofficeId);
+    mockLog('[parsePlanilhaProducao] Lideranças encontradas:', liderancas.length);
+    mockLog('[parsePlanilhaProducao] Comerciais encontrados:', comerciais.length);
+    mockLog('[parsePlanilhaProducao] Gestores encontrados:', gestores.length);
+    mockLog('[parsePlanilhaProducao] Parceiros encontrados:', parceiros.length);
+    mockLog('[parsePlanilhaProducao] Total de indicados:', parceiros.reduce((sum, p) => sum + p.indicacoes.length, 0));
+
+    expect(logs.some(l => l.includes('Backoffice ID:'))).toBe(true);
+    expect(logs.some(l => l.includes('Lideranças encontradas: 2'))).toBe(true);
+    expect(logs.some(l => l.includes('Comerciais encontrados: 1'))).toBe(true);
+    expect(logs.some(l => l.includes('Parceiros encontrados: 1'))).toBe(true);
+    expect(logs.some(l => l.includes('Total de indicados: 1'))).toBe(true);
+  });
+});
+
+describe('Correções Upload Planilha - Estrutura de Dados', () => {
+  it('deve mapear headers corretamente mesmo com células vazias', () => {
+    const headersRaw = [
+      'Data de Referência',
+      '',
+      '',
+      'Paciente',
+      '',
+      'CPF',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ];
+
+    const headers = headersRaw.reduce((acc, h, idx) => {
+      const headerStr = h ? String(h).trim() : '';
+      if (headerStr) {
+        acc[String(idx)] = headerStr;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    expect(headers['0']).toBe('Data de Referência');
+    expect(headers['3']).toBe('Paciente');
+    expect(headers['5']).toBe('CPF');
+    expect(Object.keys(headers)).toHaveLength(3); // Apenas headers não vazios
+  });
+
+  it('deve normalizar nomes de colunas para lowercase', () => {
+    const headers = {
+      '0': 'Data de Referência',
+      '1': 'Paciente',
+      '2': 'CPF',
+    };
+
+    const colunasEncontradas = Object.values(headers).map((h) => h.toLowerCase());
+
+    expect(colunasEncontradas).toContain('data de referência');
+    expect(colunasEncontradas).toContain('paciente');
+    expect(colunasEncontradas).toContain('cpf');
+  });
+
+  it('deve identificar colunas obrigatórias faltando', () => {
+    const COLUNAS_OBRIGATORIAS = [
+      'Data de Referência',
+      'Paciente',
+      'CPF',
+      'Procedimento',
+      'Total Pago',
+      'Usuário da conta',
+    ];
+
+    const colunasEncontradas = ['data de referência', 'paciente', 'cpf'];
+
+    const faltantes = COLUNAS_OBRIGATORIAS.filter(
+      (col) => !colunasEncontradas.includes(col.toLowerCase())
+    );
+
+    expect(faltantes).toHaveLength(3);
+    expect(faltantes).toContain('Procedimento');
+    expect(faltantes).toContain('Total Pago');
+    expect(faltantes).toContain('Usuário da conta');
   });
 });

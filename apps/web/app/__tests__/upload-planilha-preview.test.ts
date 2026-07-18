@@ -45,6 +45,7 @@ describe('UploadPlanilhaPreview - Estrutura de Dados', () => {
           totalPago: 150,
           unidade: 'Matriz',
           usuarioDaConta: 'comercial1',
+          valorComissao: 0,
           status: 'VALIDO' as const,
         },
       ],
@@ -55,7 +56,7 @@ describe('UploadPlanilhaPreview - Estrutura de Dados', () => {
         validos: 1,
         orfaos: 0,
         rejeitados: 0,
-        totalComissao: 150,
+        totalComissao: 0,
         colunasEncontradas: ['Data de Referência', 'Paciente', 'CPF'],
         colunasObrigatorias: ['Data de Referência', 'Paciente', 'CPF'],
         colunasOpcionais: [],
@@ -64,6 +65,7 @@ describe('UploadPlanilhaPreview - Estrutura de Dados', () => {
 
     expect(previewData.summary.validos).toBe(1);
     expect(previewData.previewRows[0].status).toBe('VALIDO');
+    expect(previewData.previewRows[0].valorComissao).toBe(0);
     expect(previewData.totalRows).toBe(1);
   });
 
@@ -182,7 +184,7 @@ describe('UploadPlanilhaPreview - UI Logic', () => {
       switch (status) {
         case 'VALIDO':
           return 'bg-green-100 text-green-800';
-        case 'ORFÃO':
+        case 'ORFAO':
           return 'bg-yellow-100 text-yellow-800';
         case 'REJEITADO':
           return 'bg-red-100 text-red-800';
@@ -192,7 +194,7 @@ describe('UploadPlanilhaPreview - UI Logic', () => {
     };
 
     expect(getStatusColor('VALIDO')).toContain('green');
-    expect(getStatusColor('ORFÃO')).toContain('yellow');
+    expect(getStatusColor('ORFAO')).toContain('yellow');
     expect(getStatusColor('REJEITADO')).toContain('red');
   });
 

@@ -13,7 +13,8 @@ interface PreviewRow {
   totalPago: number;
   unidade: string;
   usuarioDaConta: string;
-  status: "VALIDO" | "ORFÃO" | "REJEITADO";
+  valorComissao?: number;
+  status: "VALIDO" | "ORFAO" | "REJEITADO";
   motivo?: string;
   parceiroNome?: string;
   comercialNome?: string;
@@ -54,6 +55,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
+  const [mesReferencia, setMesReferencia] = useState("");
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -66,6 +68,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
 
     setFile(selectedFile);
     setPreviewData(null);
+    setMesReferencia("");
     setShowAllRows(false);
     setLoading(true);
 
@@ -85,6 +88,14 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
 
       const data = await res.json();
       setPreviewData(data);
+      
+      // Extrair mês de referência da primeira linha válida
+      const primeiraLinhaValida = data.previewRows.find((r: any) => r.status === "VALIDO");
+      if (primeiraLinhaValida && primeiraLinhaValida.dataReferencia) {
+        const [ano, mes] = primeiraLinhaValida.dataReferencia.split("-");
+        setMesReferencia(`${ano}-${mes}`);
+      }
+      
       toast.success(`Planilha processada: ${data.summary.total} linhas encontradas`);
     } catch (error: any) {
       toast.error(error.message || "Erro ao processar arquivo");
@@ -100,12 +111,18 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
       return;
     }
 
+    if (!mesReferencia) {
+      toast.error("Selecione o mês de referência");
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("mesReferencia", mesReferencia);
 
-      console.log("[Upload] Iniciando upload do arquivo:", file.name, file.size);
+      console.log("[Upload] Iniciando upload do arquivo:", file.name, file.size, "Mês:", mesReferencia);
 
       const res = await fetch("/api/v1/backoffice/uploads", {
         method: "POST",
@@ -139,6 +156,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
       // Reset
       setFile(null);
       setPreviewData(null);
+      setMesReferencia("");
       setShowAllRows(false);
       
       // Notificar componente pai para recarregar lista
@@ -159,7 +177,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
     switch (status) {
       case "VALIDO":
         return "bg-green-100 text-green-800";
-      case "ORFÃO":
+      case "ORFAO":
         return "bg-yellow-100 text-yellow-800";
       case "REJEITADO":
         return "bg-red-100 text-red-800";
@@ -171,6 +189,21 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
   const displayedRows = showAllRows 
     ? previewData?.previewRows 
     : previewData?.previewRows.slice(0, 10);
+
+  function gerarMesesDisponiveis() {
+    const meses = [];
+    const hoje = new Date();
+    
+    // Gerar últimos 12 meses
+    for (let i = 0; i < 12; i++) {
+      const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const valor = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+      const label = data.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+      meses.push({ value: valor, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    
+    return meses;
+  }
 
   return (
     <div className="space-y-6">
@@ -216,6 +249,26 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
       {/* Preview */}
       {previewData && !loading && (
         <>
+          {/* Mês de Referência */}
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Mês de Referência</h3>
+            <select
+              value={mesReferencia}
+              onChange={(e) => setMesReferencia(e.target.value)}
+              className="text-sm border rounded px-3 py-2 w-full md:w-auto"
+            >
+              <option value="">Selecione o mês de referência</option>
+              {gerarMesesDisponiveis().map((mes) => (
+                <option key={mes.value} value={mes.value}>
+                  {mes.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-2">
+              Mês extraído automaticamente da primeira linha válida da planilha
+            </p>
+          </div>
+
           {/* Summary */}
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Resumo do Preview</h3>
@@ -242,6 +295,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
                 <p className="text-lg font-bold text-blue-700">
                   R$ {previewData.summary.totalComissao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
+                <p className="text-xs text-blue-500 mt-1">A calcular</p>
               </div>
             </div>
 
@@ -292,6 +346,7 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
                     <th className="text-left p-2 font-medium text-gray-600">Unidade</th>
                     <th className="text-left p-2 font-medium text-gray-600">Usuário Conta</th>
                     <th className="text-right p-2 font-medium text-gray-600">Total Pago</th>
+                    <th className="text-right p-2 font-medium text-gray-600">Comissão</th>
                     <th className="text-center p-2 font-medium text-gray-600">Status</th>
                   </tr>
                 </thead>
@@ -310,6 +365,9 @@ export function UploadPlanilhaPreview({ onUploadSuccess }: { onUploadSuccess?: (
                       <td className="p-2 text-gray-600">{row.usuarioDaConta || "-"}</td>
                       <td className="p-2 text-right text-gray-900">
                         R$ {Number(row.totalPago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-2 text-right text-gray-500">
+                        R$ {(row.valorComissao || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-2 text-center">
                         <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(row.status)}`}>
