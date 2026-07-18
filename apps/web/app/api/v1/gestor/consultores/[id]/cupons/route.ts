@@ -163,7 +163,8 @@ export async function DELETE(
     );
   }
 
-  await prisma.cupomConfig.delete({ where: { id: cupomConfigId } });
+  // Soft delete: inativar ao invés de deletar
+  await prisma.cupomConfig.update({ where: { id: cupomConfigId }, data: { status: "INATIVO" } });
 
   return ok({ mensagem: "Código de cupom removido com sucesso" });
 }

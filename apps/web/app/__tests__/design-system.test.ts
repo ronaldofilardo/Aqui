@@ -173,28 +173,22 @@ describe("Sidebar — Seleção de nav por tipo e papel de usuário", () => {
     papel: string | null | undefined,
   ): NavItem[] {
     if (tipo === "ADMIN") return adminNav;
-    if (tipo === "GESTOR" && papel === "GESTOR_PF") return backofficeNav;
-    if (tipo === "GESTOR") return gestorNav;
-    if (tipo === "GESTOR_PF") return backofficeNav;
+    if (tipo === "BACKOFFICE" || (tipo === "BACKOFFICE" && papel === "BACKOFFICE")) return backofficeNav;
     if (tipo === "PARCEIRO") return parceiroNav;
     if (tipo === "ESTABELECIMENTO") return estabelecimentoNav;
     return consultorNav;
   }
 
-  it("deve retornar gestorPJNav para GESTOR com papel GESTOR_PJ", () => {
-    expect(selectNav("GESTOR", "GESTOR_PJ")).toBe(gestorNav);
+  it("deve retornar backofficeNav para BACKOFFICE", () => {
+    expect(selectNav("BACKOFFICE", null)).toBe(backofficeNav);
   });
 
-  it("deve retornar backofficeNav para GESTOR com papel GESTOR_PF", () => {
-    expect(selectNav("GESTOR", "GESTOR_PF")).toBe(backofficeNav);
+  it("deve retornar backofficeNav para BACKOFFICE com papel BACKOFFICE", () => {
+    expect(selectNav("BACKOFFICE", "BACKOFFICE")).toBe(backofficeNav);
   });
 
-  it("deve retornar backofficeNav para tipo GESTOR_PF (legacy)", () => {
-    expect(selectNav("GESTOR_PF", null)).toBe(backofficeNav);
-  });
-
-  it("deve retornar gestorPJNav para GESTOR sem papel definido", () => {
-    expect(selectNav("GESTOR", null)).toBe(gestorNav);
+  it("deve retornar consultorNav para CONSULTOR", () => {
+    expect(selectNav("CONSULTOR", null)).toBe(consultorNav);
   });
 
   it("deve retornar consultorNav para tipo indefinido", () => {
@@ -308,9 +302,7 @@ describe("Sidebar — Seleção de nav para ESTABELECIMENTO", () => {
     papel: string | null | undefined,
   ): NavItem[] {
     if (tipo === "ADMIN") return adminNav;
-    if (tipo === "GESTOR" && papel === "GESTOR_PF") return backofficeNav;
-    if (tipo === "GESTOR") return gestorNav;
-    if (tipo === "GESTOR_PF") return backofficeNav;
+    if (tipo === "BACKOFFICE" || (tipo === "BACKOFFICE" && papel === "BACKOFFICE")) return backofficeNav;
     if (tipo === "PARCEIRO") return parceiroNav;
     if (tipo === "ESTABELECIMENTO") return estabelecimentoNav;
     return consultorNav;
@@ -322,9 +314,5 @@ describe("Sidebar — Seleção de nav para ESTABELECIMENTO", () => {
 
   it("não deve retornar nav do consultor para ESTABELECIMENTO", () => {
     expect(selectNav("ESTABELECIMENTO", null)).not.toBe(consultorNav);
-  });
-
-  it("não deve retornar nav do gestor para ESTABELECIMENTO", () => {
-    expect(selectNav("ESTABELECIMENTO", null)).not.toBe(gestorNav);
   });
 });

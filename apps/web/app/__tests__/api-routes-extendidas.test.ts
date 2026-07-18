@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@asa/database';
 import { hash } from 'bcryptjs';
+import { uniqueCpf } from './test-helpers';
 
 describe('API Routes - Cobertura Estendida', () => {
   let backofficeId: string;
@@ -30,7 +31,7 @@ describe('API Routes - Cobertura Estendida', () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: 'Backoffice Extendido',
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
       },
     });
     backofficeId = backoffice.id;
@@ -48,7 +49,7 @@ describe('API Routes - Cobertura Estendida', () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: 'Lideranca Extendido',
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: 'COMERCIAL',
       },
@@ -69,7 +70,7 @@ describe('API Routes - Cobertura Estendida', () => {
         usuarioId: comercialUsuario.id,
         liderancaId,
         nome: 'Comercial Extendido',
-        cpf: `${Date.now()}00000000002`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissao: 5.0,
       },
     });
@@ -77,18 +78,8 @@ describe('API Routes - Cobertura Estendida', () => {
   });
 
   afterEach(async () => {
-    if (comercialId) {
-      await prisma.comercial.deleteMany({ where: { id: comercialId } });
-    }
-    if (liderancaId) {
-      await prisma.lideranca.deleteMany({ where: { id: liderancaId } });
-    }
-    if (backofficeId) {
-      await prisma.backoffice.delete({ where: { id: backofficeId } });
-    }
-    if (backofficeUsuarioId) {
-      await prisma.usuario.deleteMany({ where: { id: backofficeUsuarioId } });
-    }
+    // Soft delete em massa - respeita RESTRICT constraints
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe('DELETE /comerciais/[id] - Exclusão', () => {
@@ -105,7 +96,7 @@ describe('API Routes - Cobertura Estendida', () => {
           })).id,
           liderancaId,
           nome: 'Comercial Para Deletar',
-          cpf: `${Date.now()}00000000003`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -133,7 +124,7 @@ describe('API Routes - Cobertura Estendida', () => {
           })).id,
           liderancaId,
           nome: 'Comercial Cascade',
-          cpf: `${Date.now()}00000000004`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -196,7 +187,7 @@ describe('API Routes - Cobertura Estendida', () => {
             },
           })).id,
           nome: 'Outro Backoffice',
-          cpf: `${Date.now()}00000000005`.slice(0, 11),
+          cpf: uniqueCpf(),
         },
       });
 
@@ -211,7 +202,7 @@ describe('API Routes - Cobertura Estendida', () => {
             },
           })).id,
           nome: 'Outra Lideranca',
-          cpf: `${Date.now()}00000000006`.slice(0, 11),
+          cpf: uniqueCpf(),
           backofficeId: outroBackoffice.id,
           tipo: 'COMERCIAL',
         },
@@ -239,7 +230,7 @@ describe('API Routes - Cobertura Estendida', () => {
             },
           })).id,
           nome: 'Lideranca Sem Equipe',
-          cpf: `${Date.now()}00000000007`.slice(0, 11),
+          cpf: uniqueCpf(),
           backofficeId,
           tipo: 'COMERCIAL',
         },
@@ -519,7 +510,7 @@ describe('API Routes - Cobertura Estendida', () => {
           })).id,
           comercialId: null,
           nome: 'Parceiro Resgate',
-          cpf: `${Date.now()}00000000008`.slice(0, 11),
+          cpf: uniqueCpf(),
           status: 'ATIVO',
         },
       });
@@ -576,11 +567,31 @@ describe('API Routes - Cobertura Estendida', () => {
     });
 
     it('deve verificar CPF em múltiplas tabelas', async () => {
-      const cpfTeste = `${Date.now()}00000000009`.slice(0, 11);
+      const cpfTeste = uniqueCpf();
+
+      // Criar parceiro para o indicado
+      const parceiroUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Parceiro CPF Test',
+          email: `parceiro-cpf-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'PARCEIRO',
+        },
+      });
+
+      const parceiro = await prisma.parceiro.create({
+        data: {
+          usuarioId: parceiroUsuario.id,
+          nome: 'Parceiro CPF Test',
+          cpf: uniqueCpf(),
+          status: 'ATIVO',
+        },
+      });
 
       // Criar em indicado
       await prisma.indicado.create({
         data: {
+          parceiroId: parceiro.id,
           nome: 'Indicado CPF',
           cpf: cpfTeste,
           telefone: '11999999999',

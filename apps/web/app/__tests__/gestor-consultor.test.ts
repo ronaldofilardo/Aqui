@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@asa/database";
 
+let _cpfSeq = 0;
+const uniqueCpf = () => {
+  _cpfSeq++;
+  return `${Date.now()}${_cpfSeq}${Math.floor(Math.random() * 1000)}`.slice(0, 11).padStart(11, "0");
+};
+
 describe("GestorConsultor - Hierarchy & Authorization", () => {
   let gestorId: string;
   let consultorId: string;
@@ -16,7 +22,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
         nome: "Gestor Teste",
         email: `gestor-test-${Date.now()}@test.com`,
         senhaHash: "hash123",
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
       },
     });
     gestorId = gestor.id;
@@ -33,17 +39,14 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
     const consultor = await prisma.consultor.create({
       data: {
         usuarioId: usuario.id,
-        cpf: `${Date.now()}00001`.slice(0, 11),
+        cpf: uniqueCpf(),
       },
     });
     consultorId = consultor.id;
   });
 
   afterAll(async () => {
-    await prisma.estabelecimento.deleteMany({}).catch(() => {});
-    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
-    await prisma.consultor.deleteMany({}).catch(() => {});
-    await prisma.usuario.deleteMany({}).catch(() => {});
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe("Create GestorConsultor Relationship", () => {
@@ -91,7 +94,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
           nome: "Gestor Sem Consultores",
           email: `gestor-vazio-${Date.now()}@test.com`,
           senhaHash: "hash123",
-          tipo: "GESTOR",
+          tipo: "LIDERANCA",
         },
       });
 
@@ -114,7 +117,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
           nome: "Outro Gestor",
           email: `outro-gestor-${Date.now()}@test.com`,
           senhaHash: "hash123",
-          tipo: "GESTOR",
+          tipo: "LIDERANCA",
         },
       });
 
@@ -145,7 +148,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
       const consultor = await prisma.consultor.create({
         data: {
           usuarioId: novoConsultor.id,
-          cpf: `${Date.now()}`,
+          cpf: uniqueCpf(),
         },
       });
 

@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@asa/database';
 import { hash } from 'bcryptjs';
+import { uniqueCpf } from './test-helpers';
 
 describe('API Backoffice - Testes de Integração', () => {
   let backofficeId: string;
@@ -29,7 +30,7 @@ describe('API Backoffice - Testes de Integração', () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: 'Backoffice Integration',
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissaoDefault: 5.0,
       },
     });
@@ -48,7 +49,7 @@ describe('API Backoffice - Testes de Integração', () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: 'Lideranca Integration',
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: 'COMERCIAL',
       },
@@ -57,12 +58,7 @@ describe('API Backoffice - Testes de Integração', () => {
   });
 
   afterEach(async () => {
-    // Cleanup em cascata
-    await prisma.lideranca.deleteMany({ where: { backofficeId } });
-    await prisma.backoffice.delete({ where: { id: backofficeId } });
-    await prisma.usuario.deleteMany({ 
-      where: { id: { in: [backofficeUsuarioId] } } 
-    });
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe('Fluxo Completo - Gestão de Comerciais', () => {
@@ -82,7 +78,7 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Full Cycle',
-          cpf: `${Date.now()}00000000002`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 7.5,
           status: 'ATIVO',
         },
@@ -90,7 +86,7 @@ describe('API Backoffice - Testes de Integração', () => {
 
       expect(comercial.id).toBeDefined();
       expect(comercial.nome).toBe('Comercial Full Cycle');
-      expect(comercial.percentualComissao).toBe(7.5);
+      expect(Number(comercial.percentualComissao)).toBe(7.5);
 
       // 2. Listar comerciais
       const liderancas = await prisma.lideranca.findMany({
@@ -196,7 +192,7 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Pontos',
-          cpf: `${Date.now()}00000000003`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -206,7 +202,7 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: parceiroUsuario.id,
           comercialId: comercial.id,
           nome: 'Parceiro Pontos',
-          cpf: `${Date.now()}00000000004`.slice(0, 11),
+          cpf: uniqueCpf(),
           status: 'ATIVO',
         },
       });
@@ -315,7 +311,7 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Comissao',
-          cpf: `${Date.now()}00000000005`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 8.0,
           funcao: 'SUPERVISOR_ATIVO',
         },
@@ -377,17 +373,7 @@ describe('API Backoffice - Testes de Integração', () => {
       expect(upload.id).toBeDefined();
       expect(upload.nomeArquivo).toBe('teste-integracao.xlsx');
 
-      // 2. Criar indicado (cliente)
-      const indicado = await prisma.indicado.create({
-        data: {
-          nome: 'Cliente Teste',
-          cpf: `${Date.now()}00000000006`.slice(0, 11),
-          telefone: '11999999999',
-          status: 'ATIVO' as any,
-        },
-      });
-
-      // 3. Criar parceiro
+      // 2. Criar parceiro
       const parceiroUsuario = await prisma.usuario.create({
         data: {
           nome: 'Parceiro Upload',
@@ -411,7 +397,7 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Upload',
-          cpf: `${Date.now()}00000000007`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -421,18 +407,21 @@ describe('API Backoffice - Testes de Integração', () => {
           usuarioId: parceiroUsuario.id,
           comercialId: comercial.id,
           nome: 'Parceiro Upload',
-          cpf: `${Date.now()}00000000008`.slice(0, 11),
+          cpf: uniqueCpf(),
           status: 'ATIVO',
         },
       });
 
-      // 4. Vincular indicado ao parceiro
-      const indicadoVinculado = await prisma.indicado.update({
-        where: { id: indicado.id },
-        data: { parceiroId: parceiro.id },
+      // 3. Criar indicado (cliente) vinculado ao parceiro
+      const indicado = await prisma.indicado.create({
+        data: {
+          parceiroId: parceiro.id,
+          nome: 'Cliente Teste',
+          cpf: uniqueCpf(),
+          telefone: '11999999999',
+          status: 'ATIVO' as any,
+        },
       });
-
-      expect(indicadoVinculado.parceiroId).toBe(parceiro.id);
 
       // 5. Criar procedimento do upload
       const procedimento = await prisma.procedimentoPF.create({

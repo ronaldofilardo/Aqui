@@ -174,8 +174,10 @@ export async function DELETE(req: NextRequest) {
       return forbidden();
     }
 
-    await prisma.premio.delete({
+    // Soft delete: desativar prêmio ao invés de deletar (preserva histórico de resgates)
+    await prisma.premio.update({
       where: { id: premioId },
+      data: { ativo: false },
     });
 
     return ok({

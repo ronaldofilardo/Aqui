@@ -81,7 +81,7 @@ async function setup() {
       nome: "Gestor PF Teste",
       email: `gestor-pf-${unique()}@e2e.test`,
       senhaHash: await hash("senha123", 12),
-      tipo: "GESTOR_PF",
+      tipo: "GERENCIA",
     },
   });
 

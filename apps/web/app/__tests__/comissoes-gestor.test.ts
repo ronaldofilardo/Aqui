@@ -15,7 +15,7 @@ describe("API de Comissões - Gestor", () => {
         nome: "Gestor Teste Comissões",
         email: `gestor-com-${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
         senhaTemporaria: false,
       },
     });

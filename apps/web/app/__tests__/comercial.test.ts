@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
+import { uniqueCpf } from "./test-helpers";
 
 /**
  * Integration tests do modelo Comercial + MetaComercial + ComissaoComercial,
@@ -8,8 +9,6 @@ import { hash } from "bcryptjs";
  */
 
 const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
-const uniqueCpf = () =>
-  `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
 async function criarBackoffice() {
   return prisma.backoffice.create({

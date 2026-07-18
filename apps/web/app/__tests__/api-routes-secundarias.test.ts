@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@asa/database';
 import { hash } from 'bcryptjs';
+import { uniqueCpf } from './test-helpers';
 
 describe('API Routes Secundárias - Testes', () => {
   let backofficeId: string;
@@ -29,7 +30,7 @@ describe('API Routes Secundárias - Testes', () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: 'Backoffice Secundário',
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
       },
     });
     backofficeId = backoffice.id;
@@ -47,7 +48,7 @@ describe('API Routes Secundárias - Testes', () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: 'Lideranca Secundário',
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: 'COMERCIAL',
       },
@@ -56,15 +57,8 @@ describe('API Routes Secundárias - Testes', () => {
   });
 
   afterEach(async () => {
-    if (liderancaId) {
-      await prisma.lideranca.deleteMany({ where: { id: liderancaId } });
-    }
-    if (backofficeId) {
-      await prisma.backoffice.delete({ where: { id: backofficeId } });
-    }
-    if (backofficeUsuarioId) {
-      await prisma.usuario.deleteMany({ where: { id: backofficeUsuarioId } });
-    }
+    // Soft delete em massa - respeita RESTRICT constraints
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe('POST /comerciais - Criação', () => {
@@ -72,7 +66,7 @@ describe('API Routes Secundárias - Testes', () => {
       const dadosComercial = {
         nome: 'Comercial Teste',
         email: `comercial-teste-${Date.now()}@asa.com`,
-        cpf: `${Date.now()}00000000002`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissao: 5.0,
         funcao: 'SUPERVISOR_ATIVO',
       };
@@ -127,7 +121,7 @@ describe('API Routes Secundárias - Testes', () => {
     });
 
     it('deve validar CPF único', async () => {
-      const cpf = `${Date.now()}00000000003`.slice(0, 11);
+      const cpf = uniqueCpf();
 
       const usuario = await prisma.usuario.create({
         data: {
@@ -176,7 +170,7 @@ describe('API Routes Secundárias - Testes', () => {
           usuarioId: usuario.id,
           liderancaId,
           nome: 'Comercial Update',
-          cpf: `${Date.now()}00000000004`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -209,7 +203,7 @@ describe('API Routes Secundárias - Testes', () => {
           usuarioId: usuario.id,
           liderancaId,
           nome: 'Comercial Status',
-          cpf: `${Date.now()}00000000005`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
           status: 'ATIVO',
         },
@@ -301,7 +295,7 @@ describe('API Routes Secundárias - Testes', () => {
 
   describe('GET /parceiros/check-cpf - Validação', () => {
     it('deve validar CPF disponível', async () => {
-      const cpfDisponivel = `${Date.now()}00000000006`.slice(0, 11);
+      const cpfDisponivel = uniqueCpf();
 
       const existe = await prisma.parceiro.findUnique({
         where: { cpf: cpfDisponivel },
@@ -311,7 +305,7 @@ describe('API Routes Secundárias - Testes', () => {
     });
 
     it('deve validar CPF já cadastrado como parceiro', async () => {
-      const cpfOcupado = `${Date.now()}00000000007`.slice(0, 11);
+      const cpfOcupado = uniqueCpf();
 
       const usuario = await prisma.usuario.create({
         data: {
@@ -344,10 +338,30 @@ describe('API Routes Secundárias - Testes', () => {
     });
 
     it('deve validar CPF já cadastrado como indicado', async () => {
-      const cpfIndicado = `${Date.now()}00000000008`.slice(0, 11);
+      const cpfIndicado = uniqueCpf();
+
+      // Criar parceiro para o indicado
+      const parceiroUsuario = await prisma.usuario.create({
+        data: {
+          nome: 'Parceiro CPF Indicado',
+          email: `parceiro-cpf-indicado-${Date.now()}@asa.com`,
+          senhaHash: await hash('123456', 12),
+          tipo: 'PARCEIRO',
+        },
+      });
+
+      const parceiro = await prisma.parceiro.create({
+        data: {
+          usuarioId: parceiroUsuario.id,
+          nome: 'Parceiro CPF Indicado',
+          cpf: uniqueCpf(),
+          status: 'ATIVO',
+        },
+      });
 
       await prisma.indicado.create({
         data: {
+          parceiroId: parceiro.id,
           nome: 'Indicado CPF',
           cpf: cpfIndicado,
           telefone: '11999999999',

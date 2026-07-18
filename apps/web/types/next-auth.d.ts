@@ -4,13 +4,15 @@ export type PapelGestor = "BACKOFFICE" | "GESTOR_PJ" | "GESTOR_PF";
 
 export type TipoAcesso =
   | "ADMIN"
-  | "GESTOR"
   | "BACKOFFICE"
-  | "PARCEIRO"
+  | "SUPERVISAO"
+  | "GERENCIA"
+  | "GESTOR"
   | "CONSULTOR"
-  | "ESTABELECIMENTO"
+  | "PARCEIRO"
   | "COMERCIAL"
-  | "LIDERANCA";
+  | "LIDERANCA"
+  | "ESTABELECIMENTO";
 
 declare module "next-auth" {
   interface User {

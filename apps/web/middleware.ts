@@ -56,9 +56,9 @@ const ROUTE_RULES: Array<{
   allowedPapeis?: Array<string | null>;
 }> = [
   { prefix: "/admin", allowedTipos: ["ADMIN"] },
-  { prefix: "/backoffice", allowedTipos: ["BACKOFFICE", "GESTOR"], allowedPapeis: ["BACKOFFICE"] },
-  { prefix: "/gestor-pf", allowedTipos: ["BACKOFFICE", "GESTOR"], allowedPapeis: ["BACKOFFICE"] }, // Compatibilidade
-  { prefix: "/gestor", allowedTipos: ["GESTOR"], allowedPapeis: ["GESTOR_PJ"] },
+  { prefix: "/backoffice", allowedTipos: ["BACKOFFICE"], allowedPapeis: ["BACKOFFICE"] },
+  { prefix: "/gestor-pf", allowedTipos: ["BACKOFFICE"], allowedPapeis: ["BACKOFFICE"] }, // Compatibilidade
+  { prefix: "/gestor", allowedTipos: ["GERENCIA"], allowedPapeis: ["GESTOR_PJ"] },
   { prefix: "/parceiro", allowedTipos: ["PARCEIRO"] },
   { prefix: "/comercial", allowedTipos: ["COMERCIAL"] },
   { prefix: "/consultor", allowedTipos: ["CONSULTOR"] },
@@ -70,15 +70,15 @@ const ROUTE_RULES: Array<{
 
 function dashboardForPapel(user: SessionUser): string {
   if (user.tipo === "ADMIN") return "/admin/usuarios";
-  if (user.tipo === "BACKOFFICE") return "/backoffice/dashboard";
-  if (user.tipo === "GESTOR" && user.papel === "BACKOFFICE") {
+  if (user.tipo === "BACKOFFICE" && user.papel === "BACKOFFICE") {
     return "/backoffice/dashboard";
   }
-  if (user.tipo === "GESTOR") return "/gestor/dashboard";
+  if (user.tipo === "GERENCIA") return "/gestor/dashboard";
   if (user.tipo === "PARCEIRO") return "/parceiro/indicados";
   if (user.tipo === "COMERCIAL") return "/comercial/minha-comissao";
   if (user.tipo === "ESTABELECIMENTO") return "/estabelecimento/dashboard";
   if (user.tipo === "CONSULTOR") return "/consultor/estabelecimentos";
+  if (user.tipo === "BACKOFFICE") return "/backoffice/dashboard";
   return "/login";
 }
 

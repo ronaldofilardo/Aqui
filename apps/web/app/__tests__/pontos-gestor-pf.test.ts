@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { prisma } from "@asa/database";
 import { Decimal } from "@prisma/client/runtime/library";
 
+let _cpfSeq = 0;
+const uniqueCpf = () => {
+  _cpfSeq++;
+  return `${Date.now()}${_cpfSeq}${Math.floor(Math.random() * 1000)}`.slice(0, 11).padStart(11, "0");
+};
+
 describe("Sistema de Pontos - Gestor PF", () => {
   let backofficeId: string;
   let parceiroId: string;
@@ -26,7 +32,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
       data: {
         usuarioId,
         nome: "Backoffice Teste",
-        cpf: `123456789${Date.now()}`,
+        cpf: `test${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 11),
       },
     });
     backofficeId = backoffice.id;
@@ -74,13 +80,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
   });
 
   afterEach(async () => {
-    // Limpar dados de teste
-    await prisma.movimentacaoPontos.deleteMany();
-    await prisma.cicloPontos.deleteMany();
-    await prisma.configuracaoPontos.deleteMany();
-    await prisma.parceiro.deleteMany();
-    await prisma.backoffice.deleteMany();
-    await prisma.usuario.deleteMany();
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe("Configuração de Pontos", () => {
@@ -146,7 +146,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
           totalPago: new Decimal(250),
           paciente: "Paciente Teste",
           procedimento: "Consulta Médica",
-          cpf: "12345678900",
+          cpf: uniqueCpf(),
           tipoProcedimento: "Consulta",
           unidade: "Unidade Teste",
           parceiroId,
@@ -191,7 +191,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
           totalPago: new Decimal(250),
           paciente: "Paciente Teste",
           procedimento: "Consulta Médica",
-          cpf: "12345678900",
+          cpf: uniqueCpf(),
           tipoProcedimento: "Consulta",
           unidade: "Unidade Teste",
           parceiroId,

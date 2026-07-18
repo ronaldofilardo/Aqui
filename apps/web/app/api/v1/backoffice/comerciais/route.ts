@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           nome: data.nome,
           email: data.email.toLowerCase(),
           senhaHash: "", // será definido no primeiro login
-          tipo: "GESTOR",
+          tipo: "LIDERANCA",
           papel: "BACKOFFICE",
         },
       });

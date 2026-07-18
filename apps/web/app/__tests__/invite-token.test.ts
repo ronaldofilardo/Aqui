@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { generateInviteToken, validateInviteToken } from "@/lib/invite-token";
 
+process.env.NEXTAUTH_SECRET = "test-secret-key-for-unit-tests-only";
+
 describe("invite-token", () => {
   describe("generateInviteToken", () => {
     it("deve gerar um token válido", () => {

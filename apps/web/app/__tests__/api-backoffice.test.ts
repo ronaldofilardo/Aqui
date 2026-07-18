@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@asa/database';
 import { hash } from 'bcryptjs';
+import { uniqueCpf } from './test-helpers';
 
 // Mock dos helpers de API
 vi.mock('@/lib/api-helpers', async () => {
@@ -39,7 +40,7 @@ describe('API Backoffice - Endpoints', () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: 'Backoffice Test',
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissaoDefault: 5.0,
       },
     });
@@ -58,7 +59,7 @@ describe('API Backoffice - Endpoints', () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: 'Lideranca Test',
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: 'COMERCIAL',
       },
@@ -67,10 +68,7 @@ describe('API Backoffice - Endpoints', () => {
   });
 
   afterEach(async () => {
-    // Cleanup: Remover dados de teste
-    await prisma.lideranca.deleteMany({ where: { backofficeId } });
-    await prisma.backoffice.delete({ where: { id: backofficeId } });
-    await prisma.usuario.deleteMany({ where: { id: { in: [backofficeUsuarioId] } } });
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe('GET /api/v1/backoffice/config', () => {
@@ -145,7 +143,7 @@ describe('API Backoffice - Endpoints', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Test',
-          cpf: `${Date.now()}00000000002`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
           status: 'ATIVO',
         },
@@ -185,7 +183,7 @@ describe('API Backoffice - Endpoints', () => {
           usuarioId: comercialUsuario.id,
           liderancaId,
           nome: 'Comercial Partner Test',
-          cpf: `${Date.now()}00000000003`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 5.0,
         },
       });
@@ -204,7 +202,7 @@ describe('API Backoffice - Endpoints', () => {
           usuarioId: parceiroUsuario.id,
           comercialId: comercial.id,
           nome: 'Parceiro Test',
-          cpf: `${Date.now()}00000000004`.slice(0, 11),
+          cpf: uniqueCpf(),
           status: 'ATIVO',
         },
       });
@@ -341,7 +339,7 @@ describe('API Backoffice - Endpoints', () => {
         data: {
           usuarioId: outroUsuario.id,
           nome: 'Outro Backoffice',
-          cpf: `${Date.now()}00000000002`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissaoDefault: 3.0,
         },
       });
@@ -367,8 +365,8 @@ describe('API Backoffice - Endpoints', () => {
       expect(configsDoOutro.length).toBe(1);
       expect(Number(configsDoOutro[0].valorPorPonto)).toBe(200);
 
-      await prisma.backoffice.delete({ where: { id: outroBackoffice.id } });
-      await prisma.usuario.delete({ where: { id: outroUsuario.id } });
+      await prisma.configuracaoPontos.deleteMany({ where: { backofficeId: outroBackoffice.id } });
+      await prisma.usuario.update({ where: { id: outroUsuario.id }, data: { status: 'INATIVO' } });
     });
   });
 

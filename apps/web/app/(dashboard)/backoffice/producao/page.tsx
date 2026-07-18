@@ -219,11 +219,11 @@ function BackofficeProducaoInner() {
       {/* Conteúdo da Aba Upload */}
       {activeTab === "upload" && (
         <div className="mt-4">
-          <UploadPlanilhaPreview 
+          <UploadPlanilhaPreview
             onUploadSuccess={() => {
               setCurrentPage(1);
               setActiveTab("lista");
-              // Aguarda pequeno delay e recarrega
+              // Aguarda pequeno delay e recarrega para garantir listagem imediata
               setTimeout(() => {
                 window.location.reload();
               }, 800);

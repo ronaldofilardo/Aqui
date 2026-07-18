@@ -3,6 +3,12 @@ import { prisma } from "@asa/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { calcularPontosDeProducao, obterCicloVigente } from "@/lib/pontos-utils";
 
+let _cpfSeq = 0;
+const uniqueCpf = () => {
+  _cpfSeq++;
+  return `${Date.now()}${_cpfSeq}${Math.floor(Math.random() * 1000)}`.slice(0, 11).padStart(11, "0");
+};
+
 describe("Endpoint de Distribuição de Pontos", () => {
   let backofficeId: string;
   let parceiroId: string;
@@ -26,7 +32,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
       data: {
         usuarioId,
         nome: "Backoffice Teste",
-        cpf: `123456789${Date.now()}`,
+        cpf: `test${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 11),
       },
     });
     backofficeId = backoffice.id;
@@ -71,13 +77,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
   });
 
   afterEach(async () => {
-    await prisma.movimentacaoPontos.deleteMany();
-    await prisma.procedimentoBackoffice.deleteMany();
-    await prisma.cicloPontos.deleteMany();
-    await prisma.configuracaoPontos.deleteMany();
-    await prisma.parceiro.deleteMany();
-    await prisma.backoffice.deleteMany();
-    await prisma.usuario.deleteMany();
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe("calcularPontosDeProducao", () => {
@@ -196,7 +196,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
           totalPago: new Decimal(250),
           paciente: "Paciente Teste",
           procedimento: "Consulta",
-          cpf: "12345678900",
+          cpf: uniqueCpf(),
           tipoProcedimento: "Consulta",
           unidade: "Unidade Teste",
           parceiroId,
@@ -243,7 +243,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
           totalPago: new Decimal(250),
           paciente: "Paciente Teste",
           procedimento: "Consulta",
-          cpf: "12345678900",
+          cpf: uniqueCpf(),
           tipoProcedimento: "Consulta",
           unidade: "Unidade Teste",
           parceiroId,
@@ -292,7 +292,7 @@ describe("Endpoint de Distribuição de Pontos", () => {
             totalPago: new Decimal(100 * (i + 1)),
             paciente: `Paciente ${i}`,
             procedimento: "Consulta",
-            cpf: `123456789${i}`,
+            cpf: uniqueCpf(),
             tipoProcedimento: "Consulta",
             unidade: "Unidade Teste",
             parceiroId,

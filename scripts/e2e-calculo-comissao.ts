@@ -43,7 +43,7 @@ async function main() {
         nome: "Gestor Teste",
         email: `gestor-${unique()}@e2e.test`,
         senhaHash: await hash("x", 4),
-        tipo: "GESTOR_PF",
+        tipo: "GERENCIA",
       },
     });
     const gestorPf = await prisma.gestorPF.create({
@@ -188,7 +188,7 @@ async function main() {
             nome: "Gestor Sem Regras",
             email: `gestor-sem-${unique()}@e2e.test`,
             senhaHash: await hash("x", 4),
-            tipo: "GESTOR_PF",
+            tipo: "GERENCIA",
           },
         })).id,
         nome: "Gestor Sem Regras",

@@ -19,9 +19,41 @@ async function main() {
     },
   });
 
-  // Backoffice
+  // Backoffice (back@asa.com)
+  const senhaBack = await hash("123456", 12);
+  const backUsuario = await prisma.usuario.upsert({
+    where: { email: "back@asa.com" },
+    update: {
+      senhaHash: senhaBack,
+      senhaTemporaria: false,
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
+    },
+    create: {
+      nome: "BackOffice Admin",
+      email: "back@asa.com",
+      senhaHash: senhaBack,
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
+      senhaTemporaria: false,
+    },
+  });
+
+  await prisma.backoffice.upsert({
+    where: { usuarioId: backUsuario.id },
+    update: { cpf: "12345678901" },
+    create: {
+      usuarioId: backUsuario.id,
+      nome: "BackOffice Admin",
+      cpf: "12345678901",
+      percentualComissaoDefault: 5.0,
+      percentualComissaoMax: 100.0,
+    },
+  });
+
+  // Backoffice (backoffice@asa.com) - mantém compatibilidade
   const senhaBackoffice = await hash("123456", 12);
-  await prisma.usuario.upsert({
+  const backofficeUsuario = await prisma.usuario.upsert({
     where: { email: "backoffice@asa.com" },
     update: {
       senhaHash: senhaBackoffice,
@@ -39,38 +71,33 @@ async function main() {
     },
   });
 
-  const backofficeUsuario = await prisma.usuario.findUnique({
-    where: { email: "backoffice@asa.com" },
+  await prisma.backoffice.upsert({
+    where: { usuarioId: backofficeUsuario.id },
+    update: { cpf: "12345678999" },
+    create: {
+      usuarioId: backofficeUsuario.id,
+      nome: "Backoffice Admin",
+      cpf: "12345678999",
+      percentualComissaoDefault: 5.0,
+      percentualComissaoMax: 100.0,
+    },
   });
-  if (backofficeUsuario) {
-    await prisma.backoffice.upsert({
-      where: { usuarioId: backofficeUsuario.id },
-      update: { cpf: "12345678901" },
-      create: {
-        usuarioId: backofficeUsuario.id,
-        nome: "Backoffice Admin",
-        cpf: "12345678901",
-        percentualComissaoDefault: 5.0,
-        percentualComissaoMax: 100.0,
-      },
-    });
-  }
 
-  // Gestor PJ
+  // Gestor PJ (arquitetura independente: Consultor -> Estabelecimentos via gestores/liderancas)
   const senhaGestorPj = await hash("123456", 12);
   await prisma.usuario.upsert({
     where: { email: "gestor-pj@asa.com" },
     update: {
       senhaHash: senhaGestorPj,
       senhaTemporaria: false,
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "GESTOR_PJ",
     },
     create: {
       nome: "Gestor Pessoa Jurídica",
       email: "gestor-pj@asa.com",
       senhaHash: senhaGestorPj,
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "GESTOR_PJ",
       senhaTemporaria: false,
     },

@@ -157,46 +157,31 @@ export async function DELETE(
   }
 
   try {
-    // Deletar registros relacionados primeiro
-    await Promise.all([
-      // Deletar comissões
-      prisma.comissaoComercial.deleteMany({
-        where: { comercialId: params.id },
-      }),
-      // Deletar metas
-      prisma.metaComercial.deleteMany({
-        where: { comercialId: params.id },
-      }),
-      // Deletar procedimentos
-      prisma.procedimentoPF.deleteMany({
-        where: { comercialId: params.id },
-      }),
-    ]);
-
-    // Deletar o usuário associado (se existir)
+    // Soft delete do usuario associado (se existir)
     if (comercial.usuarioId) {
-      await prisma.usuario.delete({
+      await prisma.usuario.update({
         where: { id: comercial.usuarioId },
+        data: { status: "INATIVO" },
       }).catch((err) => {
-        console.error("Erro ao deletar usuário:", err.message);
-        // Ignora erro se o usuário já foi deletado ou não existe
+        console.error("Erro ao inativar usuário:", err.message);
       });
     }
 
-    // Deletar o comercial
-    await prisma.comercial.delete({
+    // Soft delete: inativar comercial ao invés de deletar (preserva dados históricos)
+    await prisma.comercial.update({
       where: { id: params.id },
+      data: { status: "INATIVO" },
     });
 
     await criarAuditLog({
       usuarioId: session!.user.id,
-      acao: "DELETAR_COMERCIAL",
+      acao: "DESATIVAR_COMERCIAL",
       entidade: "comercial",
       entidadeId: params.id,
       detalhes: { nome: comercial.nome, cpf: comercial.cpf },
     });
 
-    return ok({ message: "Comercial deletado com sucesso" });
+    return ok({ message: "Comercial inativado com sucesso (dados preservados)" });
   } catch (error: any) {
     console.error("Erro ao deletar comercial:", error);
     return badRequest("Erro ao deletar comercial: " + error.message);

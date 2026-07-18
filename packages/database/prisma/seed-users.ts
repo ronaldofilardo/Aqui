@@ -50,20 +50,20 @@ async function main() {
   });
   console.log("OK Backoffice:", backofficeUsuario.email, "papel=BACKOFFICE");
 
-  // 3. Gestor PJ (Pessoa Juridica) - tipo GESTOR
+  // 3. Gestor PJ (Pessoa Juridica) - arquitetura independente: Consultor -> Estabelecimentos
   const gestorPjUsuario = await prisma.usuario.upsert({
     where: { email: "gestor-pj@asa.com" },
     update: {
       senhaHash: senhaPadrao,
       senhaTemporaria: false,
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "GESTOR_PJ",
     },
     create: {
       nome: "Gestor PJ",
       email: "gestor-pj@asa.com",
       senhaHash: senhaPadrao,
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "GESTOR_PJ",
       senhaTemporaria: false,
     },

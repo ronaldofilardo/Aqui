@@ -5,7 +5,7 @@
 -- ============================================================
 -- 1. ADMIN
 -- ============================================================
-INSERT INTO usuarios (id, nome, email, senha_hash, tipo, telefone, status, senha_temporaria, criado_em, atualizado_em)
+INSERT INTO usuarios (id, nome, email, senha_hash, tipo, telefone, status, senha_temporaria, papel, criado_em, atualizado_em)
 VALUES (
   '00000000-0000-0000-0001-000000000001',
   'Administrador',
@@ -15,17 +15,19 @@ VALUES (
   '(11) 99999-0000',
   'ATIVO',
   false,
+  NULL,
   NOW(),
   NOW()
 )
 ON CONFLICT (email) DO UPDATE SET
-  senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
+  senha_hash = EXCLUDED.senha_hash,
   tipo = 'ADMIN',
   papel = NULL,
+  senha_temporaria = false,
   atualizado_em = NOW();
 
 -- ============================================================
--- 2. BackOffice Admin
+-- 2. BackOffice (tipo BACKOFFICE, papel BACKOFFICE)
 -- ============================================================
 INSERT INTO usuarios (id, nome, email, senha_hash, tipo, papel, telefone, status, senha_temporaria, criado_em, atualizado_em)
 VALUES (
@@ -33,7 +35,7 @@ VALUES (
   'BackOffice Admin',
   'back@asa.com',
   '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
-  'GESTOR',
+  'BACKOFFICE',
   'BACKOFFICE',
   NULL,
   'ATIVO',
@@ -42,9 +44,10 @@ VALUES (
   NOW()
 )
 ON CONFLICT (email) DO UPDATE SET
-  senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
-  tipo = 'GESTOR',
+  senha_hash = EXCLUDED.senha_hash,
+  tipo = 'BACKOFFICE',
   papel = 'BACKOFFICE',
+  senha_temporaria = false,
   atualizado_em = NOW();
 
 INSERT INTO backoffices (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
@@ -59,51 +62,14 @@ VALUES (
   NOW()
 )
 ON CONFLICT (cpf) DO UPDATE SET
-  usuario_id = '00000000-0000-0000-0002-000000000001',
+  nome = EXCLUDED.nome,
+  usuario_id = EXCLUDED.usuario_id,
   updated_at = NOW();
 
 -- ============================================================
--- 3. GESTOR PJ
+-- 3. CONSULTOR
 -- ============================================================
-INSERT INTO usuarios (id, nome, email, senha_hash, tipo, papel, telefone, status, senha_temporaria, criado_em, atualizado_em)
-VALUES (
-  '00000000-0000-0000-0003-000000000001',
-  'Gestor PJ',
-  'gestor-pj@asa.com',
-  '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
-  'GESTOR',
-  'GESTOR_PJ',
-  NULL,
-  'ATIVO',
-  false,
-  NOW(),
-  NOW()
-)
-ON CONFLICT (email) DO UPDATE SET
-  senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
-  tipo = 'GESTOR',
-  papel = 'GESTOR_PJ',
-  atualizado_em = NOW();
-
-INSERT INTO backoffices (id, usuario_id, nome, cpf, percentual_comissao_default, percentual_comissao_max, created_at, updated_at)
-VALUES (
-  '00000000-0000-0000-0003-000000000002',
-  '00000000-0000-0000-0003-000000000001',
-  'Gestor PJ',
-  '12345678902',
-  5.00,
-  100.00,
-  NOW(),
-  NOW()
-)
-ON CONFLICT (cpf) DO UPDATE SET
-  usuario_id = '00000000-0000-0000-0003-000000000001',
-  updated_at = NOW();
-
--- ============================================================
--- 4. CONSULTOR
--- ============================================================
-INSERT INTO usuarios (id, nome, email, senha_hash, tipo, telefone, status, senha_temporaria, criado_em, atualizado_em)
+INSERT INTO usuarios (id, nome, email, senha_hash, tipo, telefone, status, senha_temporaria, papel, criado_em, atualizado_em)
 VALUES (
   '00000000-0000-0000-0004-000000000001',
   'Consultor',
@@ -113,19 +79,21 @@ VALUES (
   NULL,
   'ATIVO',
   false,
+  NULL,
   NOW(),
   NOW()
 )
 ON CONFLICT (email) DO UPDATE SET
-  senha_hash = '$2a$12$uF0dL8sTPbckvCzvlvgK0uDoK3dm/wEufvO0Xfn1MNiI4T.6Nknni',
+  senha_hash = EXCLUDED.senha_hash,
   tipo = 'CONSULTOR',
   papel = NULL,
+  senha_temporaria = false,
   atualizado_em = NOW();
 
 INSERT INTO consultores (id, usuario_id, cpf, pix_tipo, banco_nome, agencia, conta, total_consultas, criado_em)
-VALUES (
+SELECT
   '00000000-0000-0000-0004-000000000002',
-  '00000000-0000-0000-0004-000000000001',
+  u.id,
   '12345678903',
   NULL,
   NULL,
@@ -133,9 +101,10 @@ VALUES (
   NULL,
   0,
   NOW()
-)
+FROM usuarios u
+WHERE u.email = 'consultor@asa.com'
 ON CONFLICT (cpf) DO UPDATE SET
-  usuario_id = '00000000-0000-0000-0004-000000000001',
+  usuario_id = EXCLUDED.usuario_id,
   criado_em = NOW();
 
 -- ============================================================
@@ -146,3 +115,8 @@ SELECT id, nome, email, tipo, papel FROM usuarios ORDER BY email;
 SELECT id, nome, cpf, percentual_comissao_default FROM backoffices WHERE cpf = '12345678901';
 SELECT id, cpf FROM consultores WHERE cpf = '12345678903';
 
+-- ============================================================
+-- NOTA: gestor-pj@asa.com (Consultor -> Estabelecimentos, R$20/R$10)
+--       pertence a outra arquitetura e NAO eh modificado por este seed.
+--       Sua criacao eh feita via fluxo de liderancas/gestores.
+-- ============================================================

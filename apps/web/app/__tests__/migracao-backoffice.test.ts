@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '@asa/database';
+import { uniqueCpf } from './test-helpers';
 
 describe('Migração BACKOFFICE - Validação do Banco de Dados', () => {
   beforeAll(async () => {
@@ -154,6 +155,7 @@ describe('Migração BACKOFFICE - Validação do Banco de Dados', () => {
 
 describe('Migração BACKOFFICE - Validação do Prisma Client', () => {
   it('deve criar backoffice via Prisma', async () => {
+    const cpfUnico = uniqueCpf();
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice',
@@ -164,7 +166,7 @@ describe('Migração BACKOFFICE - Validação do Prisma Client', () => {
         backoffice: {
           create: {
             nome: 'Test Backoffice',
-            cpf: '12345678901',
+            cpf: cpfUnico,
             percentualComissaoDefault: 5.0,
             percentualComissaoMax: 100.0,
           },
@@ -176,14 +178,17 @@ describe('Migração BACKOFFICE - Validação do Prisma Client', () => {
     });
 
     expect(usuario.backoffice).toBeDefined();
-    expect(usuario.backoffice?.cpf).toBe('12345678901');
+    expect(usuario.backoffice?.cpf).toBe(cpfUnico);
 
-    // Cleanup
-    await prisma.backoffice.delete({ where: { usuarioId: usuario.id } });
-    await prisma.usuario.delete({ where: { id: usuario.id } });
+    // Soft delete - inativar ao invés de deletar
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { status: 'INATIVO' },
+    });
   });
 
 it('deve buscar backoffice com include', async () => {
+    const cpfBusca = uniqueCpf();
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice 2',
@@ -194,7 +199,7 @@ it('deve buscar backoffice com include', async () => {
         backoffice: {
           create: {
             nome: 'Test Backoffice',
-            cpf: '12345678902',
+            cpf: cpfBusca,
           },
         },
       },
@@ -213,14 +218,13 @@ it('deve buscar backoffice com include', async () => {
 
     expect(backoffice).toBeDefined();
     expect(backoffice?.usuario).toBeDefined();
-    expect(backoffice?.cpf).toBe('12345678902');
+    expect(backoffice?.cpf).toBe(cpfBusca);
 
-    // Cleanup
-    await prisma.backoffice.delete({ where: { usuarioId: usuario.id } });
-    await prisma.usuario.delete({ where: { id: usuario.id } });
+    // Cleanup - soft delete to respect RESTRICT constraints
+    await prisma.usuario.update({ where: { id: usuario.id }, data: { status: 'INATIVO' } });
   });
 
-it('deve criar ciclo de pontos vinculado ao backoffice', async () => {
+  it('deve criar ciclo de pontos vinculado ao backoffice', async () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice 3',
@@ -231,7 +235,7 @@ it('deve criar ciclo de pontos vinculado ao backoffice', async () => {
         backoffice: {
           create: {
             nome: 'Test Backoffice',
-            cpf: '12345678903',
+            cpf: uniqueCpf(),
           },
         },
       },
@@ -252,10 +256,8 @@ it('deve criar ciclo de pontos vinculado ao backoffice', async () => {
     expect(ciclo).toBeDefined();
     expect(ciclo.backofficeId).toBe(usuario.backoffice!.id);
 
-    // Cleanup
-    await prisma.cicloPontos.delete({ where: { id: ciclo.id } });
-    await prisma.backoffice.delete({ where: { usuarioId: usuario.id } });
-    await prisma.usuario.delete({ where: { id: usuario.id } });
+    // Cleanup - soft delete to respect RESTRICT constraints
+    await prisma.usuario.update({ where: { id: usuario.id }, data: { status: 'INATIVO' } });
   });
 });
 
@@ -271,7 +273,7 @@ it('deve criar backoffice com liderancas', async () => {
         backoffice: {
           create: {
             nome: 'Test Backoffice',
-            cpf: '12345678904',
+            cpf: uniqueCpf(),
           },
         },
       },
@@ -281,7 +283,7 @@ it('deve criar backoffice com liderancas', async () => {
       data: {
         usuarioId: usuarioBackoffice.id,
         nome: 'Lideranca Teste',
-        cpf: '98765432100',
+        cpf: uniqueCpf(),
         backofficeId: usuarioBackoffice.backoffice!.id,
         tipo: 'COMERCIAL',
       },
@@ -290,10 +292,8 @@ it('deve criar backoffice com liderancas', async () => {
     expect(lideranca).toBeDefined();
     expect(lideranca.backofficeId).toBe(usuarioBackoffice.backoffice!.id);
 
-    // Cleanup
-    await prisma.lideranca.delete({ where: { id: lideranca.id } });
-    await prisma.backoffice.delete({ where: { usuarioId: usuarioBackoffice.id } });
-    await prisma.usuario.delete({ where: { id: usuarioBackoffice.id } });
+    // Cleanup - soft delete to respect RESTRICT constraints
+    await prisma.usuario.update({ where: { id: usuarioBackoffice.id }, data: { status: 'INATIVO' } });
   });
 
 it('deve criar premio vinculado ao backoffice', async () => {
@@ -307,7 +307,7 @@ it('deve criar premio vinculado ao backoffice', async () => {
         backoffice: {
           create: {
             nome: 'Test Backoffice',
-            cpf: '12345678905',
+            cpf: uniqueCpf(),
           },
         },
       },
@@ -326,9 +326,7 @@ it('deve criar premio vinculado ao backoffice', async () => {
     expect(premio).toBeDefined();
     expect(premio.backofficeId).toBe(usuarioBackoffice.backoffice!.id);
 
-    // Cleanup
-    await prisma.premio.delete({ where: { id: premio.id } });
-    await prisma.backoffice.delete({ where: { usuarioId: usuarioBackoffice.id } });
-    await prisma.usuario.delete({ where: { id: usuarioBackoffice.id } });
+    // Cleanup - soft delete to respect RESTRICT constraints
+    await prisma.usuario.update({ where: { id: usuarioBackoffice.id }, data: { status: 'INATIVO' } });
   });
 });

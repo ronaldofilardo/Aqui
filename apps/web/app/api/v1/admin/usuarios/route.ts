@@ -41,7 +41,7 @@ export async function GET() {
     // Format gestores (exclude self)
     const gestores = await prisma.usuario.findMany({
       where: {
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
         id: { not: currentUserId },
       },
       select: {
@@ -58,7 +58,7 @@ export async function GET() {
       nome: gestor.nome,
       email: gestor.email,
       cpf: null,
-      tipo: "GESTOR" as const,
+      tipo: "LIDERANCA" as const,
       status: gestor.status,
       hierarquia: "GESTOR" as const,
     }));

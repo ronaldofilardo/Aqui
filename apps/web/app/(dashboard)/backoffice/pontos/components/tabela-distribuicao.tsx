@@ -7,13 +7,15 @@ interface TabelaDistribuicaoProps {
   data?: any[];
   ciclo?: any;
   onDistribuir?: () => void;
+  onAtualizar?: () => void;
 }
 
-export function TabelaDistribuicao({ data, ciclo, onDistribuir }: TabelaDistribuicaoProps) {
+export function TabelaDistribuicao({ data, ciclo, onDistribuir, onAtualizar }: TabelaDistribuicaoProps) {
   const [filtroParceiro, setFiltroParceiro] = useState("");
   const [filtroIndicado, setFiltroIndicado] = useState("");
   const [filtroDataInicio, setFiltroDataInicio] = useState("");
   const [filtroDataFim, setFiltroDataFim] = useState("");
+  const [atualizando, setAtualizando] = useState(false);
 
   const parceiros = useMemo(() => {
     if (!data) return [];
@@ -73,11 +75,44 @@ export function TabelaDistribuicao({ data, ciclo, onDistribuir }: TabelaDistribu
     setFiltroDataFim("");
   };
 
+  const handleAtualizar = async () => {
+    setAtualizando(true);
+    try {
+      await onAtualizar?.();
+      toast.success("Configuração de pontos atualizada com sucesso!");
+    } catch {
+      toast.error("Erro ao atualizar configuração de pontos");
+    } finally {
+      setAtualizando(false);
+    }
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
-        Distribuir Pontos por Produção
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">
+          Distribuir Pontos por Produção
+        </h2>
+        <button
+          onClick={handleAtualizar}
+          disabled={atualizando}
+          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {atualizando ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              Atualizando...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Atualizar
+            </>
+          )}
+        </button>
+      </div>
 
       {ciclo && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">

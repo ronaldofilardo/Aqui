@@ -28,17 +28,17 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: "/admin", allowedTipos: ["ADMIN"] },
   {
     prefix: "/backoffice",
-    allowedTipos: ["BACKOFFICE", "GESTOR"],
+    allowedTipos: ["BACKOFFICE"],
     allowedPapeis: ["BACKOFFICE"],
   },
   {
     prefix: "/gestor-pf",
-    allowedTipos: ["BACKOFFICE", "GESTOR"],
+    allowedTipos: ["BACKOFFICE"],
     allowedPapeis: ["BACKOFFICE"],
   },
   {
     prefix: "/gestor",
-    allowedTipos: ["GESTOR"],
+    allowedTipos: ["GERENCIA"],
     allowedPapeis: ["GESTOR_PJ"],
   },
   { prefix: "/parceiro", allowedTipos: ["PARCEIRO"] },
@@ -51,18 +51,14 @@ const ROUTE_RULES: RouteRule[] = [
 
 function dashboardForPapel(user: SessionUser): string {
   if (user.tipo === "ADMIN") return "/admin/usuarios";
-  if (user.tipo === "BACKOFFICE") return "/backoffice/dashboard";
-  if (user.tipo === "GESTOR" && user.papel === "BACKOFFICE") {
+  if (user.tipo === "BACKOFFICE" && user.papel === "BACKOFFICE") {
     return "/backoffice/dashboard";
   }
-  if (user.tipo === "GESTOR" && user.papel === "GESTOR_PF") {
-    return "/gestor-pf/dashboard";
-  }
-  if (user.tipo === "GESTOR") return "/gestor/dashboard";
-  if (user.tipo === "GESTOR_PF") return "/gestor-pf/dashboard";
+  if (user.tipo === "GERENCIA") return "/gestor/dashboard";
   if (user.tipo === "PARCEIRO") return "/parceiro/indicados";
   if (user.tipo === "ESTABELECIMENTO") return "/estabelecimento/dashboard";
   if (user.tipo === "CONSULTOR") return "/consultor/estabelecimentos";
+  if (user.tipo === "BACKOFFICE") return "/backoffice/dashboard";
   return "/login";
 }
 
@@ -107,21 +103,21 @@ describe("Middleware — ROUTE_RULES", () => {
     expect(ROUTE_RULES).toHaveLength(7);
   });
 
-  it("/backoffice deve restringir a BACKOFFICE (tipo ou GESTOR com papel BACKOFFICE)", () => {
+  it("/backoffice deve restringir a BACKOFFICE", () => {
     const rule = ROUTE_RULES.find((r) => r.prefix === "/backoffice");
-    expect(rule?.allowedTipos).toEqual(["BACKOFFICE", "GESTOR"]);
+    expect(rule?.allowedTipos).toEqual(["BACKOFFICE"]);
     expect(rule?.allowedPapeis).toEqual(["BACKOFFICE"]);
   });
 
   it("/gestor-pf deve restringir a BACKOFFICE (compatibilidade)", () => {
     const rule = ROUTE_RULES.find((r) => r.prefix === "/gestor-pf");
-    expect(rule?.allowedTipos).toEqual(["BACKOFFICE", "GESTOR"]);
+    expect(rule?.allowedTipos).toEqual(["BACKOFFICE"]);
     expect(rule?.allowedPapeis).toEqual(["BACKOFFICE"]);
   });
 
-  it("/gestor deve restringir a GESTOR_PJ", () => {
+  it("/gestor deve restringir a GERENCIA + GESTOR_PJ", () => {
     const rule = ROUTE_RULES.find((r) => r.prefix === "/gestor");
-    expect(rule?.allowedTipos).toEqual(["GESTOR"]);
+    expect(rule?.allowedTipos).toEqual(["GERENCIA"]);
     expect(rule?.allowedPapeis).toEqual(["GESTOR_PJ"]);
   });
 
@@ -139,40 +135,22 @@ describe("Middleware — dashboardForPapel", () => {
     );
   });
 
-  it("deve redirecionar BACKOFFICE para /backoffice/dashboard", () => {
+  it("deve redirecionar BACKOFFICE (com papel BACKOFFICE) para /backoffice/dashboard", () => {
+    expect(dashboardForPapel({ tipo: "BACKOFFICE", papel: "BACKOFFICE" })).toBe(
+      "/backoffice/dashboard",
+    );
+  });
+
+  it("deve redirecionar BACKOFFICE (sem papel) para /backoffice/dashboard", () => {
     expect(dashboardForPapel({ tipo: "BACKOFFICE", papel: null })).toBe(
       "/backoffice/dashboard",
     );
   });
 
-  it("deve redirecionar GESTOR com papel BACKOFFICE para /backoffice/dashboard", () => {
+  it("deve redirecionar GERENCIA para /gestor/dashboard", () => {
     expect(
-      dashboardForPapel({ tipo: "GESTOR", papel: "BACKOFFICE" }),
-    ).toBe("/backoffice/dashboard");
-  });
-
-  it("deve redirecionar GESTOR com papel GESTOR_PF para /gestor-pf/dashboard", () => {
-    expect(
-      dashboardForPapel({ tipo: "GESTOR", papel: "GESTOR_PF" }),
-    ).toBe("/gestor-pf/dashboard");
-  });
-
-  it("deve redirecionar GESTOR_PJ para /gestor/dashboard", () => {
-    expect(
-      dashboardForPapel({ tipo: "GESTOR", papel: "GESTOR_PJ" }),
+      dashboardForPapel({ tipo: "GERENCIA", papel: "GESTOR_PJ" }),
     ).toBe("/gestor/dashboard");
-  });
-
-  it("deve redirecionar GESTOR sem papel para /gestor/dashboard (fallback PJ)", () => {
-    expect(dashboardForPapel({ tipo: "GESTOR", papel: null })).toBe(
-      "/gestor/dashboard",
-    );
-  });
-
-  it("deve redirecionar GESTOR_PF (tipo standalone) para /gestor-pf/dashboard", () => {
-    expect(dashboardForPapel({ tipo: "GESTOR_PF", papel: null })).toBe(
-      "/gestor-pf/dashboard",
-    );
   });
 
   it("deve redirecionar PARCEIRO para /parceiro/indicados", () => {
@@ -199,7 +177,7 @@ describe("Middleware — dashboardForPapel", () => {
 });
 
 describe("Middleware — authorizeByPapel BACKOFFICE", () => {
-  it("deve autorizar BACKOFFICE (tipo) em /backoffice/dashboard", () => {
+  it("deve autorizar BACKOFFICE (com papel) em /backoffice/dashboard", () => {
     const result = authorizeByPapel("/backoffice/dashboard", {
       tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
@@ -208,16 +186,7 @@ describe("Middleware — authorizeByPapel BACKOFFICE", () => {
     expect(result.redirectTo).toBeNull();
   });
 
-  it("deve autorizar GESTOR com papel BACKOFFICE em /backoffice/dashboard", () => {
-    const result = authorizeByPapel("/backoffice/dashboard", {
-      tipo: "GESTOR",
-      papel: "BACKOFFICE",
-    });
-    expect(result.authorized).toBe(true);
-    expect(result.redirectTo).toBeNull();
-  });
-
-  it("deve autorizar BACKOFFICE em /gestor-pf/dashboard (compatibilidade)", () => {
+  it("deve autorizar BACKOFFICE (com papel) em /gestor-pf/dashboard (compatibilidade)", () => {
     const result = authorizeByPapel("/gestor-pf/dashboard", {
       tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
@@ -226,56 +195,29 @@ describe("Middleware — authorizeByPapel BACKOFFICE", () => {
     expect(result.redirectTo).toBeNull();
   });
 
-  it("deve autorizar GESTOR com papel BACKOFFICE em /gestor-pf/dashboard", () => {
-    const result = authorizeByPapel("/gestor-pf/dashboard", {
-      tipo: "GESTOR",
-      papel: "BACKOFFICE",
-    });
-    expect(result.authorized).toBe(true);
-    expect(result.redirectTo).toBeNull();
-  });
-
-  it("deve negar GESTOR_PJ em /backoffice/dashboard e redirecionar para /gestor/dashboard", () => {
+  it("deve negar CONSULTOR em /backoffice/dashboard", () => {
     const result = authorizeByPapel("/backoffice/dashboard", {
-      tipo: "GESTOR",
-      papel: "GESTOR_PJ",
+      tipo: "CONSULTOR",
+      papel: null,
     });
     expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor/dashboard");
-  });
-
-  it("deve negar GESTOR_PJ em /gestor-pf/dashboard e redirecionar para /gestor/dashboard", () => {
-    const result = authorizeByPapel("/gestor-pf/dashboard", {
-      tipo: "GESTOR",
-      papel: "GESTOR_PJ",
-    });
-    expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor/dashboard");
+    expect(result.redirectTo).toBe("/consultor/estabelecimentos");
   });
 });
 
 describe("Middleware — authorizeByPapel", () => {
   it("deve autorizar BACKOFFICE em /gestor-pf/dashboard", () => {
     const result = authorizeByPapel("/gestor-pf/dashboard", {
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
     });
     expect(result.authorized).toBe(true);
     expect(result.redirectTo).toBeNull();
   });
 
-  it("deve negar GESTOR_PJ em /gestor-pf/dashboard e redirecionar para /gestor/dashboard", () => {
-    const result = authorizeByPapel("/gestor-pf/dashboard", {
-      tipo: "GESTOR",
-      papel: "GESTOR_PJ",
-    });
-    expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor/dashboard");
-  });
-
-  it("deve autorizar GESTOR_PJ em /gestor/dashboard", () => {
+  it("deve autorizar GERENCIA em /gestor/dashboard", () => {
     const result = authorizeByPapel("/gestor/dashboard", {
-      tipo: "GESTOR",
+      tipo: "GERENCIA",
       papel: "GESTOR_PJ",
     });
     expect(result.authorized).toBe(true);
@@ -284,7 +226,7 @@ describe("Middleware — authorizeByPapel", () => {
 
   it("deve negar BACKOFFICE em /gestor/dashboard e redirecionar para /backoffice/dashboard", () => {
     const result = authorizeByPapel("/gestor/dashboard", {
-      tipo: "GESTOR",
+      tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
     });
     expect(result.authorized).toBe(false);
@@ -300,13 +242,22 @@ describe("Middleware — authorizeByPapel", () => {
     expect(result.redirectTo).toBeNull();
   });
 
-  it("deve negar GESTOR em /admin/usuarios", () => {
+  it("deve negar CONSULTOR em /admin/usuarios", () => {
     const result = authorizeByPapel("/admin/usuarios", {
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
+      tipo: "CONSULTOR",
+      papel: null,
     });
     expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor-pf/dashboard");
+    expect(result.redirectTo).toBe("/consultor/estabelecimentos");
+  });
+
+  it("deve negar GERENCIA em /admin/usuarios", () => {
+    const result = authorizeByPapel("/admin/usuarios", {
+      tipo: "GERENCIA",
+      papel: "GESTOR_PJ",
+    });
+    expect(result.authorized).toBe(false);
+    expect(result.redirectTo).toBe("/gestor/dashboard");
   });
 
   it("deve autorizar PARCEIRO em /parceiro/indicados", () => {
@@ -345,18 +296,9 @@ describe("Middleware — authorizeByPapel", () => {
     expect(result.redirectTo).toBeNull();
   });
 
-  it("deve redirecionar GESTOR_PF com erro para dashboard PF quando acessar rota PJ", () => {
-    const result = authorizeByPapel("/gestor/consultores", {
-      tipo: "GESTOR",
-      papel: "GESTOR_PF",
-    });
-    expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor-pf/dashboard");
-  });
-
-  it("deve redirecionar GESTOR_PJ com erro para dashboard PJ quando acessar rota PF", () => {
+  it("deve redirecionar GERENCIA com erro para dashboard PJ quando acessar rota PF", () => {
     const result = authorizeByPapel("/gestor-pf/parceiros", {
-      tipo: "GESTOR",
+      tipo: "GERENCIA",
       papel: "GESTOR_PJ",
     });
     expect(result.authorized).toBe(false);

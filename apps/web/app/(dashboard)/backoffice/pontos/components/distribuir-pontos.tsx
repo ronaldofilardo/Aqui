@@ -27,10 +27,11 @@ export function DistribuirPontos({ data, ciclo }: DistribuirPontosProps) {
   };
 
   return (
-    <TabelaDistribuicao 
-      data={producoes} 
-      ciclo={ciclo} 
-      onDistribuir={() => setRefreshKey(prev => prev + 1)}
+    <TabelaDistribuicao
+      data={producoes}
+      ciclo={ciclo}
+      onDistribuir={() => setRefreshKey((prev) => prev + 1)}
+      onAtualizar={handleRefresh}
     />
   );
 }

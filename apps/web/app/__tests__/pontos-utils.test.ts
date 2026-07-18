@@ -13,6 +13,12 @@ import {
 } from '@/lib/pontos-utils';
 import { Decimal } from '@prisma/client/runtime/library';
 
+let _cpfSeq = 0;
+const uniqueCpf = () => {
+  _cpfSeq++;
+  return `${Date.now()}${_cpfSeq}${Math.floor(Math.random() * 1000)}`.slice(0, 11).padStart(11, "0");
+};
+
 describe('Pontos Utils - Testes Unitários', () => {
   let backofficeId: string;
   let backofficeUsuarioId: string;
@@ -36,7 +42,7 @@ describe('Pontos Utils - Testes Unitários', () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: 'Backoffice Utils Test',
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissaoDefault: 5.0,
       },
     });
@@ -55,7 +61,7 @@ describe('Pontos Utils - Testes Unitários', () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: 'Lideranca Utils',
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: 'COMERCIAL',
       },
@@ -76,7 +82,7 @@ describe('Pontos Utils - Testes Unitários', () => {
         usuarioId: comercialUsuario.id,
         liderancaId,
         nome: 'Comercial Utils',
-        cpf: `${Date.now()}00000000002`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissao: 5.0,
         funcao: 'SUPERVISOR_ATIVO',
       },
@@ -85,19 +91,8 @@ describe('Pontos Utils - Testes Unitários', () => {
   });
 
   afterEach(async () => {
-    // Cleanup em cascata
-    if (comercialId) {
-      await prisma.comercial.deleteMany({ where: { id: comercialId } });
-    }
-    if (liderancaId) {
-      await prisma.lideranca.deleteMany({ where: { id: liderancaId } });
-    }
-    if (backofficeId) {
-      await prisma.backoffice.delete({ where: { id: backofficeId } });
-    }
-    if (backofficeUsuarioId) {
-      await prisma.usuario.deleteMany({ where: { id: backofficeUsuarioId } });
-    }
+    // Soft delete em massa - respeita RESTRICT constraints
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe('calcularPontosDeProducao', () => {
@@ -159,14 +154,14 @@ describe('Pontos Utils - Testes Unitários', () => {
       expect(pontos).toBe(2); // 150/100 = 1.5 → 2 (teto)
     });
 
-    it('deve retornar 0 se não houver configuração', async () => {
-      const pontos = await calcularPontosDeProducao(
-        150,
-        new Date('2026-03-15'),
-        '00000000-0000-0000-0000-000000000000',
-      );
-
-      expect(pontos).toBe(0);
+    it('deve lançar erro se não houver configuração', async () => {
+      await expect(
+        calcularPontosDeProducao(
+          150,
+          new Date('2026-03-15'),
+          '00000000-0000-0000-0000-000000000000',
+        ),
+      ).rejects.toThrow('Configuração de pontos não encontrada');
     });
 
     it('deve usar configuração vigente na data correta', async () => {
@@ -302,6 +297,20 @@ describe('Pontos Utils - Testes Unitários', () => {
           unidade: new Decimal(2),
         },
       });
+
+      // Criar regras de gestores
+      await prisma.regraGestor.create({
+        data: {
+          backofficeId,
+          gerenteCire: new Decimal(15),
+          supervisorAtivo: new Decimal(10),
+          supervisorReceptivo: new Decimal(8),
+          supervisorFranquia: new Decimal(5),
+          supervisorAtendimento: new Decimal(7),
+          gerenteAtendimento: new Decimal(12),
+          supervisorComercial: new Decimal(20),
+        },
+      });
     });
 
     it('deve calcular comissão para SUPERVISOR_ATIVO', async () => {
@@ -312,12 +321,15 @@ describe('Pontos Utils - Testes Unitários', () => {
       });
 
       expect(resultado.valorComissao).toBeGreaterThan(0);
-      expect(resultado.percentual).toBe(10); // 10% para SUPERVISOR_ATIVO
+      expect(resultado.percentualAplicado).toBe(0.2); // unidade=2% × supervisorAtivo=10% = 0.2%
     });
 
     it('deve retornar comissão zero se não houver regras', async () => {
       // Deletar regras
       await prisma.regraComercial.deleteMany({
+        where: { backofficeId },
+      });
+      await prisma.regraGestor.deleteMany({
         where: { backofficeId },
       });
 

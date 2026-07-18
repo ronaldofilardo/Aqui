@@ -8,6 +8,8 @@ export default defineConfig({
     include: ['app/__tests__/**/*.test.ts'],
     testTimeout: 30000,
     pool: 'forks',
+    fileParallelism: false,
+    sequence: { concurrent: false },
   },
   resolve: {
     alias: {

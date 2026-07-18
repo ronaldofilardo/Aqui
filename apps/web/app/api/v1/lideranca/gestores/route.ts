@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
           nome,
           email: email.toLowerCase().trim(),
           senhaHash,
-          tipo: "GESTOR",
+          tipo: "LIDERANCA",
           telefone: telefone || undefined,
           senhaTemporaria: true,
         },

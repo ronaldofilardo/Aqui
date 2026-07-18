@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
+import { uniqueCpf } from "./test-helpers";
 
 describe("Upload de Planilha e Comissões", () => {
   let backofficeId: string;
@@ -28,7 +29,7 @@ describe("Upload de Planilha e Comissões", () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: "Backoffice Upload Test",
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissaoDefault: 5.0,
       },
     });
@@ -40,7 +41,7 @@ describe("Upload de Planilha e Comissões", () => {
         nome: "Lideranca Upload Test",
         email: `lideranca.upload.${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
       },
     });
 
@@ -48,7 +49,7 @@ describe("Upload de Planilha e Comissões", () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: "Lideranca Upload Test",
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
+        cpf: uniqueCpf(),
         backofficeId,
         tipo: "COMERCIAL",
       },
@@ -70,8 +71,7 @@ describe("Upload de Planilha e Comissões", () => {
       data: {
         usuarioId: parceiroUsuario.id,
         nome: "Parceiro Upload Test",
-        cpf: `${Date.now()}00000000002`.slice(0, 11),
-        gestorId: backofficeId,
+        cpf: uniqueCpf(),
         status: "ATIVO",
       },
     });
@@ -82,7 +82,7 @@ describe("Upload de Planilha e Comissões", () => {
       data: {
         parceiroId,
         nome: "Indicado Upload Test",
-        cpf: "11122233344",
+        cpf: uniqueCpf(),
         status: "ATIVO",
       },
     });
@@ -104,7 +104,7 @@ describe("Upload de Planilha e Comissões", () => {
         usuarioId: comercialUsuario.id,
         liderancaId,
         nome: "Comercial Upload Test",
-        cpf: "22233344455",
+        cpf: uniqueCpf(),
         percentualComissao: 5.0,
         status: "ATIVO",
       },
@@ -113,15 +113,14 @@ describe("Upload de Planilha e Comissões", () => {
   });
 
   afterAll(async () => {
-    // Limpeza em cascata
-    await prisma.backoffice.delete({ where: { id: backofficeId } }).catch(() => {});
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe("Regras de Comissão", () => {
     it("deve criar regras comerciais para cálculo de comissões", async () => {
       const regras = await prisma.regraComercial.create({
         data: {
-          liderancaId, cartaoAcessoSaude: 5.0,
+          backofficeId, cartaoAcessoSaude: 5.0,
           cireAtivo: 3.0,
           cireReceptivo: 2.5,
           franchisingAcesso: 4.0,
@@ -137,7 +136,7 @@ describe("Upload de Planilha e Comissões", () => {
     it("deve criar regras de gestores para cálculo de comissões", async () => {
       const regras = await prisma.regraGestor.create({
         data: {
-          liderancaId, gerenteCire: 2.0,
+          backofficeId, gerenteCire: 2.0,
           supervisorAtivo: 1.5,
           supervisorReceptivo: 1.0,
           supervisorFranquia: 1.5,
@@ -185,7 +184,7 @@ describe("Upload de Planilha e Comissões", () => {
         data: {
           usuarioId: comercialUsuario.id,
           liderancaId, nome: "Comercial Comissão Test",
-          cpf: "33344455566",
+          cpf: uniqueCpf(),
           funcao: "SUPERVISOR_COMERCIAL",
           status: "ATIVO",
         },
@@ -197,7 +196,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve listar todos os comerciais do backoffice", async () => {
       const comerciais = await prisma.comercial.findMany({
-        where: { backofficeId },
+        where: { liderancaId },
         include: { usuario: true },
       });
 
@@ -206,7 +205,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve atualizar dados do comercial via modal de edição", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { backofficeId },
+        where: { liderancaId },
       });
 
       if (!comercial) {
@@ -236,7 +235,7 @@ describe("Upload de Planilha e Comissões", () => {
         data: {
           usuarioId: comercialUsuario.id,
           liderancaId, nome: "Comercial Temp",
-          cpf: `${Date.now()}11111111111`.slice(0, 11),
+          cpf: uniqueCpf(),
           status: "ATIVO",
         },
       });
@@ -271,7 +270,7 @@ describe("Upload de Planilha e Comissões", () => {
   describe("Metas Mensais de Comissões", () => {
     it("deve criar meta mensal para comercial", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { backofficeId },
+        where: { liderancaId },
       });
 
       if (!comercial) {
@@ -293,7 +292,7 @@ describe("Upload de Planilha e Comissões", () => {
 
     it("deve atualizar meta atingida automaticamente", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { backofficeId },
+        where: { liderancaId },
       });
 
       if (!comercial) {
@@ -511,7 +510,7 @@ describe("Upload de Planilha e Comissões", () => {
   describe("Comissões - Cálculo e Pagamento", () => {
     it("deve calcular comissão para comercial", async () => {
       const comercial = await prisma.comercial.findFirst({
-        where: { backofficeId },
+        where: { liderancaId },
       });
 
       if (!comercial) {

@@ -29,84 +29,23 @@ export async function DELETE(
 
       const usuarioId = consultor.usuarioId;
 
-      const estabelecimentoIds: string[] = [];
-      if (deleteEstabelecimentos) {
-        const estabs = await prisma.estabelecimento.findMany({
-          where: { consultorId: params.id },
-          select: { id: true },
-        });
-        estabelecimentoIds.push(...estabs.map((e) => e.id));
-      }
-
-      if (usuarioId) {
-        const cuponsConfig = await prisma.cupomConfig.findMany({
-          where: { criadoPor: usuarioId },
-          select: { id: true },
-        });
-        const cupomConfigIds = cuponsConfig.map((cc) => cc.id);
-
-        if (cupomConfigIds.length > 0) {
-          const cuponsImportados = await prisma.cupomImportado.findMany({
-            where: { cupomConfigId: { in: cupomConfigIds } },
-            select: { id: true },
-          });
-          const cupomImportadoIds = cuponsImportados.map((ci) => ci.id);
-
-          if (cupomImportadoIds.length > 0) {
-            await prisma.consulta.deleteMany({
-              where: { cupomImportadoId: { in: cupomImportadoIds } },
-            });
-          }
-
-          await prisma.cupomImportado.deleteMany({
-            where: { cupomConfigId: { in: cupomConfigIds } },
-          });
-        }
-
-        await prisma.cupomConfig.deleteMany({
-          where: { criadoPor: usuarioId },
-        });
-      }
-
-      if (estabelecimentoIds.length > 0) {
-        const allCupomImportados = await prisma.cupomImportado.findMany({
-          where: {
-            cupomConfig: { estabelecimentoId: { in: estabelecimentoIds } },
-          },
-          select: { id: true },
-        });
-        const allCupomImportadoIds = allCupomImportados.map((ci) => ci.id);
-
-        if (allCupomImportadoIds.length > 0) {
-          await prisma.consulta.deleteMany({
-            where: { cupomImportadoId: { in: allCupomImportadoIds } },
-          });
-        }
-
-        await prisma.usuarioEstabelecimento.deleteMany({
-          where: { estabelecimentoId: { in: estabelecimentoIds } },
-        });
-
-        await prisma.documento.deleteMany({
-          where: { estabelecimentoId: { in: estabelecimentoIds } },
-        });
-
-        await prisma.estabelecimento.deleteMany({
-          where: { id: { in: estabelecimentoIds } },
-        });
-      }
-
-      await prisma.consultor.delete({
-        where: { id: params.id },
-      });
-
-      await prisma.usuario.delete({
+      // Soft delete: inativar usuario (nao deletar)
+      await prisma.usuario.update({
         where: { id: usuarioId },
+        data: { status: "INATIVO" },
       });
+
+      // Se solicitado, inativar estabelecimentos tambem
+      if (deleteEstabelecimentos) {
+        await prisma.estabelecimento.updateMany({
+          where: { consultorId: params.id },
+          data: { status: "INATIVO" },
+        });
+      }
 
       return NextResponse.json({
         success: true,
-        message: "Consultor deletado com sucesso",
+        message: "Consultor inativado com sucesso (dados preservados)",
       });
     } else if (type === "ESTABELECIMENTO") {
       const usuario = await prisma.usuarioEstabelecimento.findUnique({
@@ -121,13 +60,15 @@ export async function DELETE(
         );
       }
 
-      await prisma.usuarioEstabelecimento.delete({
+      // Soft delete: inativar ao invés de deletar
+      await prisma.usuarioEstabelecimento.update({
         where: { id: params.id },
+        data: { ativo: false },
       });
 
       return NextResponse.json({
         success: true,
-        message: "Usuário deletado com sucesso",
+        message: "Usuário estabelecimento inativado com sucesso",
       });
     }
 
@@ -137,7 +78,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Erro ao deletar usuário",
+          error instanceof Error ? error.message : "Erro ao processar solicitação",
       },
       { status: 500 },
     );

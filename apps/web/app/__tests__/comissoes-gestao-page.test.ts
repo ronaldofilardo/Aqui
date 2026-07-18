@@ -3,6 +3,12 @@ import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
 import { Decimal } from "@prisma/client/runtime/library";
 
+let _cpfSeq = 0;
+const uniqueCpf = () => {
+  _cpfSeq++;
+  return `${Date.now()}${_cpfSeq}${Math.floor(Math.random() * 1000)}`.slice(0, 11).padStart(11, "0");
+};
+
 describe("Comissões Gestão - Página e Funcionalidades", () => {
   let backofficeId: string;
   let backofficeUsuarioId: string;
@@ -17,8 +23,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         nome: "Backoffice Teste",
         email: `backoffice.${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
-        tipo: "GESTOR",
-        senhaTemporaria: false,
+        tipo: "BACKOFFICE",
       },
     });
     backofficeUsuarioId = backofficeUsuario.id;
@@ -28,7 +33,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       data: {
         usuarioId: backofficeUsuario.id,
         nome: "Backoffice Teste",
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissaoDefault: 5.0,
       },
     });
@@ -40,7 +45,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         nome: "Lideranca Comercial",
         email: `lideranca.${Date.now()}@test.com`,
         senhaHash: await hash("123456", 12),
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
       },
     });
 
@@ -48,8 +53,8 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       data: {
         usuarioId: liderancaUsuario.id,
         nome: "Lideranca Comercial",
-        cpf: `${Date.now()}00000000001`.slice(0, 11),
-        gestorPfId,
+        cpf: uniqueCpf(),
+        backofficeId,
         tipo: "COMERCIAL",
       },
     });
@@ -77,7 +82,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         usuarioId: comercialUsuario.id,
         liderancaId,
         nome: "Comercial Teste",
-        cpf: `${Date.now()}00000000000`.slice(0, 11),
+        cpf: uniqueCpf(),
         percentualComissao: 3.0,
         status: "ATIVO",
       },
@@ -86,9 +91,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
   });
 
   afterAll(async () => {
-    // Limpeza em cascata já remove registros relacionados
-    await prisma.backoffice.delete({ where: { id: backofficeId } }).catch(() => {});
-    await prisma.usuario.delete({ where: { id: backofficeUsuarioId } }).catch(() => {});
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
   });
 
   describe("Cadastro de Comerciais", () => {
@@ -107,7 +110,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         data: {
           usuarioId: usuario.id,
           liderancaId, nome: "Novo Comercial",
-          cpf: "99988877766",
+          cpf: uniqueCpf(),
           funcao: "SUPERVISOR_COMERCIAL",
           percentualComissao: 4.0,
           status: "ATIVO",
@@ -221,7 +224,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     });
 
     it("deve atualizar CPF do comercial", async () => {
-      const novoCpf = "11122233344";
+      const novoCpf = uniqueCpf();
       const comercialAtualizado = await prisma.comercial.update({
         where: { id: comercialId },
         data: { cpf: novoCpf },
@@ -248,7 +251,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         data: {
           usuarioId: usuarioTemp.id,
           liderancaId, nome: "Comercial Temp",
-          cpf: `${Date.now()}00000000000`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 3.0,
           status: "ATIVO",
         },
@@ -282,7 +285,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         data: {
           usuarioId: usuarioTemp.id,
           liderancaId, nome: "Comercial Com Comissao",
-          cpf: `${Date.now()}11111111111`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 3.0,
           status: "ATIVO",
         },
@@ -327,7 +330,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
         data: {
           usuarioId: usuarioTemp.id,
           liderancaId, nome: "Comercial Com Meta",
-          cpf: `${Date.now()}22222222222`.slice(0, 11),
+          cpf: uniqueCpf(),
           percentualComissao: 3.0,
           status: "ATIVO",
         },

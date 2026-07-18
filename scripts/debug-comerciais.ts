@@ -59,7 +59,7 @@ async function main() {
           nome: "Gestor PF Teste",
           email: testEmail,
           senhaHash: await hash("123456", 12),
-          tipo: "GESTOR_PF",
+          tipo: "GERENCIA",
         },
       });
       usuarioId = usuario.id;

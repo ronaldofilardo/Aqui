@@ -12,10 +12,9 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
     const body = await request.json();
-    const { payAllCommissions, deleteEstabelecimentos } = body;
+    const { deleteEstabelecimentos } = body;
 
     if (type === "CONSULTOR") {
-      // Find the usuario associated with this consultor
       const consultor = await prisma.consultor.findUnique({
         where: { id: params.id },
         select: { usuarioId: true, id: true },
@@ -28,34 +27,25 @@ export async function DELETE(
         );
       }
 
-      // If payAllCommissions is true, mark all pending commissions as paid
-      if (payAllCommissions) {
-        // This is a placeholder - implement commission payment logic as needed
-        // For now, we'll just delete the commissions
-      }
+      // Soft delete: inativar usuario ao invés de deletar
+      await prisma.usuario.update({
+        where: { id: consultor.usuarioId },
+        data: { status: "INATIVO" },
+      });
 
-      // Delete estabelecimentos if requested
+      // Se solicitado, inativar estabelecimentos tambem
       if (deleteEstabelecimentos) {
-        await prisma.estabelecimento.deleteMany({
+        await prisma.estabelecimento.updateMany({
           where: { consultorId: params.id },
+          data: { status: "INATIVO" },
         });
       }
 
-      // Delete consultor and associated usuario
-      await prisma.consultor.delete({
-        where: { id: params.id },
-      });
-
-      await prisma.usuario.delete({
-        where: { id: consultor.usuarioId },
-      });
-
       return NextResponse.json({
         success: true,
-        message: "Consultor deletado com sucesso",
+        message: "Consultor inativado com sucesso (dados preservados)",
       });
     } else if (type === "ESTABELECIMENTO") {
-      // Delete usuarioEstabelecimento
       const usuario = await prisma.usuarioEstabelecimento.findUnique({
         where: { id: params.id },
         select: { id: true },
@@ -68,13 +58,15 @@ export async function DELETE(
         );
       }
 
-      await prisma.usuarioEstabelecimento.delete({
+      // Soft delete: inativar ao invés de deletar
+      await prisma.usuarioEstabelecimento.update({
         where: { id: params.id },
+        data: { ativo: false },
       });
 
       return NextResponse.json({
         success: true,
-        message: "Usuário deletado com sucesso",
+        message: "Usuário estabelecimento inativado com sucesso",
       });
     }
 
@@ -84,7 +76,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Erro ao deletar usuário",
+          error instanceof Error ? error.message : "Erro ao processar solicitação",
       },
       { status: 500 },
     );

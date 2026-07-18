@@ -1,16 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
-
-/**
- * Integration tests isolated by unique IDs/CPFs.
- * These exercise the preferencia-ciclo model logic against a real Prisma + Postgres,
- * mirroring what the API route does (without invoking the auth/session layer).
- */
+import { uniqueCpf } from "./test-helpers";
 
 const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
-const uniqueCpf = () =>
-  `${Math.floor(Math.random() * 1e10)}`.padStart(11, "0").slice(0, 11);
 
 async function criarParceiroCompleto() {
   const backoffice = await prisma.backoffice.create({
@@ -43,7 +36,6 @@ async function criarParceiroCompleto() {
       usuarioId: parceiroUsuario.id,
       nome: "Parceiro Teste",
       cpf: uniqueCpf(),
-      gestorId: backoffice.id,
     },
   });
 
@@ -114,7 +106,7 @@ describe("Parceiro - Preferência de Ciclo (Periodicidade)", () => {
 
       const ciclo = await prisma.cicloPontos.create({
         data: {
-          liderancaId, nome: "Ciclo lock test",
+          backofficeId, nome: "Ciclo lock test",
           periodicidade: "ANUAL",
           inicioAcumuloEm: new Date(),
           fimAcumuloEm: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -185,7 +177,7 @@ describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
 
     const semestral = await prisma.cicloPontos.create({
       data: {
-        liderancaId, nome: "1S/2026",
+        backofficeId, nome: "1S/2026",
         periodicidade: "SEMESTRAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-06-30"),
@@ -196,7 +188,7 @@ describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
 
     const anual = await prisma.cicloPontos.create({
       data: {
-        liderancaId, nome: "2026",
+        backofficeId, nome: "2026",
         periodicidade: "ANUAL",
         inicioAcumuloEm: new Date("2026-01-01"),
         fimAcumuloEm: new Date("2026-12-31"),
@@ -210,7 +202,7 @@ describe("Parceiro - Coexistência de ciclo SEMESTRAL e ANUAL", () => {
     expect(anual.periodicidade).toBe("ANUAL");
 
     const count = await prisma.cicloPontos.count({
-      where: { liderancaId, status: "EM_ANDAMENTO" },
+      where: { backofficeId, status: "EM_ANDAMENTO" },
     });
     expect(count).toBe(2);
   });

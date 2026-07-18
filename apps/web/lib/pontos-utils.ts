@@ -9,7 +9,8 @@ export async function calcularPontosDeProducao(
   dataReferencia: Date,
   backofficeId: string,
 ): Promise<number> {
-  const config = await prisma.configuracaoPontos.findFirst({
+  // Buscar configuração vigente para a data de referência
+  let config = await prisma.configuracaoPontos.findFirst({
     where: {
       backofficeId,
       vigenteDesde: { lte: dataReferencia },
@@ -17,6 +18,14 @@ export async function calcularPontosDeProducao(
     },
     orderBy: { vigenteDesde: "desc" },
   });
+
+  // Fallback: se não encontrou config para a data exata, usar a mais recente
+  if (!config) {
+    config = await prisma.configuracaoPontos.findFirst({
+      where: { backofficeId },
+      orderBy: { vigenteDesde: "desc" },
+    });
+  }
 
   if (!config) {
     throw new Error(

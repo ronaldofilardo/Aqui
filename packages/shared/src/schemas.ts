@@ -290,6 +290,8 @@ export const criarParceiroSchema = z.object({
 export const atualizarParceiroSchema = z.object({
   id: z.string().uuid("ID inválido"),
   nome: z.string().min(3).optional(),
+  email: z.string().email("Email inválido").optional(),
+  cpf: z.string().refine((val) => validarCPF(val), { message: "CPF inválido" }).optional(),
   pixChave: z.string().optional(),
   status: z.enum(["ATIVO", "DESLIGADO"]).optional(),
 });

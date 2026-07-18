@@ -2,13 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@asa/database";
 import { hash } from "bcryptjs";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
+import { uniqueCpf } from "./test-helpers";
 
 describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   const unique = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-  const uniqueCpf = () =>
-    `${Date.now()}${Math.floor(Math.random() * 10000)}`
-      .slice(0, 11)
-      .padStart(11, "0");
 
   let usuarioId: string;
   let gestorId: string;
@@ -17,13 +14,8 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   let estabelecimentoId: string;
 
   beforeAll(async () => {
-    // ordem correta: establishment→consultor→usuario (estabelecimento depende de consultor)
-    await prisma.estabelecimento.deleteMany({}).catch(() => {});
-    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
-    await prisma.consultor.deleteMany({}).catch(() => {});
-    await prisma.usuario.deleteMany({}).catch(() => {});
-    await prisma.usuarioEstabelecimento.deleteMany({}).catch(() => {});
-    await prisma.passwordResetToken.deleteMany({}).catch(() => {});
+    // Soft delete em massa para limpar dados anteriores
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } }).catch(() => {});
 
     // Criar usuário gestor
     const gestor = await prisma.usuario.create({
@@ -31,19 +23,15 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
         nome: "Gestor Teste",
         email: `gestor-${unique()}@test.com`,
         senhaHash: await hash("password123", 10),
-        tipo: "GESTOR",
+        tipo: "LIDERANCA",
       },
     });
     gestorId = gestor.id;
   });
 
   afterAll(async () => {
-    await prisma.estabelecimento.deleteMany({}).catch(() => {});
-    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
-    await prisma.consultor.deleteMany({}).catch(() => {});
-    await prisma.usuario.deleteMany({}).catch(() => {});
-    await prisma.usuarioEstabelecimento.deleteMany({}).catch(() => {});
-    await prisma.passwordResetToken.deleteMany({}).catch(() => {});
+    // Soft delete em massa - respeita RESTRICT constraints
+    await prisma.usuario.updateMany({ data: { status: "INATIVO" } }).catch(() => {});
   });
 
   describe("Usuario com senhaTemporaria", () => {
