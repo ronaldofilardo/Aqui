@@ -34,8 +34,9 @@ export async function GET(req: NextRequest) {
         premio: {
           select: {
             id: true,
-            nome: true,
-            custoPontos: true,
+            codigo: true,
+            descricao: true,
+            pontos: true,
           },
         },
         cicloPontos: {
@@ -146,9 +147,9 @@ export async function POST(req: NextRequest) {
     const e = estornos._sum.quantidade || 0;
     const saldoAtual = c - d + e;
 
-    if (saldoAtual < premio.custoPontos) {
+    if (saldoAtual < premio.pontos) {
       return badRequest(
-        `Saldo insuficiente. Você possui ${saldoAtual} pontos e precisa de ${premio.custoPontos}`,
+        `Saldo insuficiente. Você possui ${saldoAtual} pontos e precisa de ${premio.pontos}`,
       );
     }
 
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
           parceiroId,
           premioId,
           cicloPontosId: cicloVigente.id,
-          pontosDebitados: premio.custoPontos,
+          pontosDebitados: premio.pontos,
           status: "SOLICITADO",
         },
       });
@@ -172,9 +173,9 @@ export async function POST(req: NextRequest) {
           cicloPontosId: cicloVigente.id,
           tipo: "DEBITO",
           origem: "RESGATE",
-          quantidade: premio.custoPontos,
+          quantidade: premio.pontos,
           referenciaSolicitacaoResgateId: solicitacao.id,
-          observacao: `Resgate de: ${premio.nome}`,
+          observacao: `Resgate de: ${premio.descricao}`,
         },
       });
 

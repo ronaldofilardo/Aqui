@@ -102,12 +102,12 @@ export async function PATCH(
           select: { nome: true, cpf: true },
         },
         premio: {
-          select: { nome: true },
+          select: { codigo: true, descricao: true },
         },
       },
     });
 
-    return ok({
+return ok({
       id: updatedResgate.id,
       status: updatedResgate.status,
       parceiro: updatedResgate.parceiro,

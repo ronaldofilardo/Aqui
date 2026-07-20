@@ -82,8 +82,9 @@ export async function GET(req: NextRequest) {
         premio: {
           select: {
             id: true,
-            nome: true,
-            custoPontos: true,
+            codigo: true,
+            descricao: true,
+            pontos: true,
           },
         },
         cicloPontos: {
@@ -106,8 +107,9 @@ export async function GET(req: NextRequest) {
         },
         premio: {
           id: r.premio.id,
-          nome: r.premio.nome,
-          custoPontos: r.premio.custoPontos,
+          codigo: r.premio.codigo,
+          descricao: r.premio.descricao,
+          pontos: r.premio.pontos,
         },
         cicloPontos: {
           id: r.cicloPontos.id,

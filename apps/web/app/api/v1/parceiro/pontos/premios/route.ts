@@ -72,12 +72,12 @@ export async function GET(req: NextRequest) {
       },
       select: {
         id: true,
-        nome: true,
+        codigo: true,
+        tipo: true,
         descricao: true,
-        custoPontos: true,
-        imagemUrl: true,
+        pontos: true,
       },
-      orderBy: { custoPontos: "asc" },
+      orderBy: { pontos: "asc" },
     });
 
     // Determinar se está em período de resgate
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
         saldoAtual,
         premios: premios.map((p) => ({
           ...p,
-          podeSolicitar: emPeriodoResgate && saldoAtual >= p.custoPontos,
+          podeSolicitar: emPeriodoResgate && saldoAtual >= p.pontos,
         })),
       },
     });

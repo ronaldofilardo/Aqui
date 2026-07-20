@@ -10,17 +10,17 @@ import { prisma } from "@asa/database";
 import { z } from "zod";
 
 const CreatePremioSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
+  codigo: z.string().min(1, "Código é obrigatório"),
+  tipo: z.string().min(1, "Tipo é obrigatório"),
   descricao: z.string().min(1, "Descrição é obrigatória"),
-  custoPontos: z.number().int().positive("Custo em pontos deve ser positivo"),
-  imagemUrl: z.string().url("URL da imagem inválida").optional(),
+  pontos: z.number().int().positive("Pontos deve ser positivo"),
 });
 
 const UpdatePremioSchema = z.object({
-  nome: z.string().min(1).optional(),
+  codigo: z.string().min(1).optional(),
+  tipo: z.string().min(1).optional(),
   descricao: z.string().min(1).optional(),
-  custoPontos: z.number().int().positive().optional(),
-  imagemUrl: z.string().url().optional().or(z.literal("")),
+  pontos: z.number().int().positive().optional(),
   ativo: z.boolean().optional(),
 });
 
@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
     return ok({
       premios: premios.map((p) => ({
         id: p.id,
-        nome: p.nome,
+        codigo: p.codigo,
+        tipo: p.tipo,
         descricao: p.descricao,
-        custoPontos: p.custoPontos,
-        imagemUrl: p.imagemUrl,
+        pontos: p.pontos,
         ativo: p.ativo,
         criadoEm: p.criadoEm.toISOString(),
       })),
@@ -63,25 +63,25 @@ export async function POST(req: NextRequest) {
       return badRequest(validation.error.message);
     }
 
-    const { nome, descricao, custoPontos, imagemUrl } = validation.data;
+    const { codigo, tipo, descricao, pontos } = validation.data;
 
     const novoPremio = await prisma.premio.create({
       data: {
         backofficeId,
-        nome,
+        codigo,
+        tipo,
         descricao,
-        custoPontos,
-        imagemUrl,
+        pontos,
         ativo: true,
       },
     });
 
     return created({
       id: novoPremio.id,
-      nome: novoPremio.nome,
+      codigo: novoPremio.codigo,
+      tipo: novoPremio.tipo,
       descricao: novoPremio.descricao,
-      custoPontos: novoPremio.custoPontos,
-      imagemUrl: novoPremio.imagemUrl,
+      pontos: novoPremio.pontos,
       ativo: novoPremio.ativo,
       mensagem: "Prêmio criado com sucesso",
     });
@@ -122,15 +122,13 @@ export async function PATCH(req: NextRequest) {
     const updated = await prisma.premio.update({
       where: { id: premioId },
       data: {
-        ...(validation.data.nome && { nome: validation.data.nome }),
+        ...(validation.data.codigo && { codigo: validation.data.codigo }),
+        ...(validation.data.tipo && { tipo: validation.data.tipo }),
         ...(validation.data.descricao && {
           descricao: validation.data.descricao,
         }),
-        ...(validation.data.custoPontos && {
-          custoPontos: validation.data.custoPontos,
-        }),
-        ...(validation.data.imagemUrl !== undefined && {
-          imagemUrl: validation.data.imagemUrl || null,
+        ...(validation.data.pontos && {
+          pontos: validation.data.pontos,
         }),
         ...(validation.data.ativo !== undefined && {
           ativo: validation.data.ativo,
@@ -140,10 +138,10 @@ export async function PATCH(req: NextRequest) {
 
     return ok({
       id: updated.id,
-      nome: updated.nome,
+      codigo: updated.codigo,
+      tipo: updated.tipo,
       descricao: updated.descricao,
-      custoPontos: updated.custoPontos,
-      imagemUrl: updated.imagemUrl,
+      pontos: updated.pontos,
       ativo: updated.ativo,
       mensagem: "Prêmio atualizado com sucesso",
     });
