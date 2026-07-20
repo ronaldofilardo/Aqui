@@ -14,18 +14,18 @@ const createComercialSchema = z.object({
   cpf: z.string().length(11),
   email: z.string().email(),
   telefone: z.string().optional(),
-  funcao: z.enum([
-    "GERENTE_CIRE",
-    "SUPERVISOR_ATIVO",
-    "SUPERVISOR_RECEPTIVO",
-    "SUPERVISOR_FRANQUIA",
-    "SUPERVISOR_ATENDIMENTO",
-    "GERENTE_ATENDIMENTO",
-    "SUPERVISOR_COMERCIAL",
-  ]).optional(),
-  lideranca: z.enum(["COMERCIAL", "GESTOR"]).optional(),
-  percentualComissao: z.number().min(0).max(100),
-});
+   funcao: z.enum([
+     "GERENTE_CIRE",
+     "SUPERVISOR_ATIVO",
+     "SUPERVISOR_RECEPTIVO",
+     "SUPERVISOR_FRANQUIA",
+     "SUPERVISOR_ATENDIMENTO",
+     "GERENTE_ATENDIMENTO",
+     "SUPERVISOR_COMERCIAL",
+   ]).optional(),
+   lideranca: z.enum(["COMERCIAL", "GESTOR"]).optional(),
+   percentualComissao: z.number().min(0).max(100),
+ });
 
 export async function GET() {
   console.log("[comerciais GET] Iniciando requisição...");
@@ -93,35 +93,6 @@ export async function POST(req: NextRequest) {
       return badRequest("Já existe um comercial com este CPF");
     }
 
-    // Buscar a primeira liderança do tipo COMERCIAL para este backoffice
-    // ou criar uma nova se não existir
-    let lideranca = await prisma.lideranca.findFirst({
-      where: { backofficeId, tipo: "COMERCIAL" },
-    });
-
-    if (!lideranca) {
-      // Criar nova liderança tipo COMERCIAL
-      const usuarioLideranca = await prisma.usuario.create({
-        data: {
-          nome: data.nome,
-          email: data.email.toLowerCase(),
-          senhaHash: "", // será definido no primeiro login
-          tipo: "LIDERANCA",
-          papel: "BACKOFFICE",
-        },
-      });
-
-      lideranca = await prisma.lideranca.create({
-        data: {
-          usuarioId: usuarioLideranca.id,
-          nome: data.nome,
-          cpf: data.cpf,
-          backofficeId,
-          tipo: "COMERCIAL",
-        },
-      });
-    }
-
     // Criar usuário para o comercial
     const usuario = await prisma.usuario.create({
       data: {
@@ -133,13 +104,48 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Se lideranca for informado, buscar ou criar a liderança
+    let liderancaId: string | null = null;
+    if (data.lideranca) {
+      let lideranca = await prisma.lideranca.findFirst({
+        where: { backofficeId, tipo: data.lideranca },
+      });
+
+      if (!lideranca) {
+        const emailLideranca = `lideranca-${data.cpf}@${backofficeId}.com`;
+        const usuarioLideranca = await prisma.usuario.upsert({
+          where: { email: emailLideranca },
+          update: {},
+          create: {
+            nome: data.nome,
+            email: emailLideranca,
+            senhaHash: "",
+            tipo: "LIDERANCA",
+            papel: "BACKOFFICE",
+          },
+        });
+
+        lideranca = await prisma.lideranca.create({
+          data: {
+            usuarioId: usuarioLideranca.id,
+            nome: data.nome,
+            cpf: data.cpf,
+            backofficeId,
+            tipo: data.lideranca,
+          },
+        });
+      }
+
+      liderancaId = lideranca.id;
+    }
+
     // Criar comercial
     const comercial = await prisma.comercial.create({
       data: {
         usuarioId: usuario.id,
         nome: data.nome,
         cpf: data.cpf,
-        liderancaId: lideranca.id,
+        liderancaId,
         percentualComissao: data.percentualComissao,
         funcao: data.funcao,
         tipoLideranca: data.lideranca,
