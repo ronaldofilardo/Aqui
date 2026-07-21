@@ -363,18 +363,33 @@ export const atualizarComercialSchema = z.object({
   status: z.enum(["ATIVO", "INATIVO"]).optional(),
 });
 
-export const upsertMetaComercialSchema = z.object({
-  mesReferencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato: YYYY-MM"),
-  valorMeta: z
-    .union([z.string(), z.number()])
-    .refine(
-      (val) => {
-        const num = typeof val === "string" ? parseFloat(val) : val;
-        return num >= 0;
-      },
-      { message: "Valor da meta deve ser >= 0" },
-    ),
-});
+export const upsertMetaComercialSchema = z
+  .object({
+    mesReferencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato: YYYY-MM"),
+    valorMeta: z
+      .union([z.string(), z.number()])
+      .refine(
+        (val) => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          return num >= 0;
+        },
+        { message: "Valor da meta deve ser >= 0" },
+      )
+      .optional(),
+    valorAtingido: z
+      .union([z.string(), z.number()])
+      .refine(
+        (val) => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          return num >= 0;
+        },
+        { message: "Valor da produção deve ser >= 0" },
+      )
+      .optional(),
+  })
+  .refine((data) => data.valorMeta !== undefined || data.valorAtingido !== undefined, {
+    message: "Informe valorMeta ou valorAtingido",
+  });
 
 export const preferenciaCicloParceiroSchema = z.object({
   periodicidade: z.enum(["SEMESTRAL", "ANUAL"]),

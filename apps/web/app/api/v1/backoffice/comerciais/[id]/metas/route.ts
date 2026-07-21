@@ -27,8 +27,9 @@ export async function GET(
   
   if (!comercial) return notFound("Comercial não encontrado");
   
-  // Verificar se a liderança pertence a este backoffice
-  if (comercial.lideranca.backofficeId !== backofficeId) {
+  // Verificar permissão: se tiver liderança, verificar se pertence a este backoffice
+  // Se não tiver liderança, permitir (comercial criado diretamente neste backoffice)
+  if (comercial.lideranca && comercial.lideranca.backofficeId !== backofficeId) {
     return forbidden();
   }
 
@@ -64,15 +65,25 @@ export async function POST(
   
   if (!comercial) return notFound("Comercial não encontrado");
   
-  // Verificar se a liderança pertence a este backoffice
-  if (comercial.lideranca.backofficeId !== backofficeId) {
+  // Verificar permissão: se tiver liderança, verificar se pertence a este backoffice
+  // Se não tiver liderança, permitir (comercial criado diretamente neste backoffice)
+  if (comercial.lideranca && comercial.lideranca.backofficeId !== backofficeId) {
     return forbidden();
   }
 
   const valorMetaNum =
-    typeof parsed.data.valorMeta === "string"
-      ? parseFloat(parsed.data.valorMeta)
-      : parsed.data.valorMeta;
+    parsed.data.valorMeta !== undefined
+      ? typeof parsed.data.valorMeta === "string"
+        ? parseFloat(parsed.data.valorMeta)
+        : parsed.data.valorMeta
+      : undefined;
+
+  const valorAtingidoNum =
+    parsed.data.valorAtingido !== undefined
+      ? typeof parsed.data.valorAtingido === "string"
+        ? parseFloat(parsed.data.valorAtingido)
+        : parsed.data.valorAtingido
+      : undefined;
 
   const meta = await prisma.metaComercial.upsert({
     where: {
@@ -84,11 +95,12 @@ export async function POST(
     create: {
       comercialId: params.id,
       mesReferencia: parsed.data.mesReferencia,
-      valorMeta: valorMetaNum,
-      valorAtingido: 0,
+      valorMeta: valorMetaNum ?? 0,
+      valorAtingido: valorAtingidoNum ?? 0,
     },
     update: {
-      valorMeta: valorMetaNum,
+      ...(valorMetaNum !== undefined ? { valorMeta: valorMetaNum } : {}),
+      ...(valorAtingidoNum !== undefined ? { valorAtingido: valorAtingidoNum } : {}),
     },
   });
 
@@ -101,6 +113,7 @@ export async function POST(
       comercialId: params.id,
       mesReferencia: parsed.data.mesReferencia,
       valorMeta: valorMetaNum,
+      valorAtingido: valorAtingidoNum,
     },
   });
 
