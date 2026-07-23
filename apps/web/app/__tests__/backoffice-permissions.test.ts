@@ -27,11 +27,6 @@ describe('Backoffice - Permissões de Acesso', () => {
       allowedPapeis: ["BACKOFFICE"],
     },
     {
-      prefix: "/gestor-pf",
-      allowedTipos: ["BACKOFFICE", "GESTOR"],
-      allowedPapeis: ["BACKOFFICE"],
-    },
-    {
       prefix: "/gestor",
       allowedTipos: ["GESTOR"],
       allowedPapeis: ["GESTOR_PJ"],
@@ -115,23 +110,6 @@ describe('Backoffice - Permissões de Acesso', () => {
     });
   });
 
-  describe('Compatibilidade com /gestor-pf', () => {
-    it('deve autorizar BACKOFFICE em /gestor-pf/dashboard', () => {
-      const result = authorizeByPapel("/gestor-pf/dashboard", backofficeUser);
-      expect(result.authorized).toBe(true);
-    });
-
-    it('deve autorizar BACKOFFICE em /gestor-pf/parceiros', () => {
-      const result = authorizeByPapel("/gestor-pf/parceiros", backofficeUser);
-      expect(result.authorized).toBe(true);
-    });
-
-    it('deve autorizar BACKOFFICE em /gestor-pf/relatorios', () => {
-      const result = authorizeByPapel("/gestor-pf/relatorios", backofficeUser);
-      expect(result.authorized).toBe(true);
-    });
-  });
-
   describe('Restrições de Acesso', () => {
     it('deve negar acesso do BACKOFFICE a /gestor/dashboard', () => {
       const result = authorizeByPapel("/gestor/dashboard", backofficeUser);
@@ -140,11 +118,6 @@ describe('Backoffice - Permissões de Acesso', () => {
 
     it('deve negar acesso do GESTOR_PJ a /backoffice/dashboard', () => {
       const result = authorizeByPapel("/backoffice/dashboard", gestorPjUser);
-      expect(result.authorized).toBe(false);
-    });
-
-    it('deve negar acesso do GESTOR_PJ a /gestor-pf/dashboard', () => {
-      const result = authorizeByPapel("/gestor-pf/dashboard", gestorPjUser);
       expect(result.authorized).toBe(false);
     });
 
@@ -177,7 +150,6 @@ describe('Backoffice - Permissões de Acesso', () => {
     const matriz = [
       { rota: "/backoffice/dashboard", user: backofficeUser, esperado: true },
       { rota: "/backoffice/producao", user: backofficeUser, esperado: true },
-      { rota: "/gestor-pf/parceiros", user: backofficeUser, esperado: true },
       { rota: "/gestor/dashboard", user: backofficeUser, esperado: false },
       { rota: "/gestor/consultores", user: backofficeUser, esperado: false },
       { rota: "/admin/usuarios", user: backofficeUser, esperado: false },

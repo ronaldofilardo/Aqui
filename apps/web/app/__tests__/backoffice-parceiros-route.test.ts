@@ -83,7 +83,7 @@ describe('criarAuditLog - parâmetro "detalhes"', () => {
         acao: 'CRIAR',
         entidade: 'PARCEIRO',
         entidadeId,
-        detalhes: { nome: 'Parceiro Test', email: 'test@asa.com', cpf: '12345678901' },
+        detalhes: { nome: 'Parceiro Test', email: 'test@asa.test', cpf: '12345678901' },
       })
     ).resolves.not.toThrow();
 
@@ -121,7 +121,7 @@ describe('StatusParceiro - valor válido "DESLIGADO"', () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Parceiro Status Test',
-        email: `parceiro-status-${Date.now()}-${Math.random().toString(36).slice(2)}@asa.com`,
+        email: `parceiro-status-${Date.now()}-${Math.random().toString(36).slice(2)}@asa.test`,
         senhaHash: await hash('123456', 10),
         tipo: 'PARCEIRO',
       },
@@ -173,7 +173,7 @@ describe('Session shape - Session.user.id', () => {
       user: {
         id: 'user-uuid-123',
         name: 'Backoffice',
-        email: 'back@asa.com',
+        email: 'back@asa.test',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
         consultorId: null,
@@ -212,7 +212,7 @@ describe('Fluxo POST /api/v1/backoffice/parceiros (validação indireta)', () =>
   it('deve gerar token, hashear e criar audit log no formato esperado', async () => {
     // Reproduz o fluxo da rota POST após as correções
     const nome = 'Parceiro Fluxo Test';
-    const email = `parceiro-fluxo-${Date.now()}-${Math.random().toString(36).slice(2)}@asa.com`;
+    const email = `parceiro-fluxo-${Date.now()}-${Math.random().toString(36).slice(2)}@asa.test`;
     const cpfUnmasked = uniqueCpf();
 
     const passwordHash = await hash('123456', 10);

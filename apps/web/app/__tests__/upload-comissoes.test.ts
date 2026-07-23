@@ -16,7 +16,7 @@ describe("Upload de Planilha e Comissões", () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: "Backoffice Upload Test",
-        email: `backoffice.upload.${Date.now()}@test.com`,
+        email: `backoffice.upload.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "BACKOFFICE",
         papel: "BACKOFFICE",
@@ -39,7 +39,7 @@ describe("Upload de Planilha e Comissões", () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: "Lideranca Upload Test",
-        email: `lideranca.upload.${Date.now()}@test.com`,
+        email: `lideranca.upload.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "LIDERANCA",
       },
@@ -60,7 +60,7 @@ describe("Upload de Planilha e Comissões", () => {
     const parceiroUsuario = await prisma.usuario.create({
       data: {
         nome: "Parceiro Upload Test",
-        email: `parceiro.upload.${Date.now()}@test.com`,
+        email: `parceiro.upload.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "PARCEIRO",
         senhaTemporaria: false,
@@ -92,7 +92,7 @@ describe("Upload de Planilha e Comissões", () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: "Comercial Upload Test",
-        email: `comercial.upload.${Date.now()}@test.com`,
+        email: `comercial.upload.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "COMERCIAL",
         senhaTemporaria: false,
@@ -113,7 +113,15 @@ describe("Upload de Planilha e Comissões", () => {
   });
 
   afterAll(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.comercial.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.indicado.deleteMany({ where: { parceiro: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.parceiro.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.regraComercial.deleteMany({ where: { backofficeId } }).catch(() => {});
+    await prisma.regraGestor.deleteMany({ where: { backofficeId } }).catch(() => {});
+    await prisma.comissaoComercial.deleteMany({ where: { comercial: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe("Regras de Comissão", () => {
@@ -173,7 +181,7 @@ describe("Upload de Planilha e Comissões", () => {
       const comercialUsuario = await prisma.usuario.create({
         data: {
           nome: "Comercial Comissão Test",
-          email: `comercial.comissao.${Date.now()}@test.com`,
+          email: `comercial.comissao.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           senhaTemporaria: false,
@@ -224,7 +232,7 @@ describe("Upload de Planilha e Comissões", () => {
       const comercialUsuario = await prisma.usuario.create({
         data: {
           nome: "Comercial Temp",
-          email: `comercial.temp.${Date.now()}@test.com`,
+          email: `comercial.temp.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           senhaTemporaria: false,

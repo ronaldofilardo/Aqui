@@ -22,7 +22,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Delete Test',
-        email: `backoffice-delete-${Date.now()}@asa.com`,
+        email: `backoffice-delete-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -43,7 +43,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: 'Lideranca Delete Test',
-        email: `lideranca-delete-${Date.now()}@asa.com`,
+        email: `lideranca-delete-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -70,7 +70,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: 'Comercial Soft Delete',
-        email: `comercial-softdelete-${Date.now()}@asa.com`,
+        email: `comercial-softdelete-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'COMERCIAL',
       },
@@ -115,7 +115,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: 'Comercial No Cascade',
-        email: `comercial-nocascade-${Date.now()}@asa.com`,
+        email: `comercial-nocascade-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'COMERCIAL',
       },
@@ -135,7 +135,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const gestorUsuario = await prisma.usuario.create({
       data: {
         nome: 'Gestor No Cascade',
-        email: `gestor-nocascade-${Date.now()}@asa.com`,
+        email: `gestor-nocascade-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -154,7 +154,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const parceiroUsuario = await prisma.usuario.create({
       data: {
         nome: 'Parceiro No Cascade',
-        email: `parceiro-nocascade-${Date.now()}@asa.com`,
+        email: `parceiro-nocascade-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'PARCEIRO',
       },
@@ -202,7 +202,7 @@ describe('DELETE Comercial - Soft Delete do Usuario', () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: 'Comercial Cascade Delete',
-        email: `comercial-cascadedel-${Date.now()}@asa.com`,
+        email: `comercial-cascadedel-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'COMERCIAL',
       },

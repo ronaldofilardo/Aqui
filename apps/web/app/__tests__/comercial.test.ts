@@ -16,7 +16,7 @@ async function criarBackoffice() {
       usuario: {
         create: {
           nome: "Backoffice",
-          email: `backoffice-${unique()}@test.com`,
+          email: `backoffice-${unique()}@asa.test`,
           senhaHash: await hash("x", 4),
           tipo: "BACKOFFICE",
           papel: "BACKOFFICE",
@@ -32,7 +32,7 @@ async function criarComercial(liderancaId: string) {
   const u = await prisma.usuario.create({
     data: {
       nome: `${unique()}`,
-      email: `com-${unique()}@test.com`,
+      email: `com-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "COMERCIAL",
     },
@@ -93,7 +93,7 @@ describe("Comercial - Modelo & Unicidade", () => {
     const u = await prisma.usuario.create({
       data: {
         nome: `${unique()}`,
-        email: `com-${unique()}@test.com`,
+        email: `com-${unique()}@asa.test`,
         senhaHash: await hash("x", 4),
         tipo: "COMERCIAL",
       },
@@ -111,7 +111,7 @@ describe("Comercial - Modelo & Unicidade", () => {
     const u2 = await prisma.usuario.create({
       data: {
         nome: `${unique()}`,
-        email: `com2-${unique()}@test.com`,
+        email: `com2-${unique()}@asa.test`,
         senhaHash: await hash("x", 4),
         tipo: "COMERCIAL",
       },

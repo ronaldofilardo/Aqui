@@ -21,7 +21,7 @@ describe("CPF Validation - Duplicated CPF Prevention", () => {
     });
   });
 
-  describe("Gestor-PF > Parceiros - POST /api/v1/gestor-pf/parceiros", () => {
+  describe("Backoffice > Parceiros - POST /api/v1/backoffice/parceiros", () => {
     it("deve permitir cadastro de parceiro com CPF válido não duplicado", () => {
       const cpfClean = "53051173991";
       expect(cpfClean.length).toBe(11);
@@ -60,7 +60,7 @@ describe("CPF Validation - Duplicated CPF Prevention", () => {
       expect(typeof response.valid).toBe("boolean");
     });
 
-    it("GET /api/v1/gestor-pf/parceiros/check-cpf deve retornar formato: { valid, message }", () => {
+    it("GET /api/v1/backoffice/parceiros/check-cpf deve retornar formato: { valid, message }", () => {
       const response = { valid: true, message: "CPF disponível" };
       expect(response).toHaveProperty("valid");
       expect(response).toHaveProperty("message");

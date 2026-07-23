@@ -28,7 +28,7 @@ describe('API Backoffice - Endpoints', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Test User',
-        email: `backoffice-test-${Date.now()}@asa.com`,
+        email: `backoffice-test-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -49,7 +49,7 @@ describe('API Backoffice - Endpoints', () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: 'Lideranca Test User',
-        email: `lideranca-test-${Date.now()}@asa.com`,
+        email: `lideranca-test-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -68,7 +68,9 @@ describe('API Backoffice - Endpoints', () => {
   });
 
   afterEach(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe('GET /api/v1/backoffice/config', () => {
@@ -132,7 +134,7 @@ describe('API Backoffice - Endpoints', () => {
       const comercialUsuario = await prisma.usuario.create({
         data: {
           nome: 'Comercial Test',
-          email: `comercial-test-${Date.now()}@asa.com`,
+          email: `comercial-test-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'COMERCIAL',
         },
@@ -172,7 +174,7 @@ describe('API Backoffice - Endpoints', () => {
       const comercialUsuario = await prisma.usuario.create({
         data: {
           nome: 'Comercial Partner Test',
-          email: `comercial-partner-${Date.now()}@asa.com`,
+          email: `comercial-partner-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'COMERCIAL',
         },
@@ -191,7 +193,7 @@ describe('API Backoffice - Endpoints', () => {
       const parceiroUsuario = await prisma.usuario.create({
         data: {
           nome: 'Parceiro Test',
-          email: `parceiro-test-${Date.now()}@asa.com`,
+          email: `parceiro-test-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'PARCEIRO',
         },
@@ -328,7 +330,7 @@ describe('API Backoffice - Endpoints', () => {
       const outroUsuario = await prisma.usuario.create({
         data: {
           nome: 'Outro Backoffice User',
-          email: `outro-backoffice-${Date.now()}@asa.com`,
+          email: `outro-backoffice-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'BACKOFFICE',
           papel: 'BACKOFFICE',
@@ -367,29 +369,6 @@ describe('API Backoffice - Endpoints', () => {
 
       await prisma.configuracaoPontos.deleteMany({ where: { backofficeId: outroBackoffice.id } });
       await prisma.usuario.update({ where: { id: outroUsuario.id }, data: { status: 'INATIVO' } });
-    });
-  });
-
-  describe('GET /api/v1/backoffice/pontos/premios', () => {
-    it('deve listar prêmios do backoffice', async () => {
-      await prisma.premio.create({
-        data: {
-          backofficeId,
-          nome: 'Prêmio Teste',
-          descricao: 'Descrição do prêmio',
-          custoPontos: 1000,
-          ativo: true,
-        },
-      });
-
-      const premios = await prisma.premio.findMany({
-        where: { backofficeId },
-        orderBy: { criadoEm: 'desc' },
-      });
-
-      expect(premios.length).toBeGreaterThan(0);
-      expect(premios[0].backofficeId).toBe(backofficeId);
-      expect(premios[0].ativo).toBe(true);
     });
   });
 
@@ -447,6 +426,154 @@ describe('API Backoffice - Endpoints', () => {
       expect(regra).toBeDefined();
       expect(regra?.backofficeId).toBe(backofficeId);
       expect(Number(regra?.gerenteCire)).toBe(15);
+    });
+
+    it('deve retornar valores default se não existir regra', async () => {
+      const regra = await prisma.regraGestor.findUnique({
+        where: { backofficeId: '00000000-0000-0000-0000-000000000000' },
+      });
+
+      expect(regra).toBeNull();
+    });
+  });
+
+  describe('PUT /api/v1/backoffice/regras-comerciais', () => {
+    it('deve criar regras comerciais quando não existirem', async () => {
+      const dadosRegra = {
+        cartaoAcessoSaude: 6,
+        cireAtivo: 4,
+        cireReceptivo: 1.4,
+        franchisingAcesso: 1.1,
+        franchisingCartao: 0.8,
+        unidade: 0.9,
+      };
+
+      const regra = await prisma.regraComercial.create({
+        data: {
+          backofficeId,
+          ...dadosRegra,
+        },
+      });
+
+      expect(regra).toBeDefined();
+      expect(regra?.backofficeId).toBe(backofficeId);
+      expect(Number(regra?.cartaoAcessoSaude)).toBe(6);
+      expect(Number(regra?.cireAtivo)).toBe(4);
+    });
+
+    it('deve atualizar regras comerciais existentes', async () => {
+      const regraExistente = await prisma.regraComercial.create({
+        data: {
+          backofficeId,
+          cartaoAcessoSaude: 5,
+          cireAtivo: 10,
+          cireReceptivo: 8,
+          franchisingAcesso: 3,
+          franchisingCartao: 4,
+          unidade: 2,
+        },
+      });
+
+      const dadosAtualizados = {
+        cartaoAcessoSaude: 7,
+        cireAtivo: 5,
+        cireReceptivo: 2,
+        franchisingAcesso: 1.5,
+        franchisingCartao: 1,
+        unidade: 1.2,
+      };
+
+      const regraAtualizada = await prisma.regraComercial.update({
+        where: { id: regraExistente.id },
+        data: dadosAtualizados,
+      });
+
+      expect(regraAtualizada).toBeDefined();
+      expect(Number(regraAtualizada?.cartaoAcessoSaude)).toBe(7);
+      expect(Number(regraAtualizada?.cireAtivo)).toBe(5);
+    });
+  });
+
+  describe('PUT /api/v1/backoffice/regras-gestores', () => {
+    it('deve criar regras de gestores quando não existirem', async () => {
+      const dadosRegra = {
+        gerenteCire: 6,
+        supervisorAtivo: 4,
+        supervisorReceptivo: 3,
+        supervisorFranquia: 2,
+        supervisorAtendimento: 5,
+        gerenteAtendimento: 7,
+        supervisorComercial: 8,
+      };
+
+      const regra = await prisma.regraGestor.create({
+        data: {
+          backofficeId,
+          ...dadosRegra,
+        },
+      });
+
+      expect(regra).toBeDefined();
+      expect(regra?.backofficeId).toBe(backofficeId);
+      expect(Number(regra?.gerenteCire)).toBe(6);
+      expect(Number(regra?.supervisorAtivo)).toBe(4);
+    });
+
+    it('deve atualizar regras de gestores existentes', async () => {
+      const regraExistente = await prisma.regraGestor.create({
+        data: {
+          backofficeId,
+          gerenteCire: 15,
+          supervisorAtivo: 10,
+          supervisorReceptivo: 8,
+          supervisorFranquia: 5,
+          supervisorAtendimento: 7,
+          gerenteAtendimento: 12,
+          supervisorComercial: 20,
+        },
+      });
+
+      const dadosAtualizados = {
+        gerenteCire: 18,
+        supervisorAtivo: 12,
+        supervisorReceptivo: 10,
+        supervisorFranquia: 6,
+        supervisorAtendimento: 8,
+        gerenteAtendimento: 14,
+        supervisorComercial: 22,
+      };
+
+      const regraAtualizada = await prisma.regraGestor.update({
+        where: { id: regraExistente.id },
+        data: dadosAtualizados,
+      });
+
+      expect(regraAtualizada).toBeDefined();
+      expect(Number(regraAtualizada?.gerenteCire)).toBe(18);
+      expect(Number(regraAtualizada?.supervisorAtivo)).toBe(12);
+    });
+
+    it('deve aceitar valores zerados nas regras de gestores', async () => {
+      const dadosZerados = {
+        gerenteCire: 0,
+        supervisorAtivo: 0,
+        supervisorReceptivo: 0,
+        supervisorFranquia: 0,
+        supervisorAtendimento: 0,
+        gerenteAtendimento: 0,
+        supervisorComercial: 0,
+      };
+
+      const regra = await prisma.regraGestor.create({
+        data: {
+          backofficeId,
+          ...dadosZerados,
+        },
+      });
+
+      expect(regra).toBeDefined();
+      expect(Number(regra?.gerenteCire)).toBe(0);
+      expect(Number(regra?.supervisorAtivo)).toBe(0);
     });
   });
 

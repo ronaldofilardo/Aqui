@@ -18,7 +18,7 @@ describe('Pontos Utils - Fallback de Configuração', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Fallback Test',
-        email: `backoffice-fallback-${Date.now()}@asa.com`,
+        email: `backoffice-fallback-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -38,8 +38,8 @@ describe('Pontos Utils - Fallback de Configuração', () => {
   });
 
   afterEach(async () => {
-    // Soft delete em massa - respeita RESTRICT constraints
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe('Fallback quando não há config para a data exata', () => {

@@ -13,7 +13,7 @@ async function criarBackoffice() {
       usuario: {
         create: {
           nome: "Backoffice",
-          email: `backoffice-${unique()}@test.com`,
+          email: `backoffice-${unique()}@asa.test`,
           senhaHash: await hash("x", 4),
           tipo: "BACKOFFICE",
           papel: "BACKOFFICE",
@@ -43,7 +43,7 @@ async function criarParceiro(backofficeId: string) {
   const u = await prisma.usuario.create({
     data: {
       nome: "Parceiro",
-      email: `parc-${unique()}@test.com`,
+      email: `parc-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "PARCEIRO",
     },
@@ -71,7 +71,7 @@ async function criarComercial(liderancaId: string, percentual: number) {
   const u = await prisma.usuario.create({
     data: {
       nome: `Comercial ${unique()}`,
-      email: `com-${unique()}@test.com`,
+      email: `com-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "COMERCIAL",
     },
@@ -111,7 +111,7 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: "Lideranca Test",
-        email: `lideranca-${unique()}@test.com`,
+        email: `lideranca-${unique()}@asa.test`,
         senhaHash: await hash("x", 4),
         tipo: "LIDERANCA",
       },
@@ -160,7 +160,13 @@ describe("Upload Fluxo — Pontos e Comercial por linha", () => {
   });
 
   afterAll(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.indicado.deleteMany({ where: { parceiro: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.parceiro.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.cicloPontos.deleteMany({ where: { lideranca: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.configuracaoPontos.deleteMany({ where: { backoffice: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   it("Workbook deve aceitar a coluna 'Usuário da conta'", () => {

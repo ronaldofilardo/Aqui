@@ -18,7 +18,7 @@ describe('API Routes Secundárias - Testes', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Teste Secundário',
-        email: `backoffice-sec-${Date.now()}@asa.com`,
+        email: `backoffice-sec-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -38,7 +38,7 @@ describe('API Routes Secundárias - Testes', () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: 'Lideranca Secundário',
-        email: `lideranca-sec-${Date.now()}@asa.com`,
+        email: `lideranca-sec-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -57,15 +57,16 @@ describe('API Routes Secundárias - Testes', () => {
   });
 
   afterEach(async () => {
-    // Soft delete em massa - respeita RESTRICT constraints
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe('POST /comerciais - Criação', () => {
     it('deve criar comercial com sucesso', async () => {
       const dadosComercial = {
         nome: 'Comercial Teste',
-        email: `comercial-teste-${Date.now()}@asa.com`,
+        email: `comercial-teste-${Date.now()}@asa.test`,
         cpf: uniqueCpf(),
         percentualComissao: 5.0,
         funcao: 'SUPERVISOR_ATIVO',
@@ -102,7 +103,7 @@ describe('API Routes Secundárias - Testes', () => {
     });
 
     it('deve validar email único', async () => {
-      const email = `comercial-unico-${Date.now()}@asa.com`;
+      const email = `comercial-unico-${Date.now()}@asa.test`;
 
       await prisma.usuario.create({
         data: {
@@ -126,7 +127,7 @@ describe('API Routes Secundárias - Testes', () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: 'Comercial CPF',
-          email: `comercial-cpf-${Date.now()}@asa.com`,
+          email: `comercial-cpf-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'COMERCIAL',
         },
@@ -159,7 +160,7 @@ describe('API Routes Secundárias - Testes', () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: 'Comercial Update',
-          email: `comercial-update-${Date.now()}@asa.com`,
+          email: `comercial-update-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'COMERCIAL',
         },
@@ -192,7 +193,7 @@ describe('API Routes Secundárias - Testes', () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: 'Comercial Status',
-          email: `comercial-status-${Date.now()}@asa.com`,
+          email: `comercial-status-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'COMERCIAL',
         },
@@ -310,7 +311,7 @@ describe('API Routes Secundárias - Testes', () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: 'Parceiro CPF',
-          email: `parceiro-cpf-${Date.now()}@asa.com`,
+          email: `parceiro-cpf-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'PARCEIRO',
         },
@@ -344,7 +345,7 @@ describe('API Routes Secundárias - Testes', () => {
       const parceiroUsuario = await prisma.usuario.create({
         data: {
           nome: 'Parceiro CPF Indicado',
-          email: `parceiro-cpf-indicado-${Date.now()}@asa.com`,
+          email: `parceiro-cpf-indicado-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'PARCEIRO',
         },

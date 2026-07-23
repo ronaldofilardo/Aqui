@@ -13,7 +13,7 @@ describe("API de Comissões - Gestor", () => {
     const gestorUsuario = await prisma.usuario.create({
       data: {
         nome: "Gestor Teste Comissões",
-        email: `gestor-com-${Date.now()}@test.com`,
+        email: `gestor-com-${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "LIDERANCA",
         senhaTemporaria: false,
@@ -25,7 +25,7 @@ describe("API de Comissões - Gestor", () => {
     const consultorUsuario = await prisma.usuario.create({
       data: {
         nome: "Consultor Teste Comissões",
-        email: `consultor-com-${Date.now()}@test.com`,
+        email: `consultor-com-${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "CONSULTOR",
         senhaTemporaria: false,

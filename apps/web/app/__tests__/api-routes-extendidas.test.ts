@@ -19,7 +19,7 @@ describe('API Routes - Cobertura Estendida', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Teste Extendido',
-        email: `backoffice-extendido-${Date.now()}@asa.com`,
+        email: `backoffice-extendido-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -39,7 +39,7 @@ describe('API Routes - Cobertura Estendida', () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: 'Lideranca Extendido',
-        email: `lideranca-extendido-${Date.now()}@asa.com`,
+        email: `lideranca-extendido-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -59,7 +59,7 @@ describe('API Routes - Cobertura Estendida', () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: 'Comercial Extendido',
-        email: `comercial-extendido-${Date.now()}@asa.com`,
+        email: `comercial-extendido-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'COMERCIAL',
       },
@@ -78,8 +78,10 @@ describe('API Routes - Cobertura Estendida', () => {
   });
 
   afterEach(async () => {
-    // Soft delete em massa - respeita RESTRICT constraints
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.comercial.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe('DELETE /comerciais/[id] - Exclusão', () => {
@@ -89,7 +91,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Para Deletar',
-              email: `deletar-${Date.now()}@asa.com`,
+              email: `deletar-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'COMERCIAL',
             },
@@ -117,7 +119,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Para Deletar Cascade',
-              email: `deletar-cascade-${Date.now()}@asa.com`,
+              email: `deletar-cascade-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'COMERCIAL',
             },
@@ -181,7 +183,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Outro Backoffice',
-              email: `outro-backoffice-${Date.now()}@asa.com`,
+              email: `outro-backoffice-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'BACKOFFICE',
             },
@@ -196,7 +198,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Outra Lideranca',
-              email: `outra-lideranca-${Date.now()}@asa.com`,
+              email: `outra-lideranca-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'LIDERANCA',
             },
@@ -224,7 +226,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Lideranca Sem Equipe',
-              email: `lideranca-sem-equipe-${Date.now()}@asa.com`,
+              email: `lideranca-sem-equipe-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'LIDERANCA',
             },
@@ -406,9 +408,10 @@ describe('API Routes - Cobertura Estendida', () => {
       const premio = await prisma.premio.create({
         data: {
           backofficeId,
-          nome: 'Prêmio Teste',
+          codigo: 'PREMIO_TESTE',
+          tipo: 'PRODUTO',
           descricao: 'Descrição original',
-          custoPontos: 1000,
+          pontos: 1000,
           ativo: true,
         },
       });
@@ -416,22 +419,23 @@ describe('API Routes - Cobertura Estendida', () => {
       const updated = await prisma.premio.update({
         where: { id: premio.id },
         data: {
-          nome: 'Prêmio Atualizado',
-          custoPontos: 1500,
+          descricao: 'Descrição atualizada',
+          pontos: 1500,
         },
       });
 
-      expect(updated.nome).toBe('Prêmio Atualizado');
-      expect(updated.custoPontos).toBe(1500);
+      expect(updated.descricao).toBe('Descrição atualizada');
+      expect(updated.pontos).toBe(1500);
     });
 
     it('deve ativar/desativar prêmio', async () => {
       const premio = await prisma.premio.create({
         data: {
           backofficeId,
-          nome: 'Prêmio Toggle',
+          codigo: 'PREMIO_TOGGLE',
+          tipo: 'SERVICO',
           descricao: 'Teste',
-          custoPontos: 500,
+          pontos: 500,
           ativo: true,
         },
       });
@@ -459,9 +463,10 @@ describe('API Routes - Cobertura Estendida', () => {
       const premio = await prisma.premio.create({
         data: {
           backofficeId,
-          nome: 'Prêmio Para Deletar',
+          codigo: 'PREMIO_DEL',
+          tipo: 'BRINDE',
           descricao: 'Será deletado',
-          custoPontos: 300,
+          pontos: 300,
           ativo: false,
         },
       });
@@ -479,9 +484,10 @@ describe('API Routes - Cobertura Estendida', () => {
       const premio = await prisma.premio.create({
         data: {
           backofficeId,
-          nome: 'Prêmio Com Resgates',
+          codigo: 'PREMIO_RES',
+          tipo: 'PRODUTO',
           descricao: 'Não pode deletar',
-          custoPontos: 500,
+          pontos: 500,
           ativo: true,
         },
       });
@@ -503,7 +509,7 @@ describe('API Routes - Cobertura Estendida', () => {
           usuarioId: (await prisma.usuario.create({
             data: {
               nome: 'Parceiro Resgate',
-              email: `parceiro-resgate-${Date.now()}@asa.com`,
+              email: `parceiro-resgate-${Date.now()}@asa.test`,
               senhaHash: await hash('123456', 12),
               tipo: 'PARCEIRO',
             },
@@ -573,7 +579,7 @@ describe('API Routes - Cobertura Estendida', () => {
       const parceiroUsuario = await prisma.usuario.create({
         data: {
           nome: 'Parceiro CPF Test',
-          email: `parceiro-cpf-${Date.now()}@asa.com`,
+          email: `parceiro-cpf-${Date.now()}@asa.test`,
           senhaHash: await hash('123456', 12),
           tipo: 'PARCEIRO',
         },

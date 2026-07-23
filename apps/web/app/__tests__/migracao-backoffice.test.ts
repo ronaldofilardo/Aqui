@@ -1,7 +1,7 @@
 /**
  * Testes de Integração - Migração BACKOFFICE
  * 
- * Valida todas as alterações após a migração de gestor-pf para backoffice
+ * Valida todas as alterações após a migração de gestor-pf para backoffice (histórico)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -159,7 +159,7 @@ describe('Migração BACKOFFICE - Validação do Prisma Client', () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice',
-        email: `test-backoffice-${Date.now()}@asa.com`,
+        email: `test-backoffice-${Date.now()}@asa.test`,
         senhaHash: 'hash-teste',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -192,7 +192,7 @@ it('deve buscar backoffice com include', async () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice 2',
-        email: `test-backoffice-2-${Date.now()}@asa.com`,
+        email: `test-backoffice-2-${Date.now()}@asa.test`,
         senhaHash: 'hash-teste',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -228,7 +228,7 @@ it('deve buscar backoffice com include', async () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: 'Test Backoffice 3',
-        email: `test-backoffice-3-${Date.now()}@asa.com`,
+        email: `test-backoffice-3-${Date.now()}@asa.test`,
         senhaHash: 'hash-teste',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -239,6 +239,7 @@ it('deve buscar backoffice com include', async () => {
           },
         },
       },
+      include: { backoffice: true },
     });
 
     const ciclo = await prisma.cicloPontos.create({
@@ -266,7 +267,7 @@ it('deve criar backoffice com liderancas', async () => {
     const usuarioBackoffice = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Teste',
-        email: `backoffice-lideranca-${Date.now()}@asa.com`,
+        email: `backoffice-lideranca-${Date.now()}@asa.test`,
         senhaHash: 'hash-teste',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -277,6 +278,7 @@ it('deve criar backoffice com liderancas', async () => {
           },
         },
       },
+      include: { backoffice: true },
     });
 
     const lideranca = await prisma.lideranca.create({
@@ -300,7 +302,7 @@ it('deve criar premio vinculado ao backoffice', async () => {
     const usuarioBackoffice = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Premio',
-        email: `backoffice-premio-${Date.now()}@asa.com`,
+        email: `backoffice-premio-${Date.now()}@asa.test`,
         senhaHash: 'hash-teste',
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -311,14 +313,16 @@ it('deve criar premio vinculado ao backoffice', async () => {
           },
         },
       },
+      include: { backoffice: true },
     });
 
-    const premio = await prisma.premio.create({
+const premio = await prisma.premio.create({
       data: {
         backofficeId: usuarioBackoffice.backoffice!.id,
-        nome: 'Prêmio Teste',
+        codigo: 'PREMIO_MIG',
+        tipo: 'PRODUTO',
         descricao: 'Descrição do prêmio',
-        custoPontos: 1000,
+        pontos: 1000,
         ativo: true,
       },
     });

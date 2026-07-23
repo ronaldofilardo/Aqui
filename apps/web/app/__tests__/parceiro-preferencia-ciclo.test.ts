@@ -11,7 +11,7 @@ async function criarParceiroCompleto() {
       usuario: {
         create: {
           nome: "Backoffice",
-          email: `backoffice-${unique()}@test.com`,
+          email: `backoffice-${unique()}@asa.test`,
           senhaHash: await hash("x", 4),
           tipo: "BACKOFFICE",
           papel: "BACKOFFICE",
@@ -25,7 +25,7 @@ async function criarParceiroCompleto() {
   const parceiroUsuario = await prisma.usuario.create({
     data: {
       nome: "Parceiro",
-      email: `parceiro-${unique()}@test.com`,
+      email: `parceiro-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "PARCEIRO",
     },

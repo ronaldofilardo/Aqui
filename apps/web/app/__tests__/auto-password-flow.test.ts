@@ -14,14 +14,18 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   let estabelecimentoId: string;
 
   beforeAll(async () => {
-    // Soft delete em massa para limpar dados anteriores
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } }).catch(() => {});
+    await prisma.passwordResetToken.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuarioEstabelecimento.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
+    await prisma.estabelecimento.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
+    await prisma.consultor.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({ where: { gestor: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
 
     // Criar usuário gestor
     const gestor = await prisma.usuario.create({
       data: {
         nome: "Gestor Teste",
-        email: `gestor-${unique()}@test.com`,
+        email: `gestor-${unique()}@asa.test`,
         senhaHash: await hash("password123", 10),
         tipo: "LIDERANCA",
       },
@@ -30,8 +34,30 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
   });
 
   afterAll(async () => {
-    // Soft delete em massa - respeita RESTRICT constraints
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } }).catch(() => {});
+    await prisma.passwordResetToken.deleteMany({ where: { 
+      OR: [
+        { usuario: { email: { endsWith: "@asa.test" } } },
+        { usuario: { email: { contains: "@example.com" } } }
+      ]
+    } }).catch(() => {});
+    await prisma.usuarioEstabelecimento.deleteMany({ where: { 
+      email: { endsWith: "@asa.test" } }
+    }).catch(() => {});
+    await prisma.estabelecimento.deleteMany({ where: { 
+      email: { endsWith: "@asa.test" } }
+    }).catch(() => {});
+    await prisma.consultor.deleteMany({ where: { 
+      usuario: { email: { endsWith: "@asa.test" } } }
+    }).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({ where: { 
+      gestor: { email: { endsWith: "@asa.test" } } }
+    }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { 
+      OR: [
+        { email: { endsWith: "@asa.test" } },
+        { email: { contains: "@example.com" } }
+      ]
+    } }).catch(() => {});
   });
 
   describe("Usuario com senhaTemporaria", () => {
@@ -65,7 +91,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Novo Consultor",
-          email: `consultor-${unique()}@test.com`,
+          email: `consultor-${unique()}@asa.test`,
           senhaHash: await hash("12345", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
@@ -89,7 +115,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Consultor Para Relação",
-          email: `consultor-relation-${unique()}@test.com`,
+          email: `consultor-relation-${unique()}@asa.test`,
           senhaHash: await hash("12345", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
@@ -160,7 +186,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Novo Consultor com Estab",
-          email: `consultor-estab-${unique()}@test.com`,
+          email: `consultor-estab-${unique()}@asa.test`,
           senhaHash: await hash("auto123", 12),
           tipo: "CONSULTOR",
           senhaTemporaria: true,
@@ -178,14 +204,14 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
         data: {
           consultorId: consultor.id,
           nomeFantasia: "Teste Estab",
-          email: `estab-${unique()}@test.com`,
+          email: `estab-${unique()}@asa.test`,
         },
       });
 
       const usuarioEstab = await prisma.usuarioEstabelecimento.create({
         data: {
           estabelecimentoId: estab.id,
-          email: `estab-user-${unique()}@test.com`,
+          email: `estab-user-${unique()}@asa.test`,
           senhaHash: await hash("12345", 12),
           nome: "Responsavel Estab",
           tipo: "PROPRIETARIO",
@@ -229,7 +255,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
 
   describe("Validações de CPF & Email", () => {
     it("deve validar unicidade de email entre Usuario e UsuarioEstabelecimento", async () => {
-      const email = `unique-test-${unique()}@test.com`;
+      const email = `unique-test-${unique()}@asa.test`;
 
       // Criar usuário
       const usuario = await prisma.usuario.create({
@@ -262,7 +288,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "CPF Test User",
-          email: `cpf-test-${unique()}@test.com`,
+          email: `cpf-test-${unique()}@asa.test`,
           senhaHash: await hash("password", 12),
           tipo: "CONSULTOR",
         },
@@ -278,7 +304,7 @@ describe("Auto-Password Flow - Consultores & Estabelecimento Users", () => {
       const usuario2 = await prisma.usuario.create({
         data: {
           nome: "CPF Test User 2",
-          email: `cpf-test-2-${unique()}@test.com`,
+          email: `cpf-test-2-${unique()}@asa.test`,
           senhaHash: await hash("password", 12),
           tipo: "CONSULTOR",
         },

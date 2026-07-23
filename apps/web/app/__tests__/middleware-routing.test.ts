@@ -32,21 +32,18 @@ const ROUTE_RULES: RouteRule[] = [
     allowedPapeis: ["BACKOFFICE"],
   },
   {
-    prefix: "/gestor-pf",
-    allowedTipos: ["BACKOFFICE"],
-    allowedPapeis: ["BACKOFFICE"],
-  },
-  {
     prefix: "/gestor",
     allowedTipos: ["GERENCIA"],
     allowedPapeis: ["GESTOR_PJ"],
   },
   { prefix: "/parceiro", allowedTipos: ["PARCEIRO"] },
+  { prefix: "/comercial", allowedTipos: ["COMERCIAL"] },
   { prefix: "/consultor", allowedTipos: ["CONSULTOR"] },
   {
     prefix: "/estabelecimento",
     allowedTipos: ["ESTABELECIMENTO"],
   },
+  { prefix: "/lideranca", allowedTipos: ["LIDERANCA"] },
 ];
 
 function dashboardForPapel(user: SessionUser): string {
@@ -56,8 +53,10 @@ function dashboardForPapel(user: SessionUser): string {
   }
   if (user.tipo === "GERENCIA") return "/gestor/dashboard";
   if (user.tipo === "PARCEIRO") return "/parceiro/indicados";
+  if (user.tipo === "COMERCIAL") return "/comercial/minha-comissao";
   if (user.tipo === "ESTABELECIMENTO") return "/estabelecimento/dashboard";
   if (user.tipo === "CONSULTOR") return "/consultor/estabelecimentos";
+  if (user.tipo === "LIDERANCA") return "/lideranca";
   if (user.tipo === "BACKOFFICE") return "/backoffice/dashboard";
   return "/login";
 }
@@ -92,25 +91,20 @@ describe("Middleware — ROUTE_RULES", () => {
     const prefixes = ROUTE_RULES.map((r) => r.prefix);
     expect(prefixes).toContain("/admin");
     expect(prefixes).toContain("/backoffice");
-    expect(prefixes).toContain("/gestor-pf");
     expect(prefixes).toContain("/gestor");
     expect(prefixes).toContain("/parceiro");
+    expect(prefixes).toContain("/comercial");
     expect(prefixes).toContain("/consultor");
     expect(prefixes).toContain("/estabelecimento");
+    expect(prefixes).toContain("/lideranca");
   });
 
-  it("deve ter 7 regras de rota", () => {
-    expect(ROUTE_RULES).toHaveLength(7);
+  it("deve ter 8 regras de rota", () => {
+    expect(ROUTE_RULES).toHaveLength(8);
   });
 
   it("/backoffice deve restringir a BACKOFFICE", () => {
     const rule = ROUTE_RULES.find((r) => r.prefix === "/backoffice");
-    expect(rule?.allowedTipos).toEqual(["BACKOFFICE"]);
-    expect(rule?.allowedPapeis).toEqual(["BACKOFFICE"]);
-  });
-
-  it("/gestor-pf deve restringir a BACKOFFICE (compatibilidade)", () => {
-    const rule = ROUTE_RULES.find((r) => r.prefix === "/gestor-pf");
     expect(rule?.allowedTipos).toEqual(["BACKOFFICE"]);
     expect(rule?.allowedPapeis).toEqual(["BACKOFFICE"]);
   });
@@ -121,9 +115,21 @@ describe("Middleware — ROUTE_RULES", () => {
     expect(rule?.allowedPapeis).toEqual(["GESTOR_PJ"]);
   });
 
+  it("/comercial deve restringir a COMERCIAL", () => {
+    const rule = ROUTE_RULES.find((r) => r.prefix === "/comercial");
+    expect(rule?.allowedTipos).toEqual(["COMERCIAL"]);
+    expect(rule?.allowedPapeis).toBeUndefined();
+  });
+
   it("/admin deve permitir apenas ADMIN", () => {
     const rule = ROUTE_RULES.find((r) => r.prefix === "/admin");
     expect(rule?.allowedTipos).toEqual(["ADMIN"]);
+    expect(rule?.allowedPapeis).toBeUndefined();
+  });
+
+  it("/lideranca deve restringir a LIDERANCA", () => {
+    const rule = ROUTE_RULES.find((r) => r.prefix === "/lideranca");
+    expect(rule?.allowedTipos).toEqual(["LIDERANCA"]);
     expect(rule?.allowedPapeis).toBeUndefined();
   });
 });
@@ -171,6 +177,10 @@ describe("Middleware — dashboardForPapel", () => {
     );
   });
 
+  it("deve redirecionar LIDERANCA para /lideranca", () => {
+    expect(dashboardForPapel({ tipo: "LIDERANCA", papel: null })).toBe("/lideranca");
+  });
+
   it("deve redirecionar usuário sem tipo para /login", () => {
     expect(dashboardForPapel({ tipo: undefined, papel: null })).toBe("/login");
   });
@@ -179,15 +189,6 @@ describe("Middleware — dashboardForPapel", () => {
 describe("Middleware — authorizeByPapel BACKOFFICE", () => {
   it("deve autorizar BACKOFFICE (com papel) em /backoffice/dashboard", () => {
     const result = authorizeByPapel("/backoffice/dashboard", {
-      tipo: "BACKOFFICE",
-      papel: "BACKOFFICE",
-    });
-    expect(result.authorized).toBe(true);
-    expect(result.redirectTo).toBeNull();
-  });
-
-  it("deve autorizar BACKOFFICE (com papel) em /gestor-pf/dashboard (compatibilidade)", () => {
-    const result = authorizeByPapel("/gestor-pf/dashboard", {
       tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
     });
@@ -206,8 +207,8 @@ describe("Middleware — authorizeByPapel BACKOFFICE", () => {
 });
 
 describe("Middleware — authorizeByPapel", () => {
-  it("deve autorizar BACKOFFICE em /gestor-pf/dashboard", () => {
-    const result = authorizeByPapel("/gestor-pf/dashboard", {
+  it("deve autorizar BACKOFFICE em /backoffice/dashboard", () => {
+    const result = authorizeByPapel("/backoffice/dashboard", {
       tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
     });
@@ -278,6 +279,24 @@ describe("Middleware — authorizeByPapel", () => {
     expect(result.redirectTo).toBeNull();
   });
 
+  it("deve autorizar LIDERANCA em /lideranca", () => {
+    const result = authorizeByPapel("/lideranca", {
+      tipo: "LIDERANCA",
+      papel: null,
+    });
+    expect(result.authorized).toBe(true);
+    expect(result.redirectTo).toBeNull();
+  });
+
+  it("deve negar BACKOFFICE em /lideranca e redirecionar para /backoffice/dashboard", () => {
+    const result = authorizeByPapel("/lideranca", {
+      tipo: "BACKOFFICE",
+      papel: "BACKOFFICE",
+    });
+    expect(result.authorized).toBe(false);
+    expect(result.redirectTo).toBe("/backoffice/dashboard");
+  });
+
   it("deve autorizar ESTABELECIMENTO em /estabelecimento/dashboard", () => {
     const result = authorizeByPapel("/estabelecimento/dashboard", {
       tipo: "ESTABELECIMENTO",
@@ -294,14 +313,5 @@ describe("Middleware — authorizeByPapel", () => {
     });
     expect(result.authorized).toBe(true);
     expect(result.redirectTo).toBeNull();
-  });
-
-  it("deve redirecionar GERENCIA com erro para dashboard PJ quando acessar rota PF", () => {
-    const result = authorizeByPapel("/gestor-pf/parceiros", {
-      tipo: "GERENCIA",
-      papel: "GESTOR_PJ",
-    });
-    expect(result.authorized).toBe(false);
-    expect(result.redirectTo).toBe("/gestor/dashboard");
   });
 });

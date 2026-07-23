@@ -12,15 +12,14 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
   let consultorId: string;
 
   beforeAll(async () => {
-    await prisma.estabelecimento.deleteMany({}).catch(() => {});
-    await prisma.gestorConsultor.deleteMany({}).catch(() => {});
-    await prisma.consultor.deleteMany({}).catch(() => {});
-    await prisma.usuario.deleteMany({}).catch(() => {});
+    await prisma.gestorConsultor.deleteMany({ where: { gestor: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.consultor.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
 
     const gestor = await prisma.usuario.create({
       data: {
         nome: "Gestor Teste",
-        email: `gestor-test-${Date.now()}@test.com`,
+        email: `gestor-test-${Date.now()}@asa.test`,
         senhaHash: "hash123",
         tipo: "LIDERANCA",
       },
@@ -30,7 +29,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: "Consultor Teste",
-        email: `consultor-test-${Date.now()}@test.com`,
+        email: `consultor-test-${Date.now()}@asa.test`,
         senhaHash: "hash123",
         tipo: "CONSULTOR",
       },
@@ -46,7 +45,9 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
   });
 
   afterAll(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.gestorConsultor.deleteMany({ where: { gestor: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.consultor.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe("Create GestorConsultor Relationship", () => {
@@ -92,7 +93,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
       const novoGestor = await prisma.usuario.create({
         data: {
           nome: "Gestor Sem Consultores",
-          email: `gestor-vazio-${Date.now()}@test.com`,
+          email: `gestor-vazio-${Date.now()}@asa.test`,
           senhaHash: "hash123",
           tipo: "LIDERANCA",
         },
@@ -115,7 +116,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
       const outroGestor = await prisma.usuario.create({
         data: {
           nome: "Outro Gestor",
-          email: `outro-gestor-${Date.now()}@test.com`,
+          email: `outro-gestor-${Date.now()}@asa.test`,
           senhaHash: "hash123",
           tipo: "LIDERANCA",
         },
@@ -139,7 +140,7 @@ describe("GestorConsultor - Hierarchy & Authorization", () => {
       const novoConsultor = await prisma.usuario.create({
         data: {
           nome: "Consultor Para Deletar",
-          email: `consultor-del-${Date.now()}@test.com`,
+          email: `consultor-del-${Date.now()}@asa.test`,
           senhaHash: "hash123",
           tipo: "CONSULTOR",
         },

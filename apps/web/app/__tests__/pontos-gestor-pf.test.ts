@@ -19,7 +19,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
     const usuario = await prisma.usuario.create({
       data: {
         nome: "Usuario Teste Pontos",
-        email: `teste.pontos.${Date.now()}@teste.com`,
+        email: `teste.pontos.${Date.now()}@asa.test`,
         senhaHash: "hash123",
         tipo: "BACKOFFICE",
         papel: "BACKOFFICE",
@@ -41,7 +41,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
     const parceiroUsuario = await prisma.usuario.create({
       data: {
         nome: "Parceiro Teste",
-        email: `parceiro.${Date.now()}@teste.com`,
+        email: `parceiro.${Date.now()}@asa.test`,
         senhaHash: "hash123",
         tipo: "PARCEIRO",
       },
@@ -80,7 +80,13 @@ describe("Sistema de Pontos - Gestor PF", () => {
   });
 
   afterEach(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.indicado.deleteMany({ where: { parceiro: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.parceiro.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.cicloPontos.deleteMany({ where: { lideranca: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.configuracaoPontos.deleteMany({ where: { backoffice: { usuario: { email: { endsWith: "@asa.test" } } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe("Configuração de Pontos", () => {
@@ -332,7 +338,7 @@ describe("Sistema de Pontos - Gestor PF", () => {
         const usuario = await prisma.usuario.create({
           data: {
             nome: `Parceiro ${i}`,
-            email: `parceiro${i}.${Date.now()}@teste.com`,
+            email: `parceiro${i}.${Date.now()}@asa.test`,
             senhaHash: "hash123",
             tipo: "PARCEIRO",
           },

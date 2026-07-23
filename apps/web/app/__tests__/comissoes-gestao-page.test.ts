@@ -21,7 +21,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: "Backoffice Teste",
-        email: `backoffice.${Date.now()}@test.com`,
+        email: `backoffice.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "BACKOFFICE",
       },
@@ -43,7 +43,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: "Lideranca Comercial",
-        email: `lideranca.${Date.now()}@test.com`,
+        email: `lideranca.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "LIDERANCA",
       },
@@ -69,7 +69,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: "Comercial Teste",
-        email: `comercial.${Date.now()}@test.com`,
+        email: `comercial.${Date.now()}@asa.test`,
         senhaHash: await hash("123456", 12),
         tipo: "COMERCIAL",
         status: "ATIVO",
@@ -91,7 +91,11 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
   });
 
   afterAll(async () => {
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.comercial.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { contains: "@asa.test" } } }).catch(() => {});
   });
 
   describe("Cadastro de Comerciais", () => {
@@ -99,7 +103,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: "Novo Comercial",
-          email: `novo.comercial.${Date.now()}@test.com`,
+          email: `novo.comercial.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           status: "ATIVO",
@@ -189,7 +193,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
 
   describe("Atualização de Comercial (Modal Editar)", () => {
     it("deve atualizar nome e email do comercial", async () => {
-      const novoEmail = `novo.email.${Date.now()}@test.com`;
+      const novoEmail = `novo.email.${Date.now()}@asa.test`;
       
       const comercialAtualizado = await prisma.comercial.update({
         where: { id: comercialId },
@@ -240,7 +244,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const usuarioTemp = await prisma.usuario.create({
         data: {
           nome: "Comercial Temp",
-          email: `temp.${Date.now()}@test.com`,
+          email: `temp.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           status: "ATIVO",
@@ -274,7 +278,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const usuarioTemp = await prisma.usuario.create({
         data: {
           nome: "Comercial Com Comissao",
-          email: `comcomissao.${Date.now()}@test.com`,
+          email: `comcomissao.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           status: "ATIVO",
@@ -319,7 +323,7 @@ describe("Comissões Gestão - Página e Funcionalidades", () => {
       const usuarioTemp = await prisma.usuario.create({
         data: {
           nome: "Comercial Com Meta",
-          email: `commeta.${Date.now()}@test.com`,
+          email: `commeta.${Date.now()}@asa.test`,
           senhaHash: await hash("123456", 12),
           tipo: "COMERCIAL",
           status: "ATIVO",

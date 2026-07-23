@@ -30,7 +30,7 @@ describe('Pontos Utils - Testes Unitários', () => {
     const backofficeUsuario = await prisma.usuario.create({
       data: {
         nome: 'Backoffice Teste Utils',
-        email: `backoffice-utils-${Date.now()}@asa.com`,
+        email: `backoffice-utils-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'BACKOFFICE',
         papel: 'BACKOFFICE',
@@ -51,7 +51,7 @@ describe('Pontos Utils - Testes Unitários', () => {
     const liderancaUsuario = await prisma.usuario.create({
       data: {
         nome: 'Lideranca Utils Test',
-        email: `lideranca-utils-${Date.now()}@asa.com`,
+        email: `lideranca-utils-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'LIDERANCA',
       },
@@ -71,7 +71,7 @@ describe('Pontos Utils - Testes Unitários', () => {
     const comercialUsuario = await prisma.usuario.create({
       data: {
         nome: 'Comercial Utils Test',
-        email: `comercial-utils-${Date.now()}@asa.com`,
+        email: `comercial-utils-${Date.now()}@asa.test`,
         senhaHash: await hash('123456', 12),
         tipo: 'COMERCIAL',
       },
@@ -91,8 +91,10 @@ describe('Pontos Utils - Testes Unitários', () => {
   });
 
   afterEach(async () => {
-    // Soft delete em massa - respeita RESTRICT constraints
-    await prisma.usuario.updateMany({ data: { status: "INATIVO" } });
+    await prisma.comercial.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.lideranca.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.backoffice.deleteMany({ where: { usuario: { email: { endsWith: "@asa.test" } } } }).catch(() => {});
+    await prisma.usuario.deleteMany({ where: { email: { endsWith: "@asa.test" } } }).catch(() => {});
   });
 
   describe('calcularPontosDeProducao', () => {

@@ -17,7 +17,7 @@ async function criarBackoffice() {
   const usuario = await prisma.usuario.create({
     data: {
       nome: "Backoffice Tipo Fix",
-      email: `backoffice-tipofix-${unique()}@test.com`,
+      email: `backoffice-tipofix-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "BACKOFFICE",
       papel: "BACKOFFICE",
@@ -37,7 +37,7 @@ async function criarLideranca(backofficeId: string, tipo: "COMERCIAL" | "GESTOR"
   const usuario = await prisma.usuario.create({
     data: {
       nome: `Lideranca ${tipo}`,
-      email: `lideranca-${tipo}-${unique()}@test.com`,
+      email: `lideranca-${tipo}-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "LIDERANCA",
     },
@@ -64,7 +64,7 @@ async function criarComercial(
   const usuario = await prisma.usuario.create({
     data: {
       nome: `Comercial ${unique()}`,
-      email: `comercial-${unique()}@test.com`,
+      email: `comercial-${unique()}@asa.test`,
       senhaHash: await hash("x", 4),
       tipo: "COMERCIAL",
     },
@@ -178,7 +178,7 @@ describe("Comercial API - Campo 'tipo' inexistente", () => {
     const payloadValido = {
       nome: `Novo Comercial ${unique()}`,
       cpf: uniqueCpf(),
-      email: `novo-${unique()}@test.com`,
+      email: `novo-${unique()}@asa.test`,
       percentualComissao: 5.0,
       lideranca: "COMERCIAL" as "COMERCIAL" | "GESTOR",
       // 'tipo' foi removido do schema

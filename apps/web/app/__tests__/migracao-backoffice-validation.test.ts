@@ -22,7 +22,7 @@ const DB_CONFIG = {
 const MIGRATION_FILE = 'packages/database/sql/migrate_gestor_pf_to_backoffice.sql';
 const ROLLBACK_FILE = 'packages/database/sql/rollback_migrate_gestor_pf_to_backoffice.sql';
 
-describe.skip('Migração Backoffice - Testes de Validação', () => {
+describe.skip('Migração Backoffice - Testes de Validação (Histórico)', () => {
   let migrationExecuted = false;
 
   beforeAll(async () => {
@@ -48,7 +48,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
     }
   }, 30000);
 
-  describe('Pré-Migração', () => {
+  describe.skip('Pré-Migração (Histórico)', () => {
     it('deve validar estrutura atual do banco (gestores_pf existe)', async () => {
       const result = await prisma.$queryRawUnsafe<{ exists: boolean }>(
         `SELECT EXISTS (
@@ -71,7 +71,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
       expect(result[0].exists).toBe(true);
     }, 10000);
 
-    it('deve validar coluna gestor_pf_id em liderancas', async () => {
+    it('deve validar coluna gestor_pf_id em liderancas (histórico)', async () => {
       const result = await prisma.$queryRawUnsafe<{ exists: boolean }>(
         `SELECT EXISTS (
           SELECT FROM information_schema.columns 
@@ -101,7 +101,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
     }, 10000);
   });
 
-  describe('Execução da Migração', () => {
+  describe.skip('Execução da Migração (Histórico)', () => {
     it('deve executar migração com sucesso', async () => {
       try {
         const { stdout, stderr } = await execAsync(
@@ -118,16 +118,16 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
     }, 30000);
   });
 
-  describe('Pós-Migração - Validação', () => {
-    it('deve validar tabela backoffices existe', async () => {
+describe.skip('Pós-Migração - Validação (Histórico)', () => {
+    it('deve validar coluna gestor_pf_id NÃO existe mais em liderancas (histórico)', async () => {
       const result = await prisma.$queryRawUnsafe<{ exists: boolean }>(
         `SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'backoffices'
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'liderancas' AND column_name = 'gestor_pf_id'
         ) as exists`
       );
 
-      expect(result[0].exists).toBe(true);
+      expect(result[0].exists).toBe(false);
     }, 10000);
 
     it('deve validar tabela gestores_pf NÃO existe mais', async () => {
@@ -214,7 +214,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
     }, 10000);
   });
 
-  describe('Validação de Dados', () => {
+  describe.skip('Validação de Dados (Histórico)', () => {
     it('deve validar dados migrados em backoffices', async () => {
       const backoffice = await prisma.backoffice.findFirst();
       
@@ -248,7 +248,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
       const usuario = await prisma.usuario.create({
         data: {
           nome: 'Teste Migração',
-          email: `teste-migracao-${Date.now()}@asa.com`,
+          email: `teste-migracao-${Date.now()}@asa.test`,
           senhaHash: 'hash-teste',
           tipo: 'BACKOFFICE',
           papel: 'BACKOFFICE',
@@ -287,7 +287,7 @@ describe.skip('Migração Backoffice - Testes de Validação', () => {
     }, 10000);
   });
 
-  describe('Rollback', () => {
+  describe.skip('Rollback (Histórico)', () => {
     it('deve executar rollback com sucesso', async () => {
       try {
         const { stdout, stderr } = await execAsync(
