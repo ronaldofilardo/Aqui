@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { TipoAcesso } from "@/types/next-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -19,7 +19,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.senha) {
-            console.log("[auth] Missing email or password");
             return null;
           }
 
@@ -29,44 +28,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email },
             include: {
               consultor: true,
-              backoffice: true,
-              parceiro: true,
-              comercial: true,
             },
           });
 
           if (user) {
-            console.log(
-              `[auth] Found usuario: ${email}, status: ${user.status}, tipo: ${user.tipo}, papel: ${user.papel}`
-            );
-
             if (user.status !== "ATIVO" && user.status !== undefined) {
-              console.log(`[auth] Status check failed: ${user.status}`);
               return null;
             }
 
             const senhaValida = await compare(
               credentials.senha as string,
-              user.senhaHash
+              user.senhaHash,
             );
 
             if (senhaValida) {
-              console.log(`[auth] ✓ Senha válida para ${email}`);
-              
+              const papelShadow =
+                user.tipo === "GESTOR_PJ" ? ("GESTOR_PJ" as const) : null;
+
               return {
                 id: user.id,
                 name: user.nome,
                 email: user.email,
                 tipo: user.tipo as TipoAcesso,
-                papel: user.papel,
+                papel: papelShadow,
                 consultorId: user.consultor?.id ?? null,
                 estabelecimentoId: null,
-                backofficeId: user.backoffice?.id ?? null,
-                parceiroId: user.parceiro?.id ?? null,
-                comercialId: user.comercial?.id ?? null,
               };
-            } else {
-              console.log(`[auth] ✗ Senha inválida para ${email}`);
             }
           }
 
@@ -78,24 +65,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (usuarioEstab) {
-            console.log(
-              `[auth] Found usuarioEstab: ${email}, ativo: ${usuarioEstab.ativo}`
-            );
-
             if (usuarioEstab.ativo === false) {
-              console.log(`[auth] UsuarioEstab inactive`);
               return null;
             }
 
             const senhaValida = await compare(
               credentials.senha as string,
-              usuarioEstab.senhaHash
+              usuarioEstab.senhaHash,
             );
 
             if (senhaValida) {
-              console.log(
-                `[auth] ✓ Senha válida para estabelecimento ${email}`
-              );
               return {
                 id: usuarioEstab.id,
                 name: usuarioEstab.nome,
@@ -104,16 +83,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 papel: null,
                 consultorId: null,
                 estabelecimentoId: usuarioEstab.estabelecimentoId,
-                backofficeId: null,
-                parceiroId: null,
-                comercialId: null,
               };
-            } else {
-              console.log(`[auth] ✗ Senha inválida para estabelecimento ${email}`);
             }
           }
 
-          console.log(`[auth] Usuario não encontrado: ${email}`);
           return null;
         } catch (error) {
           console.error("[auth] Error in authorize:", error);
@@ -130,9 +103,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.papel = (user as any).papel;
         token.consultorId = (user as any).consultorId;
         token.estabelecimentoId = (user as any).estabelecimentoId;
-        token.backofficeId = (user as any).backofficeId;
-        token.parceiroId = (user as any).parceiroId;
-        token.comercialId = (user as any).comercialId;
       }
       return token;
     },
@@ -143,9 +113,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).papel = token.papel;
         (session.user as any).consultorId = token.consultorId;
         (session.user as any).estabelecimentoId = token.estabelecimentoId;
-        (session.user as any).backofficeId = token.backofficeId;
-        (session.user as any).parceiroId = token.parceiroId;
-        (session.user as any).comercialId = token.comercialId;
       }
       return session;
     },

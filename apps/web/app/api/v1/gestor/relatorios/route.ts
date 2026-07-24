@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireGestorWithScope, ok, badRequest } from "@/lib/api-helpers";
 
 export async function GET(req: NextRequest) {

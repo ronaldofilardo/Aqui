@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireGestor } from "@/lib/api-helpers";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 export const dynamic = "force-dynamic";
 export async function GET() {
   try {

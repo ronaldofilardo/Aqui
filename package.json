@@ -1,15 +1,15 @@
 {
-  "name": "asa-monorepo",
+  "name": "aqui-monorepo",
   "private": true,
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "vercel-build": "pnpm --filter @asa/database prisma migrate deploy && pnpm build",
+    "vercel-build": "pnpm --filter @aqui/database prisma migrate deploy && pnpm build",
     "lint": "turbo lint",
     "test": "turbo test",
-    "db:migrate": "pnpm --filter @asa/database prisma migrate dev",
-    "db:seed": "pnpm --filter @asa/database prisma db seed",
-    "db:studio": "pnpm --filter @asa/database prisma studio",
+    "db:migrate": "pnpm --filter @aqui/database prisma migrate dev",
+    "db:seed": "pnpm --filter @aqui/database prisma db seed",
+    "db:studio": "pnpm --filter @aqui/database prisma studio",
     "setup": "pnpm install && pnpm db:migrate && pnpm db:seed"
   },
   "devDependencies": {

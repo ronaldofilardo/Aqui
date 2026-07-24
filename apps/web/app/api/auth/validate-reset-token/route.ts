@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { hashToken, isTokenExpired } from "@/lib/password-reset";
 
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireConsultor, ok, badRequest } from "@/lib/api-helpers";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
 import { getBaseUrl } from "@/lib/utils";

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireConsultor, ok, badRequest } from "@/lib/api-helpers";
-import { atualizarConsultorSelfSchema } from "@asa/shared";
+import { atualizarConsultorSelfSchema } from "@aqui/shared";
 
 export async function GET() {
   const { session, error } = await requireConsultor();

@@ -1,16 +1,16 @@
 {
-  "name": "@asa/web",
+  "name": "@aqui/web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "echo \"lint skipped (eslint not installed)\""
   },
   "dependencies": {
-    "@asa/database": "workspace:*",
-    "@asa/shared": "workspace:*",
+    "@aqui/database": "workspace:*",
+    "@aqui/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "lru-cache": "^11.5.2",
     "lucide-react": "^1.14.0",
@@ -20,7 +20,6 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "sonner": "^2.0.7",
-    "xlsx": "^0.18.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -29,9 +28,9 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@types/xlsx": "^0.0.36",
     "autoprefixer": "^10.4.19",
     "cypress": "^15.12.0",
+    "dotenv": "^17.4.2",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.5.0"

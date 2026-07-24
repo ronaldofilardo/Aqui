@@ -31,19 +31,10 @@ const defaultOptions: RateLimitOptions = {
 
 // Configurações específicas por rota
 const routeLimits: Record<string, RateLimitOptions> = {
-  // Endpoints críticos com limites mais baixos
-  '/api/v1/backoffice/pontos/distribuir': { limit: 10, windowMs: 60 * 1000 },
-  '/api/v1/backoffice/pontos/resgates': { limit: 20, windowMs: 60 * 1000 },
-  '/api/v1/backoffice/uploads': { limit: 5, windowMs: 60 * 1000 },
-  '/api/v1/backoffice/uploads/preview': { limit: 10, windowMs: 60 * 1000 },
-  '/api/v1/backoffice/reprocessar-comissoes': { limit: 5, windowMs: 60 * 1000 },
-  
-  // Endpoints de leitura podem ter limites maiores
-  '/api/v1/backoffice/pontos/ranking': { limit: 30, windowMs: 60 * 1000 },
-  '/api/v1/backoffice/relatorio-comissoes': { limit: 20, windowMs: 60 * 1000 },
-  
   // Endpoints de autenticação
   '/api/auth/login': { limit: 5, windowMs: 60 * 1000 },
+  // Endpoints de importação (PJ)
+  '/api/v1/gestor/importar-cupons': { limit: 10, windowMs: 60 * 1000 },
 };
 
 export function getRateLimitOptions(path: string): RateLimitOptions {

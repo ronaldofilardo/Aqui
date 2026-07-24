@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@asa/database", "@asa/shared"],
+  output: undefined,
+  transpilePackages: ["@aqui/database", "@aqui/shared"],
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
   },
@@ -42,6 +43,16 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  webpack: (config, { isServer }) => {
+    config.snapshot = {
+      ...config.snapshot,
+      managedPaths: [
+        ...(config.snapshot?.managedPaths || []),
+        /@next\/swc-[a-z0-9-]+/,
+      ],
+    };
+    return config;
   },
 };
 

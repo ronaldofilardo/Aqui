@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
 import {
   parseCupomFile,
   importarCuponsSchema,
-} from "@asa/shared";
+} from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {

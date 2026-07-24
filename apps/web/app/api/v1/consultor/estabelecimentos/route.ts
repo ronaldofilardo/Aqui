@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireConsultor, ok, created, badRequest } from "@/lib/api-helpers";
-import { criarEstabelecimentoSchema } from "@asa/shared";
+import { criarEstabelecimentoSchema } from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function GET() {

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireGestor, ok, badRequest } from "@/lib/api-helpers";
-import { validarCPF } from "@asa/shared";
+import { validarCPF } from "@aqui/shared";
 
 export async function GET(req: NextRequest) {
   try {

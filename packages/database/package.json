@@ -1,5 +1,5 @@
 {
-  "name": "@asa/database",
+  "name": "@aqui/database",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",

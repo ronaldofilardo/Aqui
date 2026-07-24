@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { validateInviteToken } from "@/lib/invite-token";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 import { generateResetToken, hashToken } from "@/lib/password-reset";

@@ -24,6 +24,12 @@ pnpm-debug.log*
 # Testing
 coverage/
 .turbo/
+test-results.txt
+TESTES_APROVACAO*.md
+
+# Tooling
+.kilo/
+.docs/
 
 # Uploads
 uploads/

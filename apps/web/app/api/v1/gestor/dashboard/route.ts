@@ -1,4 +1,4 @@
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireGestorWithScope, ok } from "@/lib/api-helpers";
 
 function calcularVariacao(atual: number, anterior: number): number {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import React from "react";
 import Link from "next/link";
-import { validarCPF } from "@asa/shared";
+import { validarCPF } from "@aqui/shared";
 import { getAbsoluteLink } from "@/lib/url";
 
 interface Consultor {

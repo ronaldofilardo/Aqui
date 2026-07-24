@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { ok, badRequest, notFound } from "@/lib/api-helpers";
-import { agendarConsultaSchema } from "@asa/shared";
+import { agendarConsultaSchema } from "@aqui/shared";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {

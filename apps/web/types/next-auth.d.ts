@@ -1,17 +1,11 @@
 import "next-auth";
 
-export type PapelGestor = "BACKOFFICE" | "GESTOR_PJ" | "GESTOR_PF";
+export type PapelGestor = "GESTOR_PJ";
 
 export type TipoAcesso =
   | "ADMIN"
-  | "BACKOFFICE"
-  | "SUPERVISAO"
-  | "GERENCIA"
-  | "GESTOR"
   | "CONSULTOR"
-  | "PARCEIRO"
-  | "COMERCIAL"
-  | "LIDERANCA"
+  | "GESTOR_PJ"
   | "ESTABELECIMENTO";
 
 declare module "next-auth" {
@@ -20,9 +14,6 @@ declare module "next-auth" {
     papel: PapelGestor | null;
     consultorId: string | null;
     estabelecimentoId: string | null;
-    backofficeId: string | null;
-    parceiroId: string | null;
-    comercialId: string | null;
   }
   interface Session {
     user: {
@@ -33,9 +24,6 @@ declare module "next-auth" {
       papel: PapelGestor | null;
       consultorId: string | null;
       estabelecimentoId: string | null;
-      backofficeId: string | null;
-      parceiroId: string | null;
-      comercialId: string | null;
     };
   }
 }
@@ -47,8 +35,5 @@ declare module "next-auth/jwt" {
     papel: PapelGestor | null;
     consultorId: string | null;
     estabelecimentoId: string | null;
-    backofficeId: string | null;
-    parceiroId: string | null;
-    comercialId: string | null;
   }
 }

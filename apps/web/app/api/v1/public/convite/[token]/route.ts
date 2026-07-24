@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { validateInviteToken } from "@/lib/invite-token";
 
 export async function GET(

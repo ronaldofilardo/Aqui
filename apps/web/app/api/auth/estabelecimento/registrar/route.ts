@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { badRequest } from "@/lib/api-helpers";
 import { validateInviteToken } from "@/lib/invite-token";
 import { checkRateLimit, tooManyRequests, getClientIp } from "@/lib/rate-limit";

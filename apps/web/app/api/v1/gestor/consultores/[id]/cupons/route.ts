@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import {
   requireGestor,
   ok,

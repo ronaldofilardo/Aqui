@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { hash } from "bcryptjs";
 import { requireGestor, ok, created, badRequest } from "@/lib/api-helpers";
-import { criarConsultorSchema } from "@asa/shared";
+import { criarConsultorSchema } from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 import { generateResetToken, hashToken } from "@/lib/password-reset";
 import { getBaseUrl } from "@/lib/utils";

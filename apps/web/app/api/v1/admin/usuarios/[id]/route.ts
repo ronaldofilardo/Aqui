@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/api-helpers";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 
 export async function DELETE(
   request: NextRequest,

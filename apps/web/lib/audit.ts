@@ -1,4 +1,4 @@
-import { prisma, Prisma } from "@asa/database";
+import { prisma, Prisma } from "@aqui/database";
 
 export async function criarAuditLog(params: {
   usuarioId?: string | null;

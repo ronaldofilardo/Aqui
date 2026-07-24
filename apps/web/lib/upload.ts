@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { ALLOWED_MIMETYPES, MAX_UPLOAD_SIZE } from "@asa/shared";
+import { ALLOWED_MIMETYPES, MAX_UPLOAD_SIZE } from "@aqui/shared";
 
 // AVISO: gravação em disco é incompatível com Vercel serverless.
 // Em produção, substitua por upload para storage externo (ex: S3, Vercel Blob).

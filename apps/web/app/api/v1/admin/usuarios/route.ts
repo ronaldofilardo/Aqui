@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, getSession } from "@/lib/api-helpers";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Validate admin access and get session
     const { session, error } = await requireAdmin();
     if (error) return error;
 
     const currentUserId = session?.user?.id;
 
-    // Fetch all consultores with their usuarios
     const consultores = await prisma.consultor.findMany({
       include: {
         usuario: {
@@ -26,7 +24,6 @@ export async function GET() {
       },
     });
 
-    // Fetch all usuarioEstabelecimentos with their estabelecimentos
     const usuariosEstabelecimento =
       await prisma.usuarioEstabelecimento.findMany({
         include: {
@@ -38,10 +35,9 @@ export async function GET() {
         },
       });
 
-    // Format gestores (exclude self)
     const gestores = await prisma.usuario.findMany({
       where: {
-        tipo: "LIDERANCA",
+        tipo: "GESTOR_PJ",
         id: { not: currentUserId },
       },
       select: {
@@ -49,6 +45,10 @@ export async function GET() {
         email: true,
         nome: true,
         status: true,
+        criadoEm: true,
+        gestoresConsultores: {
+          select: { id: true, consultorId: true },
+        },
       },
     });
 
@@ -58,12 +58,12 @@ export async function GET() {
       nome: gestor.nome,
       email: gestor.email,
       cpf: null,
-      tipo: "LIDERANCA" as const,
+      tipo: "GESTOR_PJ" as const,
       status: gestor.status,
       hierarquia: "GESTOR" as const,
+      consultoresAtribuidos: gestor.gestoresConsultores.length,
     }));
 
-    // Format consultores
     const consultoresFormatted = consultores.map((consultor) => ({
       id: consultor.id,
       usuarioId: consultor.usuarioId,
@@ -75,7 +75,6 @@ export async function GET() {
       hierarquia: "CONSULTOR" as const,
     }));
 
-    // Format usuarioEstabelecimento
     const usuariosEstabelecimentoFormatted = usuariosEstabelecimento.map(
       (usuario) => ({
         id: usuario.id,
@@ -91,7 +90,6 @@ export async function GET() {
       }),
     );
 
-    // Combine and sort by nome
     const usuarios = [
       ...gestoresFormatted,
       ...consultoresFormatted,
@@ -100,23 +98,17 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      administradores: [],
+      gestores: gestoresFormatted,
+      consultores: consultoresFormatted,
+      usuariosEstabelecimentos: usuariosEstabelecimentoFormatted,
       usuarios,
-      total: usuarios.length,
     });
   } catch (error) {
-    console.error("Error fetching usuarios:", error);
+    console.error("[admin/usuarios] Error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Erro ao listar usuários",
-      },
-      {
-        status:
-          error instanceof Error && error.message.includes("Unauthorized")
-            ? 401
-            : 500,
-      },
+      { error: "Erro ao listar usuarios" },
+      { status: 500 },
     );
   }
 }

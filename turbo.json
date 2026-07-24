@@ -12,11 +12,11 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "@asa/database#build": {
+    "@aqui/database#build": {
       "dependsOn": [],
       "outputs": []
     },
-    "@asa/shared#build": {
+    "@aqui/shared#build": {
       "dependsOn": [],
       "outputs": []
     },
@@ -25,7 +25,8 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^build"]

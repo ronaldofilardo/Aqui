@@ -1,41 +1,45 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
-import { ok, requireGestorNivelInferiorWithScope } from "@/lib/api-helpers";
+import { prisma } from "@aqui/database";
+import { ok, requireGestorWithScope } from "@/lib/api-helpers";
 
 export async function GET(req: NextRequest) {
-  const { session, gestorId, error } = await requireGestorNivelInferiorWithScope();
+  const { session, consultorIds, error } = await requireGestorWithScope();
   if (error) return error;
 
   const now = new Date();
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
   const fimMes = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const [parceiros, indicados, producao] = await Promise.all([
-    prisma.parceiro.count({
-      where: { gestorId },
-    }),
-    prisma.indicado.count({
-      where: {
-        parceiro: { gestorId },
-      },
-    }),
-    prisma.procedimentoPF.aggregate({
-      where: {
-        gestorId,
-        dataReferencia: {
-          gte: inicioMes,
-          lte: fimMes,
+  const whereConsultores =
+    consultorIds.length > 0
+      ? { consultorId: { in: consultorIds } }
+      : { id: "-1" };
+
+  const [totalConsultores, totalEstabelecimentos, cuponsMes, consultasMes] =
+    await Promise.all([
+      prisma.consultor.count({ where: { id: { in: consultorIds } } }),
+      prisma.estabelecimento.count({ where: whereConsultores }),
+      prisma.cupomImportado.count({
+        where: {
+          criadoEm: { gte: inicioMes, lte: fimMes },
+          cupomConfig: { estabelecimento: whereConsultores },
         },
-      },
-      _sum: {
-        totalPago: true,
-      },
-    }),
-  ]);
+      }),
+      prisma.consulta.count({
+        where: {
+          status: "REALIZADA",
+          criadoEm: { gte: inicioMes, lte: fimMes },
+          cupomImportado: {
+            cupomConfig: { estabelecimento: whereConsultores },
+          },
+        },
+      }),
+    ]);
 
   return ok({
-    totalParceiros: parceiros,
-    totalIndicados: indicados,
-    producaoMes: Number(producao._sum.totalPago) || 0,
+    totalConsultores,
+    totalEstabelecimentos,
+    cuponsMes,
+    consultasMes,
   });
 }

@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireConsultor, created, badRequest, notFound, forbidden } from "@/lib/api-helpers";
 import { saveUploadedFile } from "@/lib/upload";
-import { ALLOWED_MIMETYPES, MAX_UPLOAD_SIZE } from "@asa/shared";
+import { ALLOWED_MIMETYPES, MAX_UPLOAD_SIZE } from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function POST(

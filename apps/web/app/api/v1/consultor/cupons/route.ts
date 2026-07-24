@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import { requireAuth, ok, created, badRequest } from "@/lib/api-helpers";
-import { criarCupomConfigSchema } from "@asa/shared";
+import { criarCupomConfigSchema } from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function GET() {

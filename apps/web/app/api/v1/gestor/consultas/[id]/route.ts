@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@asa/database";
+import { prisma } from "@aqui/database";
 import {
   requireGestorWithScope,
   ok,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/api-helpers";
 import {
   atualizarConsultaSchema,
-} from "@asa/shared";
+} from "@aqui/shared";
 import { criarAuditLog } from "@/lib/audit";
 
 export async function PATCH(

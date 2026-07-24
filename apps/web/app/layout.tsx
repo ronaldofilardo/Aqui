@@ -4,10 +4,12 @@ import { validateSecrets } from "@/lib/validate-secrets";
 
 validateSecrets();
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Acesso Saúde Aqui",
+  title: "Acesso Saude Aqui",
   description:
-    "Programa Acesso Saúde Aqui - Gestão de Cupons, Consultas e Comissões",
+    "Programa Acesso Saude Aqui - Gestao de Cupons, Consultas e Comissoes",
 };
 
 export default function RootLayout({
