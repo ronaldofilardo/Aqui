@@ -1,5 +1,5 @@
 -- Manual SQL to create ADMIN user if migration fails
--- Execute this script in your PostgreSQL database (asa_db):
+-- Execute this script in your PostgreSQL database (aqui_db):
 
 -- First, ensure ADMIN type exists in enum (if migration hasn't run)
 -- ALTER TYPE "TipoUsuario" ADD VALUE 'ADMIN';

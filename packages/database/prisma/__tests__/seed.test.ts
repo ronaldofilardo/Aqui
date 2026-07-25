@@ -7,27 +7,36 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 
 vi.mock('@prisma/client', () => {
+  // upsert mock: retorna o "create" mesclado com dados do "where",
+  // simulando o comportamento real de um upsert Prisma.
+  const upsertMock = vi.fn(async (args: any) => {
+    const id =
+      args?.where?.id ??
+      (args?.where?.email ? `id-${args.where.email}` : args?.create?.id) ??
+      'mock-id';
+    return { ...args?.create, ...args?.where, id };
+  });
+
   const mockPrismaClient = {
-    usuario: {
-      upsert: vi.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
-    },
-    backoffice: {
-      upsert: vi.fn().mockResolvedValue({ id: 'bo-1', usuarioId: 'user-1' }),
-    },
-    consultor: {
-      upsert: vi.fn().mockResolvedValue({ id: 'cons-1', usuarioId: 'user-2' }),
-    },
-    estabelecimento: {
-      upsert: vi.fn().mockResolvedValue({ id: 'est-1' }),
-    },
-    usuarioEstabelecimento: {
-      upsert: vi.fn().mockResolvedValue({ id: 'ue-1' }),
-    },
+    usuario: { upsert: upsertMock },
+    backoffice: { upsert: upsertMock },
+    consultor: { upsert: upsertMock },
+    estabelecimento: { upsert: upsertMock },
+    usuarioEstabelecimento: { upsert: upsertMock },
     $disconnect: vi.fn().mockResolvedValue(undefined),
   };
 
+  class MockPrismaClient {
+    usuario = mockPrismaClient.usuario;
+    backoffice = mockPrismaClient.backoffice;
+    consultor = mockPrismaClient.consultor;
+    estabelecimento = mockPrismaClient.estabelecimento;
+    usuarioEstabelecimento = mockPrismaClient.usuarioEstabelecimento;
+    $disconnect = mockPrismaClient.$disconnect;
+  }
+
   return {
-    PrismaClient: vi.fn(() => mockPrismaClient),
+    PrismaClient: MockPrismaClient,
   };
 });
 

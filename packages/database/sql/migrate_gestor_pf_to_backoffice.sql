@@ -5,7 +5,7 @@
 -- ao perfil gestor-pf para backoffice, refletindo sua função de administrador
 -- técnico/operacional do sistema.
 --
--- Execução: psql -U postgres -d asa_db -h localhost -f migrate_gestor_pf_to_backoffice.sql
+-- Execução: psql -U postgres -d aqui_db -h localhost -f migrate_gestor_pf_to_backoffice.sql
 -- ============================================================================
 
 BEGIN;

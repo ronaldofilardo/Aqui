@@ -2,7 +2,7 @@
 -- Correção do Enum PapelGestor
 -- ============================================================================
 -- Adiciona BACKOFFICE ao enum PapelGestor
--- Execução: psql -U postgres -d asa_db -h localhost -f fix_enum_papelgestor.sql
+-- Execução: psql -U postgres -d aqui_db -h localhost -f fix_enum_papelgestor.sql
 -- ============================================================================
 
 DO $$ BEGIN

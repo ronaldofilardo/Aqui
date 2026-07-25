@@ -1,6 +1,6 @@
 -- Seed de usuários padrão para ambiente de dev/qa
--- Banco: asa_db
--- Execute: psql -U postgres -d asa_db -h localhost -f packages/database/sql/seed_usuarios_padrao.sql
+-- Banco: aqui_db
+-- Execute: psql -U postgres -d aqui_db -h localhost -f packages/database/sql/seed_usuarios_padrao.sql
 -- Senha de todos: 123456
 
 -- ============================================================

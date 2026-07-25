@@ -19,12 +19,23 @@ export default defineConfig({
       NEXTAUTH_SECRET: testSecret,
       DATABASE_URL: process.env.DATABASE_URL,
     },
+    server: {
+      deps: {
+        // next-auth importa "next/server" em ESM; sem exports map no package.json
+        // do next, Node não resolve "next/server" (sem extensão). Marcando next-auth
+        // como noExternal faz o Vite processar seus imports e aplicar o alias.
+        inline: ["next-auth"],
+      },
+    },
   },
   resolve: {
     alias: {
       "@aqui/shared": path.resolve(__dirname, "packages/shared/src"),
       "@aqui/database": path.resolve(__dirname, "packages/database/src"),
       "@": path.resolve(__dirname, "apps/web"),
+      // next-auth/lib/env.js importa "next/server" em ESM; sem exports map,
+      // Node não resolve "next/server" (sem extensão). Aponta para o JS real.
+      "next/server": path.resolve(__dirname, "node_modules/next/server.js"),
     },
   },
 });

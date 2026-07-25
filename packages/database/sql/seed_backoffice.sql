@@ -1,5 +1,5 @@
 -- Seed para Domínio PF - Backoffice Admin
--- Execute: psql -U postgres -d asa_db -h localhost -f seed_backoffice.sql
+-- Execute: psql -U postgres -d aqui_db -h localhost -f seed_backoffice.sql
 
 -- Criar usuário para Backoffice Admin
 INSERT INTO usuarios (id, nome, email, senha_hash, tipo, telefone, status, senha_temporaria, criado_em, atualizado_em)

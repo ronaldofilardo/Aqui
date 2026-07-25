@@ -17,10 +17,15 @@ describe('Middleware de Autenticacao e Papeis (AQUI)', () => {
     return new NextRequest(new URL(url, 'http://localhost:3000'));
   };
 
+  const expectPasses = (res: any) => {
+    expect(res).toBeInstanceOf(NextResponse);
+    expect(res.headers.get('x-middleware-next')).toBe('1');
+  };
+
   it('deve permitir acesso a rotas publicas', async () => {
     const req = createRequest('/login');
     const res = await middleware(req);
-    expect(res).toBeNull();
+    expectPasses(res);
   });
 
   it('deve redirecionar para /login se tentar acessar rota protegida sem token', async () => {
@@ -40,7 +45,7 @@ describe('Middleware de Autenticacao e Papeis (AQUI)', () => {
     const req = createRequest('/gestor/dashboard');
     const res = await middleware(req);
 
-    expect(res).toBeNull();
+    expectPasses(res);
   });
 
   it('deve permitir CONSULTOR em /consultor/estabelecimentos', async () => {
@@ -51,7 +56,7 @@ describe('Middleware de Autenticacao e Papeis (AQUI)', () => {
     const req = createRequest('/consultor/estabelecimentos');
     const res = await middleware(req);
 
-    expect(res).toBeNull();
+    expectPasses(res);
   });
 
   it('deve permitir ESTABELECIMENTO em /estabelecimento/dashboard', async () => {
@@ -62,7 +67,7 @@ describe('Middleware de Autenticacao e Papeis (AQUI)', () => {
     const req = createRequest('/estabelecimento/dashboard');
     const res = await middleware(req);
 
-    expect(res).toBeNull();
+    expectPasses(res);
   });
 
   it('deve forcar HTTPS em producao', async () => {

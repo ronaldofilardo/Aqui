@@ -4,7 +4,7 @@
 -- Este script reverte a migração backoffice para gestor-pf.
 -- Use APENAS em caso de erro crítico na migração original.
 --
--- Execução: psql -U postgres -d asa_db -h localhost -f rollback_migrate_gestor_pf_to_backoffice.sql
+-- Execução: psql -U postgres -d aqui_db -h localhost -f rollback_migrate_gestor_pf_to_backoffice.sql
 -- ============================================================================
 
 BEGIN;

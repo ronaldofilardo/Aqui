@@ -21,11 +21,11 @@
 
 ---
 
-## Regra 3 — Testes DEVEM usar apenas `asa_db_test`
+## Regra 3 — Testes DEVEM usar apenas `aqui_db_test`
 
-- **Proibido:** Executar testes com `DATABASE_URL` apontando para `asa_db` em qualquer ambiente de teste.
-- **Obrigatório:** `NODE_ENV=test` + `DATABASE_URL` apontando exclusivamente para `asa_db_test`.
-- **Bloqueio técnico:** `packages/database/src/index.ts` lança erro se detectar `/asa_db` em `DATABASE_URL` durante testes.
+- **Proibido:** Executar testes com `DATABASE_URL` apontando para `aqui_db` em qualquer ambiente de teste.
+- **Obrigatório:** `NODE_ENV=test` + `DATABASE_URL` apontando exclusivamente para `aqui_db_test`.
+- **Bloqueio técnico:** `packages/database/src/index.ts` lança erro se detectar `/aqui_db` em `DATABASE_URL` durante testes.
 - **Motivo:** Evita corrupção de dados de desenvolvimento e garante isolamento entre dados reais e dados de teste.
 
 ---
@@ -52,8 +52,8 @@ Se pedir reset: **NÃO prossiga**. Volte ao passo 1.
 O `migrate dev` já aplica a migration no banco local. Não execute SQL adicional.
 
 ### 4.1 Configurar banco de teste
-- Crie o banco `asa_db_test` localmente: `CREATE DATABASE asa_db_test;`
-- Configure `.env.test` em `packages/database/.env.test` e `apps/web/.env.test` com `DATABASE_URL` apontando para `asa_db_test`
+- Crie o banco `aqui_db_test` localmente: `CREATE DATABASE aqui_db_test;`
+- Configure `.env.test` em `packages/database/.env.test` e `apps/web/.env.test` com `DATABASE_URL` apontando para `aqui_db_test`
 - O vitest carrega `.env.test` automaticamente via `vitest.config.ts`
 
 ### 5. Validar
@@ -71,7 +71,7 @@ pnpm test
 - [ ] `npx prisma migrate status` mostra "up to date"
 - [ ] `npx prisma migrate diff` retorna migration vazia
 - [ ] Nenhuma flag `--force` usada no histórico local
-- [ ] Em testes: `NODE_ENV=test` e `DATABASE_URL` aponta para `asa_db_test` (validação automática em `packages/database/src/index.ts`)
+- [ ] Em testes: `NODE_ENV=test` e `DATABASE_URL` aponta para `aqui_db_test` (validação automática em `packages/database/src/index.ts`)
 
 ---
 
@@ -91,7 +91,7 @@ Se `prisma migrate dev` acusar drift:
 | Data | Erro | Causa Raiz | Correção |
 |------|------|------------|----------|
 | 2026-07-19 | Reset do banco apagou dados | SQL manual + drift não gerenciado | Migration própria criada, SQLs manuais removidas |
-| 2026-07-19 | Testes usando `asa_db` (banco de desenvolvimento) | Falta de validação de banco em testes | Bloqueio técnico adicionado em `packages/database/src/index.ts` para impedir uso de `asa_db` em `NODE_ENV=test` |
+| 2026-07-19 | Testes usando `aqui_db` (banco de desenvolvimento) | Falta de validação de banco em testes | Bloqueio técnico adicionado em `packages/database/src/index.ts` para impedir uso de `aqui_db` em `NODE_ENV=test` |
 
 ---
 

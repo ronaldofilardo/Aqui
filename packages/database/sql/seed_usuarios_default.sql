@@ -1,5 +1,5 @@
 -- Seed de usuários padrão para ambiente de produção
--- Execute: psql -U postgres -d asa_db -h localhost -f packages/database/sql/seed_usuarios_default.sql
+-- Execute: psql -U postgres -d aqui_db -h localhost -f packages/database/sql/seed_usuarios_default.sql
 -- senha padrão: 123456
 
 -- ============================================================

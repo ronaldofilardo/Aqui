@@ -2,7 +2,7 @@
 -- Migração: gestor-pf → backoffice (VERSÃO CORRIGIDA)
 -- ============================================================================
 -- Esta versão verifica se as colunas/tabelas existem antes de alterar
--- Execução: psql -U postgres -d asa_db -h localhost -f migrate_gestor_pf_to_backoffice_fixed.sql
+-- Execução: psql -U postgres -d aqui_db -h localhost -f migrate_gestor_pf_to_backoffice_fixed.sql
 -- ============================================================================
 
 BEGIN;
