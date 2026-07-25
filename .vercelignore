@@ -1,42 +1,34 @@
 # Environment files
-
-.env.local
-.env.test
-.env.\*.local
+.env
+.env.*
+!.env.example
 
 # Development files
-
 .turbo
 .next
 dist
 node_modules
 
 # Git files
-
 .git
 .gitignore
 
 # IDE files
-
 .vscode
 .idea
-_.swp
-_.swo
+*.swp
+*.swo
 
 # Documentation
-
 README.md
 docs
+archive
+*.md
 
 # Testing
-
 cypress
+coverage
 vitest.config.ts
-.test
-
-# Build artifacts
-
-.turbo
-apps/_/.next
-packages/_/dist
-
+**/*.test.ts
+**/*.test.tsx
+**/__tests__
