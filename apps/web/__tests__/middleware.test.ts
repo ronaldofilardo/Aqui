@@ -83,4 +83,55 @@ describe('Middleware de Autenticacao e Papeis (AQUI)', () => {
     vi.stubEnv('NODE_ENV', original ?? 'development');
     vi.unstubAllEnvs();
   });
+
+  /**
+   * Correcao: getToken deve usar AUTH_SECRET (Auth.js v5) com fallback
+   * para NEXTAUTH_SECRET. Sem isso, o middleware redireciona o usuario
+   * de volta para /login em loop na Vercel + dominio custom.
+   */
+  describe('getToken secret resolution', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('deve usar AUTH_SECRET quando definido (Auth.js v5)', async () => {
+      vi.stubEnv('AUTH_SECRET', 'auth-secret-from-vercel');
+      vi.stubEnv('NEXTAUTH_SECRET', 'nextauth-secret-fallback');
+
+      (getToken as any).mockResolvedValue({ tipo: 'ADMIN', papel: null });
+      const req = createRequest('/admin/usuarios');
+      await middleware(req);
+
+      expect(getToken).toHaveBeenCalledWith(
+        expect.objectContaining({ secret: 'auth-secret-from-vercel' }),
+      );
+    });
+
+    it('deve usar NEXTAUTH_SECRET como fallback quando AUTH_SECRET nao definido', async () => {
+      delete process.env.AUTH_SECRET;
+      process.env.NEXTAUTH_SECRET = 'nextauth-secret-fallback';
+
+      (getToken as any).mockResolvedValue({ tipo: 'ADMIN', papel: null });
+      const req = createRequest('/admin/usuarios');
+      await middleware(req);
+
+      expect(getToken).toHaveBeenCalledWith(
+        expect.objectContaining({ secret: 'nextauth-secret-fallback' }),
+      );
+    });
+
+    it('NÃO deve passar secret undefined para getToken', async () => {
+      delete process.env.AUTH_SECRET;
+      process.env.NEXTAUTH_SECRET = 'fallback-when-auth-missing';
+
+      (getToken as any).mockResolvedValue(null);
+      const req = createRequest('/admin/usuarios');
+      await middleware(req);
+
+      const calls = (getToken as any).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.secret).not.toBeUndefined();
+    });
+  });
 });

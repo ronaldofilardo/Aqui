@@ -5,6 +5,9 @@ import { prisma } from "@aqui/database";
 import { TipoAcesso } from "@/types/next-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Auth.js v5 exige trustHost=true quando o app está atrás de proxy / domínio custom
+  // (Vercel + asaqui.acessosaude.com.br). Sem isso, validações de host/CSRF falham.
+  trustHost: true,
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: {
     signIn: "/login",

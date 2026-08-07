@@ -12,6 +12,8 @@ const WEAK_SECRETS = [
   "asa-test-secret",
   "test-secret-for-vitest-only",
   "MUST_GENERATE_NEW_SECRET_WITH_OPENSSL_IN_PRODUCTION",
+  "aqui-dev-secret-change-in-prod",
+  "dev-secret-replace-in-production",
 ];
 
 export function validateSecrets() {
