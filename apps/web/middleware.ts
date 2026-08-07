@@ -120,9 +120,21 @@ export async function middleware(req: NextRequest) {
     protectedPrefixes.some((p) => pathname.startsWith(p)) &&
     !pathname.startsWith("/api/")
   ) {
+    // O nome do cookie e usado como "salt" na derivacao da chave (HKDF) do JWT
+    // no Auth.js v5. Portanto, ler com um nome diferente do usado na assinatura
+    // faz o decode falhar silenciosamente (token = null) e gera loop de login.
+    //
+    // Na Vercel o TLS termina no proxy: a request que chega na funcao e "http:",
+    // entao o Auth.js so assina o cookie com prefixo "__Secure-" se AUTH_URL /
+    // NEXTAUTH_URL estiver definido com https. Por isso derivamos o nome do
+    // cookie da MESMA fonte, em vez de assumir NODE_ENV === "production".
+    const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+    const useSecureCookie = authUrl?.startsWith("https://") ?? false;
+
     const token = await getToken({
       req,
       secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+      secureCookie: useSecureCookie,
     });
 
     if (!token) {
@@ -145,7 +157,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  runtime: "nodejs",
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|public).*)",
   ],

@@ -5,7 +5,9 @@
     "DATABASE_URL",
     "NEXTAUTH_SECRET",
     "NEXTAUTH_URL",
-    "AUTH_SECRET"
+    "AUTH_SECRET",
+    "AUTH_URL",
+    "AUTH_TRUST_HOST"
   ],
   "tasks": {
     "build": {

@@ -8,6 +8,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Auth.js v5 exige trustHost=true quando o app está atrás de proxy / domínio custom
   // (Vercel + asaqui.acessosaude.com.br). Sem isso, validações de host/CSRF falham.
   trustHost: true,
+  // Na Vercel o TLS termina no edge proxy, entao a request interna chega como
+  // "http:". O Auth.js decide o prefixo "__Secure-" do cookie a partir de
+  // url.protocol === "https:", o que resultaria em um cookie sem prefixo.
+  // Como o nome do cookie e o salt do HKDF que cifra o JWT, qualquer divergencia
+  // entre quem assina e quem le quebra o decode. Fixamos o valor explicitamente
+  // para eliminar a auto-deteccao.
+  useSecureCookies:
+    (process.env.AUTH_URL ?? process.env.NEXTAUTH_URL)?.startsWith("https://") ??
+    false,
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   pages: {
     signIn: "/login",
